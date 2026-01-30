@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+
+<!-- PROTEKSI LOGIN -->
+<script>
+if(localStorage.getItem("adminLogin") !== "true"){
+  location.href = "login.html";
+}
+</script>
+
+<style>
+body{margin:0;background:#0f0f0f;color:#fff;font-family:Arial,sans-serif}
+header{background:#000;padding:15px 20px;display:flex;justify-content:space-between;align-items:center}
+button{background:#e50914;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
+.logout{background:#444}
+.container{padding:20px}
+.form{background:#1a1a1a;padding:15px;border-radius:8px;margin-bottom:20px}
+.form input,.form select{width:100%;padding:8px;margin-bottom:10px;border:none;border-radius:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px}
+.card{background:#1a1a1a;border-radius:8px;overflow:hidden}
+.card img{width:100%;height:220px;object-fit:cover}
+.card p{padding:6px;font-size:14px}
+.actions{display:flex;justify-content:space-between;padding:6px}
+.edit{background:#ffa500}
+.delete{background:#ff4d4d}
+.tools{margin-bottom:15px;display:flex;gap:10px;flex-wrap:wrap}
+.tag{font-size:12px;padding:4px 8px;border-radius:4px;margin-left:6px}
+.adult{background:#e50914}
+.normal{background:#444}
+</style>
+</head>
+<body>
+
+<header>
+  <h2>Admin Panel</h2>
+  <button class="logout" onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+<div class="tools">
+  <button onclick="exportData()">Export Data</button>
+  <input type="file" id="importFile" hidden accept="application/json">
+  <button onclick="document.getElementById('importFile').click()">Import Data</button>
+</div>
+
+<div class="form">
+  <h3 id="formTitle">Tambah Film</h3>
+  <input id="title" placeholder="Judul Film">
+  <input id="thumb" placeholder="URL Thumbnail">
+  <input id="video" placeholder="Google Drive Embed URL">
+
+  <select id="type">
+    <option value="movie">Movie</option>
+    <option value="anime">Anime</option>
+    <option value="series">Series</option>
+  </select>
+
+  <select id="category">
+    <option value="normal">Umum</option>
+    <option value="18+">18+</option>
+  </select>
+
+  <button onclick="saveMovie()">Simpan</button>
+</div>
+
+<div class="grid" id="list"></div>
+</div>
+
+<script>
+let movies = JSON.parse(localStorage.getItem("movies")) || [];
+let editIndex = null;
+const list = document.getElementById("list");
+
+function render(){
+  list.innerHTML = "";
+  movies.forEach((m,i)=>{
+    list.innerHTML += `
+    <div class="card">
+      <img src="${m.thumb}">
+      <p>
+        ${m.title}
+        <span class="tag ${m.category==='18+'?'adult':'normal'}">
+          ${m.category==='18+'?'18+':'Umum'}
+        </span>
+      </p>
+      <div class="actions">
+        <button class="edit" onclick="editMovie(${i})">Edit</button>
+        <button class="delete" onclick="deleteMovie(${i})">Hapus</button>
+      </div>
+    </div>`;
+  });
+}
+
+function saveMovie(){
+  const data={
+    title:title.value,
+    thumb:thumb.value,
+    video:video.value,
+    type:type.value,
+    category:category.value
+  };
+
+  if(!data.title||!data.thumb||!data.video){
+    alert('Lengkapi data');
+    return;
+  }
+
+  if(editIndex===null){
+    movies.push(data);
+  }else{
+    movies[editIndex]=data;
+    editIndex=null;
+    formTitle.innerText='Tambah Film';
+  }
+
+  localStorage.setItem('movies',JSON.stringify(movies));
+  clearForm();
+  render();
+}
+
+function editMovie(i){
+  const m=movies[i];
+  title.value=m.title;
+  thumb.value=m.thumb;
+  video.value=m.video;
+  type.value=m.type;
+  category.value=m.category||'normal';
+  editIndex=i;
+  formTitle.innerText='Edit Film';
+}
+
+function deleteMovie(i){
+  if(!confirm('Hapus film ini?'))return;
+  movies.splice(i,1);
+  localStorage.setItem('movies',JSON.stringify(movies));
+  render();
+}
+
+function clearForm(){
+  title.value='';
+  thumb.value='';
+  video.value='';
+  type.value='movie';
+  category.value='normal';
+}
+
+function exportData(){
+  const data={movies};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='my-streaming-backup.json';
+  a.click();
+}
+
+document.getElementById('importFile').addEventListener('change',function(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data.movies)throw 'invalid';
+      movies=data.movies;
+      localStorage.setItem('movies',JSON.stringify(movies));
+      render();
+      alert('Import berhasil');
+    }catch{
+      alert('File tidak valid');
+    }
+  };
+  reader.readAsText(file);
+});
+
+function logout(){
+  localStorage.removeItem('adminLogin');
+  location.href='login.html';
+}
+
+render();
+</script>
+</body>
+</html>

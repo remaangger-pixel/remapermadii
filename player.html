@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player</title>
+
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+header{
+  height:48px;
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  background:#111;
+  font-size:14px;
+}
+
+#player{
+  width:100%;
+  height:calc(100% - 48px);
+}
+
+iframe,video{
+  width:100%;
+  height:100%;
+  border:0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span onclick="window.close()" style="cursor:pointer">← Back</span>
+</header>
+
+<div id="player"></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = parseInt(params.get('id'));
+
+const movies = JSON.parse(localStorage.getItem('movies')) || [];
+const movie = movies[id];
+const container = document.getElementById('player');
+
+if(!movie || (!movie.video && !movie.link)){
+  container.innerHTML = "<h2 style='color:white;text-align:center'>Video tidak ditemukan</h2>";
+  throw new Error('Video not found');
+}
+
+// KOMPATIBILITAS: dukung movie.video & movie.link
+let url = (movie.video || movie.link).trim();
+
+// ================= NORMALISASI LINK =================
+
+// Streamtape
+if(url.includes('streamtape.com')){
+  url = url.replace('/v/','/e/');
+}
+
+// Google Drive → wajib preview
+if(url.includes('drive.google.com')){
+  if(url.includes('/view')){
+    url = url.replace('/view','/preview');
+  }
+
+  if(!url.includes('/preview')){
+    const match = url.match(/\/d\/(.*?)\//);
+    if(match && match[1]){
+      url = `https://drive.google.com/file/d/${match[1]}/preview`;
+    }
+  }
+}
+
+// ================= RENDER PLAYER =================
+
+let videoEl = null;
+
+if(url.endsWith('.mp4')){
+  container.innerHTML = `
+    <video controls autoplay playsinline controlsList="nodownload">
+      <source src="${url}" type="video/mp4">
+    </video>
+  `;
+  videoEl = container.querySelector('video');
+}else{
+  container.innerHTML = `
+    <iframe
+      src="${url}"
+      allow="autoplay; fullscreen"
+      allowfullscreen>
+    </iframe>
+  `;
+}
+
+// ================= CONTINUE WATCHING (MP4 ONLY) =================
+
+if(videoEl){
+  const key = 'progress_' + id;
+  const lastTime = localStorage.getItem(key);
+
+  if(lastTime){
+    videoEl.currentTime = parseFloat(lastTime);
+  }
+
+  videoEl.addEventListener('timeupdate',()=>{
+    localStorage.setItem(key, videoEl.currentTime);
+  });
+}
+</script>
+
+</body>
+</html>

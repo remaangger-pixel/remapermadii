@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login</title>
+
+<style>
+body{
+  background:#0f0f0f;
+  color:#fff;
+  font-family:Arial;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+}
+
+.box{
+  background:#1a1a1a;
+  padding:30px;
+  border-radius:10px;
+  width:300px;
+}
+
+h2{text-align:center;margin-bottom:20px}
+
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:15px;
+  border:none;
+  border-radius:6px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  background:#e50914;
+  color:#fff;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>Admin Login</h2>
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "12345";
+
+function login(){
+  const u = user.value;
+  const p = pass.value;
+
+  if(u === ADMIN_USER && p === ADMIN_PASS){
+    localStorage.setItem("adminLogin","true");
+    location.href = "admin.html";
+  }else{
+    alert("Username atau password salah");
+  }
+}
+</script>
+
+</body>
+</html>

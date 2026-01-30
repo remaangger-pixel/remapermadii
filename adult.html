@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>18+ Area</title>
+
+<style>
+body{
+  margin:0;
+  background:#000;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+header{
+  padding:14px 20px;
+  background:#111;
+}
+.grid{
+  padding:20px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:16px;
+}
+.card{
+  background:#151515;
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+}
+.card img{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+}
+.card p{
+  padding:10px;
+  margin:0;
+  font-size:14px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h2 onclick="location.href='index.html'" style="cursor:pointer">← Back</h2>
+</header>
+
+<div class="grid" id="list"></div>
+
+<script>
+if(sessionStorage.getItem('adultAccess') !== 'true'){
+  alert("Akses ditolak");
+  location.href = 'index.html';
+}
+
+const movies = JSON.parse(localStorage.getItem('movies')) || [];
+const list = document.getElementById('list');
+
+// FILTER khusus 18+
+movies.forEach((m,i)=>{
+  if(m.category === '18+'){
+    list.innerHTML += `
+      <div class="card" onclick="window.open('player.html?id=${i}','_blank')">
+        <img src="${m.thumb}">
+        <p>${m.title}</p>
+      </div>
+    `;
+  }
+});
+</script>
+
+</body>
+</html>
