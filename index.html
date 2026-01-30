@@ -231,6 +231,19 @@ function openAdult(){
 /* ================= INIT ================= */
 loadMovies();
 </script>
+<script>
+(async ()=>{
+  const { data, error } = await supabase
+    .from("Movies")
+    .select("*");
+
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
+})();
+</script>
 
 </body>
 </html>
+
+
+
