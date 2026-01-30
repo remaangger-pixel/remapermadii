@@ -1,31 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Streaming</title>
+
+<!-- SUPABASE JS v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<style>
+:root{
+  --bg:#0b0b0b;
+  --card:#151515;
+  --accent:#e50914;
+  --text:#ffffff;
+  --muted:#9b9b9b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+header{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:#000;
+  padding:14px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+header h1{margin:0;cursor:pointer}
+nav a{
+  color:var(--muted);
+  margin-left:16px;
+  text-decoration:none;
+  font-size:14px;
+}
+nav a:hover{color:#fff}
+
+.banner{
+  height:320px;
+  background-size:cover;
+  background-position:center;
+  position:relative;
+}
+.banner::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.9),rgba(0,0,0,.2));
+}
+.banner-content{
+  position:absolute;
+  bottom:30px;
+  left:24px;
+  z-index:2;
+}
+.banner-content h2{
+  margin:0 0 12px;
+  font-size:32px;
+}
+.banner-content button{
+  background:var(--accent);
+  border:none;
+  color:#fff;
+  padding:10px 20px;
+  border-radius:30px;
+  cursor:pointer;
+}
+
+.search{padding:20px}
+.search input{
+  width:100%;
+  padding:12px 16px;
+  background:#111;
+  border:1px solid #222;
+  border-radius:30px;
+  color:#fff;
+}
+
+.grid{
+  padding:20px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:16px;
+}
+.card{
+  background:var(--card);
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+}
+.card img{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+}
+.card p{
+  padding:10px;
+  font-size:14px;
+  margin:0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 onclick="location.reload()">My Streaming</h1>
+  <nav>
+    <a href="#" onclick="openAdult()">18+</a>
+    <a href="login.html" target="_blank">Admin</a>
+  </nav>
+</header>
+
+<div class="banner" id="banner">
+  <div class="banner-content">
+    <h2 id="bannerTitle">Loading...</h2>
+    <button onclick="openBanner()">▶ Play</button>
+  </div>
+</div>
+
+<div class="search">
+  <input id="search" placeholder="Search movie...">
+</div>
+
+<div class="grid" id="movieList"></div>
+
 <script>
-  console.log("SCRIPT MASUK");
+/* ================= CONFIG ================= */
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co"; // GANTI
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";     // GANTI
 
-  const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
-  const supabaseClient = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  );
+/* ================= STATE ================= */
+let movies = [];
+let bannerIndex = 0;
 
-  console.log("SUPABASE CLIENT:", supabaseClient);
+const list = document.getElementById("movieList");
+const search = document.getElementById("search");
+const banner = document.getElementById("banner");
+const bannerTitle = document.getElementById("bannerTitle");
 
-  async function test() {
-    const { data, error } = await supabaseClient
-      .from("Movies")
-      .select("*");
+/* ================= LOAD DATA ================= */
+async function loadMovies(){
+  console.log("Loading movies from Supabase...");
 
-    console.log("DATA DARI SUPABASE:", data);
-    console.log("ERROR DARI SUPABASE:", error);
+  const { data, error } = await supabase
+    .from("Movies")   // ⬅️ SESUAI PERMINTAAN KAMU
+    .select("*");
 
-    document.body.insertAdjacentHTML(
-      "beforeend",
-      `<pre style="color:white">${JSON.stringify(data, null, 2)}</pre>`
-    );
+  if(error){
+    alert("Supabase error. Cek console.");
+    console.error(error);
+    return;
   }
 
-  test();
+  console.log("Movies loaded:", data);
+  movies = data || [];
+
+  render();
+  renderBanner();
+}
+
+/* ================= RENDER GRID ================= */
+function render(){
+  list.innerHTML = "";
+  const q = search.value.toLowerCase();
+
+  movies.forEach(m=>{
+    if(m.is18 === true) return;
+    if(!m.title.toLowerCase().includes(q)) return;
+
+    list.innerHTML += `
+      <div class="card" onclick="openPlayer(${m.id})">
+        <img src="${m.thumb}">
+        <p>${m.title}</p>
+      </div>
+    `;
+  });
+}
+
+/* ================= PLAYER ================= */
+function openPlayer(id){
+  window.open("player.html?id=" + id, "_blank");
+}
+
+/* ================= SEARCH ================= */
+search.addEventListener("input", render);
+
+/* ================= BANNER ================= */
+function renderBanner(){
+  const clean = movies.filter(m=>!m.is18);
+  if(clean.length === 0){
+    bannerTitle.innerText = "No movies";
+    return;
+  }
+
+  const m = clean[bannerIndex];
+  banner.style.backgroundImage = `url(${m.thumb})`;
+  bannerTitle.innerText = m.title;
+}
+
+function openBanner(){
+  const clean = movies.filter(m=>!m.is18);
+  if(!clean[bannerIndex]) return;
+  openPlayer(clean[bannerIndex].id);
+}
+
+setInterval(()=>{
+  const clean = movies.filter(m=>!m.is18);
+  if(clean.length === 0) return;
+  bannerIndex = (bannerIndex + 1) % clean.length;
+  renderBanner();
+},5000);
+
+/* ================= 18+ ================= */
+const ADULT_CODE = "181818";
+
+function openAdult(){
+  if(sessionStorage.getItem("adultAccess")==="true"){
+    location.href="adult.html";
+    return;
+  }
+  const code = prompt("Masukkan kode 18+");
+  if(code === ADULT_CODE){
+    sessionStorage.setItem("adultAccess","true");
+    location.href="adult.html";
+  }else{
+    alert("Kode salah");
+  }
+}
+
+/* ================= INIT ================= */
+loadMovies();
 </script>
+
+</body>
+</html>
