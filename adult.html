@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>18+ Area</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 body{
   margin:0;
@@ -49,25 +51,53 @@ header{
 <div class="grid" id="list"></div>
 
 <script>
+/* 🔒 CEK AKSES 18+ */
 if(sessionStorage.getItem('adultAccess') !== 'true'){
   alert("Akses ditolak");
   location.href = 'index.html';
 }
 
-const movies = JSON.parse(localStorage.getItem('movies')) || [];
+/* 🔗 SUPABASE */
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const list = document.getElementById('list');
 
-// FILTER khusus 18+
-movies.forEach((m,i)=>{
-  if(m.category === '18+'){
+/* 📥 LOAD MOVIES 18+ */
+async function loadAdult(){
+  const { data, error } = await sb
+    .from("Movies")
+    .select("*")
+    .eq("is18", true)
+    .order("created_at",{ ascending:false });
+
+  if(error){
+    console.error(error);
+    alert("Gagal load film 18+");
+    return;
+  }
+
+  if(data.length === 0){
+    list.innerHTML = "<p>Tidak ada konten 18+</p>";
+    return;
+  }
+
+  data.forEach(m=>{
     list.innerHTML += `
-      <div class="card" onclick="window.open('player.html?id=${i}','_blank')">
+      <div class="card" onclick="openPlayer(${m.id})">
         <img src="${m.thumb}">
         <p>${m.title}</p>
       </div>
     `;
-  }
-});
+  });
+}
+
+function openPlayer(id){
+  window.open('player.html?id='+id,'_blank');
+}
+
+loadAdult();
 </script>
 
 </body>
