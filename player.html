@@ -34,20 +34,27 @@ header {
 }
 .back-btn:hover { background: var(--accent); }
 
-/* VIDEO CONTAINER */
+/* VIDEO CONTAINER - Kunci perbaikan ada di Overflow & Position */
 .player-wrapper {
   width: 100%; max-width: 1100px; margin: 20px auto;
   padding: 0 15px; box-sizing: border-box;
+  position: relative; z-index: 1;
 }
 
 .video-container {
-  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  position: relative; width: 100%; padding-top: 56.25%; 
   background: #080808; border-radius: 12px; overflow: hidden;
   box-shadow: 0 20px 50px rgba(0,0,0,0.8);
 }
 
 .video-container iframe {
   position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+  z-index: 2; /* Iframe harus di atas loader saat sudah muncul */
+}
+
+/* SERVER SELECTION - Dibuat terpisah agar tidak menabrak wrapper */
+.server-area {
+  margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap;
 }
 
 /* INFO SECTION */
@@ -74,7 +81,7 @@ header {
 
 /* ACTION BUTTONS */
 .actions {
-  display: flex; gap: 10px; margin-top: 20px;
+  display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;
 }
 
 .action-btn {
@@ -82,30 +89,19 @@ header {
   padding: 10px 20px; border-radius: 50px; cursor: pointer;
   font-size: 13px; transition: 0.3s;
 }
-.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.action-btn:hover, .btn-active { border-color: var(--accent); color: var(--accent); }
 
-/* REKOMENDASI FILM */
-.rekomendasi-container {
-  margin-top: 40px; padding-bottom: 40px;
-}
-.rekomendasi-title {
-  font-size: 18px; font-weight: bold; margin-bottom: 20px;
-  border-left: 3px solid var(--accent); padding-left: 10px;
-}
-.grid-rekomendasi {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;
-}
-.item-rekomendasi {
-  background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s;
-}
-.item-rekomendasi:hover { transform: scale(1.05); }
-.item-rekomendasi img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
-.item-rekomendasi p { padding: 8px; margin: 0; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* REKOMENDASI */
+.rekomendasi { margin-top: 50px; }
+.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 20px; }
+.card-suggest { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; }
+.card-suggest img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+.card-suggest p { padding: 8px; font-size: 12px; text-align: center; margin: 0; }
 
 /* SKELETON LOADING */
 .loader {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: #000; z-index: 5; transition: 0.5s;
+  background: #000; z-index: 10; pointer-events: none; /* Agar tidak menghalangi klik ke iframe */
 }
 .spinner {
   width: 40px; height: 40px; border: 4px solid #333;
@@ -116,9 +112,9 @@ header {
 
 @media(max-width: 768px) {
   .video-info h1 { font-size: 20px; }
-  .player-wrapper { padding: 0; }
+  .player-wrapper { padding: 0; margin: 0; }
   .video-container { border-radius: 0; }
-  .grid-rekomendasi { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+  .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 }
 </style>
 </head>
@@ -130,7 +126,7 @@ header {
 </header>
 
 <div class="player-wrapper">
-  <div class="video-container">
+  <div class="video-container" id="videoBox">
     <div id="loader" class="loader"><div class="spinner"></div></div>
     <div id="playerFrame"></div>
   </div>
@@ -142,18 +138,22 @@ header {
     <span class="tag">HD 1080p</span>
     <span class="tag" id="videoYear">2026</span>
   </div>
+  
   <h1 id="title">Judul Video</h1>
+  
+  <div class="server-area" id="serverContainer"></div>
+
   <p class="desc" id="description">Sedang memuat informasi video...</p>
 
   <div class="actions">
     <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
-    <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
+    <button class="action-btn" onclick="alert('Laporan dikirim!')">🚩 Lapor Error</button>
     <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
   </div>
 
-  <div class="rekomendasi-container">
-    <div class="rekomendasi-title">Mungkin Kamu Suka</div>
-    <div class="grid-rekomendasi" id="suggestBox"></div>
+  <div class="rekomendasi">
+      <p style="font-weight: bold; border-left: 3px solid var(--accent); padding-left: 10px;">Rekomendasi Film</p>
+      <div class="grid-suggest" id="suggestGrid"></div>
   </div>
 </div>
 
@@ -167,69 +167,72 @@ const movieId = params.get("id");
 const episodeId = params.get("episode");
 
 async function loadContent() {
+  let content = null;
   if (movieId) {
-    const { data, error } = await sb.from("Movies").select("*").eq("id", movieId).single();
-    if (!error && data) {
-      render(data.title, data.video, "Movie");
-      loadSuggestions(data.id);
-    }
+    const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    content = data;
+    if (data) render(data.title, data.video, "Movie", data.video2);
   } else if (episodeId) {
-    const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
-    if (!error && data) {
-      render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
-      loadSuggestions(null); // Bisa dikembangkan untuk series terkait
-    }
-  } else {
-    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Video Tidak Ditemukan</h2>";
+    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    content = data;
+    if (data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series", data.video2);
   }
+  
+  if (content) loadSuggests(content.id);
 }
 
-function render(title, url, type) {
-  document.title = title + " - Anvi Create";
+function render(title, url, type, url2) {
   document.getElementById("navTitle").innerText = title;
   document.getElementById("title").innerText = title;
   document.getElementById("videoType").innerText = type;
-  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet atau tidak muncul, silakan klik tombol Refresh Player atau lapor ke admin kami.`;
 
-  // Fix Google Drive Link
+  const sBox = document.getElementById("serverContainer");
+  sBox.innerHTML = `<button class="action-btn btn-active" onclick="changeSrv(this, '${url}')">Server 1</button>`;
+  if(url2) {
+    sBox.innerHTML += `<button class="action-btn" onclick="changeSrv(this, '${url2}')">Server 2</button>`;
+  }
+
+  play(url);
+}
+
+function changeSrv(btn, url) {
+    document.querySelectorAll('#serverContainer .action-btn').forEach(b => b.classList.remove('btn-active'));
+    btn.classList.add('btn-active');
+    play(url);
+}
+
+function play(url) {
+  const loader = document.getElementById("loader");
+  if(loader) loader.style.display = "flex";
+
   let finalUrl = url.trim();
   if (finalUrl.includes("drive.google.com")) {
       finalUrl = finalUrl.replace("/view", "/preview");
   }
 
   const frame = document.getElementById("playerFrame");
+  // Perbaikan: Menambahkan referrerpolicy untuk bypass proteksi Google Drive
   frame.innerHTML = `<iframe src="${finalUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>`;
 
   setTimeout(() => {
-    const loader = document.getElementById("loader");
-    if(loader) {
-      loader.style.opacity = "0";
-      setTimeout(() => loader.remove(), 500);
-    }
-  }, 1500);
+    if(loader) loader.style.display = "none";
+  }, 2000);
 }
 
-async function loadSuggestions(currentId) {
-  const { data } = await sb.from("Movies").select("*").eq("is18", false).neq("id", currentId).limit(8);
-  const box = document.getElementById("suggestBox");
-  if (data) {
-    data.forEach(m => {
-      box.innerHTML += `
-        <div class="item-rekomendasi" onclick="location.href='player.html?id=${m.id}'">
-          <img src="${m.thumb}">
-          <p>${m.title}</p>
-        </div>`;
+async function loadSuggests(id) {
+    const { data } = await sb.from("Movies").select("*").eq("is18", false).neq("id", id).limit(8);
+    const grid = document.getElementById("suggestGrid");
+    data?.forEach(m => {
+        grid.innerHTML += `<div class="card-suggest" onclick="location.href='player.html?id=${m.id}'"><img src="${m.thumb}"><p>${m.title}</p></div>`;
     });
-  }
 }
 
 function shareVideo() {
   navigator.clipboard.writeText(window.location.href);
-  alert("Link video berhasil disalin ke clipboard!");
+  alert("Link disalin!");
 }
 
 loadContent();
 </script>
-
 </body>
 </html>
