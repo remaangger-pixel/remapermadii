@@ -2,100 +2,135 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Anvi Player - Premium Streaming</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playing Video - Anvi Create</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-:root { --bg: #060606; --accent: #ff0513; --text: #ffffff; --muted: #888888; --card: #121212; }
-
-body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
-
-/* HEADER */
-header { 
-  padding: 12px 5%; background: rgba(0,0,0,0.95); 
-  display: flex; align-items: center; gap: 15px; 
-  position: sticky; top: 0; z-index: 100; 
-  border-bottom: 1px solid #111; backdrop-filter: blur(10px);
-}
-.back-btn { background: var(--accent); border: none; color: #fff; padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 13px; }
-
-/* PLAYER AREA - Dikecilkan ukurannya untuk Desktop */
-.player-section { width: 100%; background: #000; padding: 20px 0; }
-.video-container { 
-  position: relative; 
-  width: 90%; /* Tidak menyentuh pinggir layar di desktop */
-  max-width: 1000px; /* Batas maksimal agar tidak raksasa */
-  margin: 0 auto;
-  padding-top: 50.25%; /* Sedikit lebih ramping */
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-.video-container iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; z-index: 10; }
-
-/* CONTENT WRAPPER */
-.content-wrapper { padding: 25px 5%; max-width: 1000px; margin: 0 auto; box-sizing: border-box; }
-
-.server-box { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 25px; }
-.btn-server { 
-  background: var(--card); border: 1px solid #333; color: #fff; padding: 10px 20px; 
-  border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; 
-}
-.btn-server.active { background: var(--accent); border-color: var(--accent); }
-
-.video-title { font-size: clamp(18px, 4vw, 26px); margin: 10px 0; font-weight: 800; }
-.tags { display: flex; gap: 8px; margin-bottom: 15px; }
-.tag { background: #1a1a1a; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
-
-/* REKOMENDASI FILM */
-.recommendation-section { padding: 30px 5%; max-width: 1000px; margin: 0 auto; border-top: 1px solid #1a1a1a; }
-.section-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #fff; border-left: 4px solid var(--accent); padding-left: 12px; }
-.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-.suggest-card { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
-.suggest-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-.suggest-card p { padding: 8px; margin: 0; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* MOBILE FIX - Tetap Full di HP */
-@media (max-width: 768px) {
-  .player-section { padding: 0; }
-  .video-container { width: 100%; border-radius: 0; padding-top: 56.25%; }
-  .btn-server { flex: 1; }
+:root {
+  --bg: #000000;
+  --card: #0f0f0f;
+  --accent: #ff0513;
+  --text: #ffffff;
+  --muted: #888888;
 }
 
-/* LOADER */
-.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 50; transition: 0.5s; }
-.spinner { width: 35px; height: 35px; border: 3px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
-@keyframes s { to { transform: rotate(360deg); } }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif; overflow-x: hidden;
+}
+
+header {
+  padding: 15px 5%; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; gap: 15px;
+  border-bottom: 1px solid #111;
+}
+
+.back-btn {
+  background: #222; border: none; color: #fff;
+  padding: 8px 15px; border-radius: 8px; cursor: pointer;
+  font-weight: bold; transition: 0.3s;
+}
+.back-btn:hover { background: var(--accent); }
+
+/* VIDEO CONTAINER */
+.player-wrapper {
+  width: 100%; max-width: 1100px; margin: 20px auto;
+  padding: 0 15px; box-sizing: border-box;
+}
+
+.video-container {
+  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #080808; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+}
+
+.video-container iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+}
+
+/* INFO SECTION */
+.video-info {
+  margin-top: 25px; padding: 0 5%;
+}
+
+.video-info h1 {
+  font-size: 26px; margin: 0 0 10px; font-weight: 800;
+}
+
+.meta-data {
+  display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+}
+
+.tag {
+  background: #1a1a1a; padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; color: var(--muted); border: 1px solid #222;
+}
+
+.desc {
+  line-height: 1.6; color: #ccc; font-size: 15px; max-width: 800px;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  display: flex; gap: 10px; margin-top: 20px;
+}
+
+.action-btn {
+  background: #111; border: 1px solid #222; color: #fff;
+  padding: 10px 20px; border-radius: 50px; cursor: pointer;
+  font-size: 13px; transition: 0.3s;
+}
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* SKELETON LOADING */
+.loader {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: #000; z-index: 5; transition: 0.5s;
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid #333;
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media(max-width: 768px) {
+  .video-info h1 { font-size: 20px; }
+  .player-wrapper { padding: 0; }
+  .video-container { border-radius: 0; }
+}
 </style>
 </head>
 <body>
 
 <header>
-  <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:12px;">Memuat...</span>
+  <button class="back-btn" onclick="history.back()">← Kembali</button>
+  <span id="navTitle" style="color:var(--muted); font-size:14px">Memuat...</span>
 </header>
 
-<div class="player-section">
-  <div class="video-container" id="playerParent">
+<div class="player-wrapper">
+  <div class="video-container">
     <div id="loader" class="loader"><div class="spinner"></div></div>
     <div id="playerFrame"></div>
   </div>
 </div>
 
-<div class="content-wrapper">
-  <div class="server-box" id="serverList"></div>
-  <div class="tags">
-    <span class="tag" id="vType">Movie</span>
-    <span class="tag">Ultra HD</span>
+<div class="video-info">
+  <div class="meta-data">
+    <span class="tag" id="videoType">Video</span>
+    <span class="tag">HD 1080p</span>
+    <span class="tag" id="videoYear">2026</span>
   </div>
-  <h1 id="vTitle" class="video-title">...</h1>
-  <p style="color:#666; font-size:13px;">Ganti server jika video tidak muncul atau lambat.</p>
-</div>
+  <h1 id="title">Judul Video</h1>
+  <p class="desc" id="description">Sedang memuat informasi video...</p>
 
-<div class="recommendation-section">
-  <h2 class="section-title">Mungkin Kamu Suka</h2>
-  <div class="grid-suggest" id="suggestList"></div>
+  <div class="actions">
+    <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
+    <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
+    <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
+  </div>
 </div>
 
 <script>
@@ -105,70 +140,44 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
+const episodeId = params.get("episode");
 
-async function init() {
-  if (!movieId) { location.href = 'index.html'; return; }
-  const { data: movie } = await sb.from("Movies").select("*").eq("id", movieId).maybeSingle();
-  if (movie) {
-    document.getElementById("navTitle").innerText = "Watching: " + movie.title;
-    document.getElementById("vTitle").innerText = movie.title;
-    setupServers(movie.video, movie.video2);
-    loadSuggestions(); 
+async function loadContent() {
+  if (movieId) {
+    const { data, error } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    if (!error && data) render(data.title, data.video, "Movie");
+  } else if (episodeId) {
+    const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    if (!error && data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
   } else {
-    location.href = 'index.html';
+    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Video Tidak Ditemukan</h2>";
   }
 }
 
-function setupServers(s1, s2) {
-  const box = document.getElementById("serverList");
-  box.innerHTML = "";
-  const servers = [];
-  if (s1) servers.push({ name: "Server 1", url: s1 });
-  if (s2) servers.push({ name: "Server 2", url: s2 });
+function render(title, url, type) {
+  document.title = title + " - Anvi Create";
+  document.getElementById("navTitle").innerText = title;
+  document.getElementById("title").innerText = title;
+  document.getElementById("videoType").innerText = type;
+  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet atau tidak muncul, silakan klik tombol Refresh Player atau lapor ke admin kami.`;
 
-  servers.forEach((srv, i) => {
-    const btn = document.createElement("button");
-    btn.className = "btn-server" + (i === 0 ? " active" : "");
-    btn.innerText = srv.name;
-    btn.onclick = () => {
-      loadVideo(srv.url);
-      document.querySelectorAll('.btn-server').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
-    box.appendChild(btn);
-  });
-  if (servers.length > 0) loadVideo(servers[0].url);
-}
-
-function loadVideo(url) {
   const frame = document.getElementById("playerFrame");
-  const loader = document.getElementById("loader");
-  loader.style.opacity = "1";
-  
-  let cleanUrl = url.trim();
-  if (cleanUrl.includes("drive.google.com")) {
-      cleanUrl = cleanUrl.replace("/view", "/preview");
-  }
+  frame.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
 
-  frame.innerHTML = `<iframe src="${cleanUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>`;
-  
-  setTimeout(() => { loader.style.opacity = "0"; }, 1000);
+  // Hilangkan loader setelah iframe mulai dimuat
+  setTimeout(() => {
+    document.getElementById("loader").style.opacity = "0";
+    setTimeout(() => document.getElementById("loader").remove(), 500);
+  }, 1500);
 }
 
-async function loadSuggestions() {
-  const { data: list } = await sb.from("Movies").select("*").eq("is18", false).neq("id", movieId).limit(10);
-  const container = document.getElementById("suggestList");
-  container.innerHTML = "";
-  list?.forEach(m => {
-    container.innerHTML += `
-      <div class="suggest-card" onclick="location.href='player.html?id=${m.id}'">
-        <img src="${m.thumb}">
-        <p>${m.title}</p>
-      </div>`;
-  });
+function shareVideo() {
+  navigator.clipboard.writeText(window.location.href);
+  alert("Link video berhasil disalin ke clipboard!");
 }
 
-init();
+loadContent();
 </script>
+
 </body>
 </html>
