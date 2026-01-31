@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anvi Create - Premium Streaming</title>
+<title>Anvi Create - Streaming Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -14,246 +14,126 @@
   --accent: #ff0513;
   --text: #ffffff;
   --muted: #a0a0a0;
-  --glass: rgba(0, 0, 0, 0.7);
+  --glass: rgba(0, 0, 0, 0.85);
 }
 
 * { box-sizing: border-box; }
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  overflow-x: hidden; scroll-behavior: smooth;
 }
 
-/* HEADER GLASS */
+/* HEADER - FIXED & BLUR */
 header {
-  position: fixed;
-  top: 0; width: 100%;
-  z-index: 1000;
-  background: var(--glass);
-  backdrop-filter: blur(15px);
-  padding: 15px 5%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: fixed; top: 0; width: 100%; z-index: 1000;
+  background: var(--glass); backdrop-filter: blur(10px);
+  padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1px solid rgba(255,255,255,0.05);
-  transition: 0.3s;
 }
-
 header h1 {
-  margin: 0;
-  font-size: 24px;
+  margin: 0; font-size: 22px; cursor: pointer;
   background: linear-gradient(to right, #fff, var(--accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  cursor: pointer;
-  letter-spacing: -1px;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-weight: 900;
 }
-
-nav a {
-  color: var(--muted);
-  margin-left: 20px;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: 0.3s;
-}
+nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 15px; transition: 0.3s; }
 nav a:hover { color: var(--accent); }
 
-/* PREMIUM BANNER */
+/* COMPACT BANNER (55vh agar card bawah kelihatan) */
 .banner {
-  height: 85vh;
-  background-size: cover;
-  background-position: center;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 0 5%;
+  height: 55vh; width: 100%; background-size: cover; background-position: center;
+  position: relative; display: flex; align-items: flex-end; padding: 0 5% 60px;
   transition: background-image 0.8s ease-in-out;
 }
-
 .banner::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, var(--bg) 10%, transparent 60%),
-              linear-gradient(to right, var(--bg) 0%, transparent 70%);
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, var(--bg) 10%, transparent 80%),
+              linear-gradient(to right, var(--bg) 0%, transparent 60%);
 }
-
-.banner-content {
-  position: relative;
-  z-index: 2;
-  max-width: 600px;
-  animation: fadeInUp 1s ease;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.banner-content h2 {
-  font-size: clamp(32px, 6vw, 64px);
-  margin: 0 0 15px;
-  line-height: 1.1;
-  font-weight: 900;
-  text-shadow: 0 10px 20px rgba(0,0,0,0.5);
-}
-
-.banner-btns { display: flex; gap: 15px; }
+.banner-content { position: relative; z-index: 2; max-width: 500px; }
+.banner-content h2 { font-size: clamp(24px, 5vw, 42px); margin: 0 0 15px; font-weight: 800; }
 .btn-play {
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  padding: 14px 32px;
-  border-radius: 50px;
-  font-weight: bold;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 10px;
-  transition: 0.3s;
+  background: var(--accent); border: none; color: #fff; padding: 12px 28px;
+  border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s;
 }
 .btn-play:hover { transform: scale(1.05); filter: brightness(1.2); }
 
-/* SEARCH SECTION */
-.search-container {
-  padding: 40px 5% 20px;
-  position: relative;
-  margin-top: -50px;
-  z-index: 10;
+/* SEARCH & FILTER */
+.search-bar {
+  padding: 20px 5%; margin-top: -25px; position: relative; z-index: 10;
 }
-.search-container input {
-  width: 100%;
-  padding: 18px 30px;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 100px;
-  color: #fff;
-  font-size: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-  outline: none;
-  transition: 0.3s;
+.search-bar input {
+  width: 100%; padding: 15px 25px; background: #1a1a1a; border: 1px solid #333;
+  border-radius: 10px; color: #fff; outline: none; transition: 0.3s;
 }
-.search-container input:focus { border-color: var(--accent); background: #222; }
+.search-bar input:focus { border-color: var(--accent); }
 
-/* GRID LAYOUT */
-.section-title {
-  padding: 0 5%;
-  margin: 40px 0 20px;
-  font-size: 22px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* SECTIONS */
+.section-head {
+  padding: 0 5%; margin: 30px 0 15px; font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
 }
-.section-title::before {
-  content: ""; width: 4px; height: 24px; background: var(--accent); border-radius: 2px;
-}
+.section-head::before { content:""; width:3px; height:20px; background:var(--accent); }
 
+/* RESPONSIVE GRID */
 .grid {
-  padding: 0 5% 40px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 25px;
+  padding: 0 5% 30px; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px;
 }
 
-/* MOVIEBOX CARD STYLE */
+/* CARD UI */
 .card {
-  background: var(--card);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
+  background: var(--card); border-radius: 10px; overflow: hidden;
+  cursor: pointer; transition: 0.4s; position: relative;
 }
-.card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 30px rgba(255, 5, 19, 0.2);
-}
-.card img {
-  width: 100%;
-  aspect-ratio: 2/3;
-  object-fit: cover;
-  transition: 0.5s;
-}
-.card:hover img { filter: brightness(0.7); }
-
-.card-info {
-  padding: 12px;
-  background: linear-gradient(to top, var(--card), transparent);
-}
-.card-info p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.card-tag {
-  position: absolute;
-  top: 10px; right: 10px;
-  background: var(--accent);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: bold;
-}
+.card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+.card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+.card-info { padding: 10px; font-size: 13px; font-weight: 600; text-align: center; }
+.card-info p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media(max-width: 768px) {
-  .banner { height: 60vh; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+  .banner { height: 45vh; padding-bottom: 40px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
 }
 </style>
 </head>
 <body>
 
-<header id="mainHeader">
+<header>
   <h1 onclick="location.reload()">ANVI CREATE</h1>
   <nav>
     <a href="#" onclick="openAdult()">🔞 18+</a>
-    <a href="login.html">Admin</a>
+    <a href="admin.html">Admin</a>
   </nav>
 </header>
 
 <div class="banner" id="banner">
   <div class="banner-content">
-    <h2 id="bannerTitle">Loading...</h2>
-    <div class="banner-btns">
-      <button class="btn-play" onclick="openBanner()">▶ Play Now</button>
-    </div>
+    <h2 id="bannerTitle">...</h2>
+    <button class="btn-play" onclick="openBanner()">▶ Play Now</button>
   </div>
 </div>
 
-<div class="search-container">
-  <input id="search" placeholder="Search for movies, series, or anime...">
+<div class="search-bar">
+  <input id="search" placeholder="Mau nonton apa hari ini, Bosku?">
 </div>
 
-<h2 class="section-title">Latest Movies</h2>
+<h2 class="section-head">Latest Movies</h2>
 <div class="grid" id="movieList"></div>
 
-<h2 class="section-title">Featured Series</h2>
+<h2 class="section-head">Featured Series</h2>
 <div class="grid" id="seriesList"></div>
 
 <script>
+/* ================= CONFIG ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let movies = [];
-let series = [];
-let bannerData = [];
-let bannerIndex = 0;
+let movies = [], series = [], bannerItems = [], bannerIdx = 0;
 
-// Header effect on scroll
-window.onscroll = () => {
-  const header = document.getElementById("mainHeader");
-  if (window.scrollY > 50) header.style.background = "rgba(0,0,0,0.95)";
-  else header.style.background = "var(--glass)";
-};
-
+/* ================= CORE FUNCTIONS ================= */
 async function init() {
   const [mRes, sRes] = await Promise.all([
     sb.from("Movies").select("*").order("created_at", { ascending: false }),
@@ -263,11 +143,14 @@ async function init() {
   movies = mRes.data || [];
   series = sRes.data || [];
 
-  // Banner ambil 5 terbaru dari gabungan
-  bannerData = [...movies, ...series].filter(i => !i.is18).sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+  // Ambil data untuk banner (bukan 18+)
+  bannerItems = [...movies, ...series]
+    .filter(i => !i.is18)
+    .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
 
   renderAll();
-  startBannerCycle();
+  startCycle();
 }
 
 function renderAll() {
@@ -283,58 +166,52 @@ function renderGrid(targetId, data, query, clickFunc) {
   el.innerHTML = "";
   
   data.forEach(item => {
-    if(item.is18) return;
+    if(item.is18) return; // Sembunyikan 18+ dari publik
     if(!item.title.toLowerCase().includes(query)) return;
 
     el.innerHTML += `
       <div class="card" onclick="${clickFunc}(${item.id})">
         <img src="${item.thumb}" loading="lazy">
-        ${item.is18 ? '<div class="card-tag">18+</div>' : ''}
-        <div class="card-info">
-          <p>${item.title}</p>
-        </div>
+        <div class="card-info"><p>${item.title}</p></div>
       </div>
     `;
   });
 }
 
 function updateBanner() {
-  if (bannerData.length === 0) return;
-  const item = bannerData[bannerIndex];
-  const bannerEl = document.getElementById("banner");
+  if (bannerItems.length === 0) return;
+  const item = bannerItems[bannerIdx];
+  const b = document.getElementById("banner");
   
-  bannerEl.style.backgroundImage = `url(${item.thumb})`;
+  b.style.backgroundImage = `url(${item.thumb})`;
   document.getElementById("bannerTitle").innerText = item.title;
   
-  // Tag type di banner
-  bannerEl.dataset.type = item.video ? "movie" : "series";
-  bannerEl.dataset.id = item.id;
+  b.dataset.type = item.video ? "movie" : "series";
+  b.dataset.id = item.id;
 }
 
-function startBannerCycle() {
+function startCycle() {
   setInterval(() => {
-    bannerIndex = (bannerIndex + 1) % bannerData.length;
+    bannerIdx = (bannerIdx + 1) % bannerItems.length;
     updateBanner();
-  }, 6000);
+  }, 5000);
 }
 
 function openBanner() {
-  const type = document.getElementById("banner").dataset.type;
-  const id = document.getElementById("banner").dataset.id;
-  if(type === "movie") openMovie(id); else openSeries(id);
+  const b = document.getElementById("banner");
+  if(b.dataset.type === "movie") openMovie(b.dataset.id); 
+  else openSeries(b.dataset.id);
 }
 
 function openMovie(id) { window.open("player.html?id="+id, "_blank"); }
 function openSeries(id) { window.open("series.html?id="+id, "_blank"); }
 
 function openAdult() {
-  const code = prompt("Masukkan kode akses 18+:");
-  if(code === "181818") {
+  const code = prompt("Masukkan PIN Dewasa:");
+  if(code === "1818") {
     sessionStorage.setItem("adultAccess", "true");
     location.href = "adult.html";
-  } else {
-    alert("Kode salah!");
-  }
+  } else { alert("Salah Bosku!"); }
 }
 
 document.getElementById("search").addEventListener("input", renderAll);
