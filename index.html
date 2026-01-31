@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Streaming</title>
 
+<!-- SUPABASE CDN v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -42,7 +43,6 @@ nav a{
 }
 nav a:hover{color:#fff}
 
-/* ===== BANNER ===== */
 .banner{
   height:340px;
   background-size:cover;
@@ -61,10 +61,7 @@ nav a:hover{color:#fff}
   left:30px;
   z-index:2;
 }
-.banner-content h2{
-  font-size:36px;
-  margin:0 0 14px;
-}
+.banner-content h2{font-size:36px;margin:0 0 12px}
 .banner-content button{
   background:var(--accent);
   border:none;
@@ -74,7 +71,6 @@ nav a:hover{color:#fff}
   cursor:pointer;
 }
 
-/* ===== GRID ===== */
 .search{padding:20px}
 .search input{
   width:100%;
@@ -84,32 +80,30 @@ nav a:hover{color:#fff}
   border-radius:30px;
   color:#fff;
 }
+
+.section-title{
+  padding:0 20px;
+  margin-top:10px;
+  font-size:18px;
+}
+
 .grid{
   padding:20px;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
   gap:16px;
 }
+
 .card{
   background:var(--card);
   border-radius:10px;
   overflow:hidden;
   cursor:pointer;
   transition:.25s;
-  position:relative;
 }
 .card:hover{transform:translateY(-6px) scale(1.03)}
 .card img{width:100%;height:220px;object-fit:cover}
-.card p{padding:10px;font-size:14px;margin:0}
-.badge{
-  position:absolute;
-  top:8px;
-  left:8px;
-  background:#e50914;
-  font-size:11px;
-  padding:4px 8px;
-  border-radius:6px;
-}
+.card p{padding:10px;margin:0;font-size:14px}
 </style>
 </head>
 <body>
@@ -122,6 +116,7 @@ nav a:hover{color:#fff}
   </nav>
 </header>
 
+<!-- 🔥 BANNER -->
 <div class="banner" id="banner">
   <div class="banner-content">
     <h2 id="bannerTitle">Loading...</h2>
@@ -129,62 +124,93 @@ nav a:hover{color:#fff}
   </div>
 </div>
 
+<!-- 🔍 SEARCH -->
 <div class="search">
   <input id="search" placeholder="Search movie or series...">
 </div>
 
-<div class="grid" id="list"></div>
+<!-- 🎬 MOVIES -->
+<h2 class="section-title">🎬 Movies</h2>
+<div class="grid" id="movieList"></div>
+
+<!-- 📺 SERIES -->
+<h2 class="section-title">📺 Series</h2>
+<div class="grid" id="seriesList"></div>
 
 <script>
-/* ===== SUPABASE ===== */
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const SUPABASE_ANON_KEY = "PASTE_ANON_KEY_HERE";
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ===== STATE ===== */
+/* ================= STATE ================= */
 let movies = [];
 let series = [];
 let bannerIndex = 0;
 
-const list = document.getElementById("list");
+const movieList = document.getElementById("movieList");
+const seriesList = document.getElementById("seriesList");
 const search = document.getElementById("search");
 const banner = document.getElementById("banner");
 const bannerTitle = document.getElementById("bannerTitle");
 
-/* ===== LOAD DATA ===== */
-async function loadAll(){
-  const { data:movieData } = await sb.from("Movies").select("*").order("created_at",{ascending:false});
-  const { data:seriesData } = await sb.from("Series").select("*").order("created_at",{ascending:false});
+/* ================= LOAD MOVIES ================= */
+async function loadMovies(){
+  const { data, error } = await sb
+    .from("Movies")
+    .select("*")
+    .order("created_at",{ ascending:false });
 
-  movies = movieData || [];
-  series = seriesData || [];
+  if(error){ console.error(error); return; }
 
-  render();
+  movies = data || [];
+  renderMovies();
   renderBanner();
 }
 
-/* ===== RENDER GRID ===== */
-function render(){
-  list.innerHTML = "";
+/* ================= LOAD SERIES ================= */
+async function loadSeries(){
+  const { data, error } = await sb
+    .from("Series")
+    .select("*")
+    .order("created_at",{ ascending:false });
+
+  if(error){ console.error(error); return; }
+
+  series = data || [];
+  renderSeries();
+}
+
+/* ================= RENDER MOVIES ================= */
+function renderMovies(){
+  movieList.innerHTML = "";
   const q = search.value.toLowerCase();
 
   movies.forEach(m=>{
     if(m.is18) return;
     if(!m.title.toLowerCase().includes(q)) return;
-    list.innerHTML += `
+
+    movieList.innerHTML += `
       <div class="card" onclick="openMovie(${m.id})">
         <img src="${m.thumb}">
         <p>${m.title}</p>
       </div>
     `;
   });
+}
+
+/* ================= RENDER SERIES ================= */
+function renderSeries(){
+  seriesList.innerHTML = "";
+  const q = search.value.toLowerCase();
 
   series.forEach(s=>{
     if(s.is18) return;
     if(!s.title.toLowerCase().includes(q)) return;
-    list.innerHTML += `
+
+    seriesList.innerHTML += `
       <div class="card" onclick="openSeries(${s.id})">
-        <div class="badge">SERIES</div>
         <img src="${s.thumb}">
         <p>${s.title}</p>
       </div>
@@ -192,28 +218,30 @@ function render(){
   });
 }
 
-/* ===== BANNER (MOVIES ONLY) ===== */
+/* ================= BANNER ================= */
 function renderBanner(){
-  const safeMovies = movies.filter(m=>!m.is18);
-  if(!safeMovies.length) return;
+  const bannerMovies = movies.filter(m=>!m.is18);
+  if(bannerMovies.length === 0) return;
 
-  const m = safeMovies[bannerIndex];
+  const m = bannerMovies[bannerIndex];
   banner.style.backgroundImage = `url(${m.thumb})`;
   bannerTitle.innerText = m.title;
 }
+
 function openBanner(){
-  const safeMovies = movies.filter(m=>!m.is18);
-  if(!safeMovies[bannerIndex]) return;
-  openMovie(safeMovies[bannerIndex].id);
+  const bannerMovies = movies.filter(m=>!m.is18);
+  if(!bannerMovies[bannerIndex]) return;
+  openMovie(bannerMovies[bannerIndex].id);
 }
+
 setInterval(()=>{
-  const safeMovies = movies.filter(m=>!m.is18);
-  if(!safeMovies.length) return;
-  bannerIndex = (bannerIndex+1) % safeMovies.length;
+  const bannerMovies = movies.filter(m=>!m.is18);
+  if(bannerMovies.length === 0) return;
+  bannerIndex = (bannerIndex + 1) % bannerMovies.length;
   renderBanner();
 },5000);
 
-/* ===== OPEN ===== */
+/* ================= OPEN ================= */
 function openMovie(id){
   window.open("player.html?id="+id,"_blank");
 }
@@ -221,22 +249,29 @@ function openSeries(id){
   window.open("series.html?id="+id,"_blank");
 }
 
-/* ===== SEARCH ===== */
-search.addEventListener("input",render);
+/* ================= SEARCH ================= */
+search.addEventListener("input", ()=>{
+  renderMovies();
+  renderSeries();
+});
 
-/* ===== 18+ ===== */
-const ADULT_CODE="181818";
+/* ================= 18+ ================= */
+const ADULT_CODE = "181818";
 function openAdult(){
   if(sessionStorage.getItem("adultAccess")==="true"){
-    location.href="adult.html";return;
+    location.href="adult.html"; return;
   }
-  if(prompt("Masukkan kode akses 18+")==ADULT_CODE){
+  const code = prompt("Masukkan kode 18+");
+  if(code===ADULT_CODE){
     sessionStorage.setItem("adultAccess","true");
     location.href="adult.html";
-  }else alert("Kode salah!");
+  }else alert("Kode salah");
 }
 
-loadAll();
+/* ================= INIT ================= */
+loadMovies();
+loadSeries();
 </script>
+
 </body>
 </html>
