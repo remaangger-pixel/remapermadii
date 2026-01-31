@@ -9,157 +9,128 @@
 
 <style>
 :root {
-  --bg: #000000;
-  --card: #0f0f0f;
-  --accent: #ff0513;
-  --text: #ffffff;
-  --muted: #888888;
+  --bg: #000000;
+  --card: #0f0f0f;
+  --accent: #ff0513;
+  --text: #ffffff;
+  --muted: #888888;
 }
 
 body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font-family: 'Inter', sans-serif; overflow-x: hidden;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif; overflow-x: hidden;
 }
 
 header {
-  padding: 15px 5%; background: rgba(0,0,0,0.8);
-  display: flex; align-items: center; gap: 15px;
-  border-bottom: 1px solid #111;
+  padding: 15px 5%; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; gap: 15px;
+  border-bottom: 1px solid #111;
 }
 
 .back-btn {
-  background: #222; border: none; color: #fff;
-  padding: 8px 15px; border-radius: 8px; cursor: pointer;
-  font-weight: bold; transition: 0.3s;
+  background: #222; border: none; color: #fff;
+  padding: 8px 15px; border-radius: 8px; cursor: pointer;
+  font-weight: bold; transition: 0.3s;
 }
 .back-btn:hover { background: var(--accent); }
 
 /* VIDEO CONTAINER */
 .player-wrapper {
-  width: 100%; max-width: 1100px; margin: 20px auto;
-  padding: 0 15px; box-sizing: border-box;
+  width: 100%; max-width: 1100px; margin: 20px auto;
+  padding: 0 15px; box-sizing: border-box;
 }
 
 .video-container {
-  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
-  background: #080808; border-radius: 12px; overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #080808; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
 }
 
 .video-container iframe {
-  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
-}
-
-/* SERVER SELECTION - DIBUAT LEBIH LEGA */
-.server-selection {
-  margin-top: 30px; /* Jarak ditambah agar tidak mepet video */
-  padding: 0 5%;
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  justify-content: center; /* Tombol di tengah agar rapi di HP */
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
 }
 
 /* INFO SECTION */
 .video-info {
-  margin-top: 35px; padding: 0 5%;
+  margin-top: 25px; padding: 0 5%;
 }
 
 .video-info h1 {
-  font-size: 26px; margin: 0 0 10px; font-weight: 800;
+  font-size: 26px; margin: 0 0 10px; font-weight: 800;
 }
 
 .meta-data {
-  display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
 }
 
 .tag {
-  background: #1a1a1a; padding: 5px 12px; border-radius: 6px;
-  font-size: 12px; color: var(--muted); border: 1px solid #222;
+  background: #1a1a1a; padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; color: var(--muted); border: 1px solid #222;
 }
 
 .desc {
-  line-height: 1.6; color: #ccc; font-size: 15px; max-width: 800px;
+  line-height: 1.6; color: #ccc; font-size: 15px; max-width: 800px;
 }
 
 /* ACTION BUTTONS */
 .actions {
-  display: flex; gap: 10px; margin-top: 25px; flex-wrap: wrap;
+  display: flex; gap: 10px; margin-top: 20px;
 }
 
 .action-btn {
-  background: #111; border: 1px solid #222; color: #fff;
-  padding: 12px 22px; border-radius: 50px; cursor: pointer;
-  font-size: 13px; transition: 0.3s;
-  min-width: 110px; /* Tombol lebih besar di HP */
+  background: #111; border: 1px solid #222; color: #fff;
+  padding: 10px 20px; border-radius: 50px; cursor: pointer;
+  font-size: 13px; transition: 0.3s;
 }
 .action-btn:hover { border-color: var(--accent); color: var(--accent); }
-.action-btn.active { background: var(--accent); border-color: var(--accent); }
 
-/* REKOMENDASI */
-.recommendation { padding: 50px 5%; max-width: 1100px; margin: 0 auto; }
-.recommendation h2 { font-size: 18px; margin-bottom: 25px; border-left: 3px solid var(--accent); padding-left: 10px; }
-.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; }
-.card-suggest { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
-.card-suggest img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-.card-suggest p { padding: 10px; font-size: 12px; margin: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* LOADING */
+/* SKELETON LOADING */
 .loader {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: #000; z-index: 5; transition: 0.5s;
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: #000; z-index: 5; transition: 0.5s;
 }
 .spinner {
-  width: 40px; height: 40px; border: 4px solid #333;
-  border-top-color: var(--accent); border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width: 40px; height: 40px; border: 4px solid #333;
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media(max-width: 768px) {
-  .player-wrapper { padding: 0; margin-top: 0; }
-  .video-container { border-radius: 0; }
-  .server-selection { margin-top: 25px; gap: 10px; }
-  .action-btn { flex: 1; text-align: center; }
-  .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .video-info h1 { font-size: 20px; }
+  .player-wrapper { padding: 0; }
+  .video-container { border-radius: 0; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <button class="back-btn" onclick="history.back()">← Kembali</button>
-  <span id="navTitle" style="color:var(--muted); font-size:13px">Memuat...</span>
+  <button class="back-btn" onclick="history.back()">← Kembali</button>
+  <span id="navTitle" style="color:var(--muted); font-size:14px">Memuat...</span>
 </header>
 
 <div class="player-wrapper">
-  <div class="video-container">
-    <div id="loader" class="loader"><div class="spinner"></div></div>
-    <div id="playerFrame"></div>
-  </div>
+  <div class="video-container">
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+    <div id="playerFrame"></div>
+  </div>
 </div>
-
-<div class="server-selection" id="serverList"></div>
 
 <div class="video-info">
-  <div class="meta-data">
-    <span class="tag" id="videoType">Video</span>
-    <span class="tag">HD 1080p</span>
-    <span class="tag" id="videoYear">2026</span>
-  </div>
-  <h1 id="title">Judul Video</h1>
-  <p class="desc" id="description">Sedang memuat informasi video...</p>
+  <div class="meta-data">
+    <span class="tag" id="videoType">Video</span>
+    <span class="tag">HD 1080p</span>
+    <span class="tag" id="videoYear">2026</span>
+  </div>
+  <h1 id="title">Judul Video</h1>
+  <p class="desc" id="description">Sedang memuat informasi video...</p>
 
-  <div class="actions">
-    <button class="action-btn" onclick="location.reload()">🔄 Refresh</button>
-    <button class="action-btn" onclick="alert('Laporan dikirim!')">🚩 Error</button>
-    <button class="action-btn" onclick="shareVideo()">🔗 Share</button>
-  </div>
-</div>
-
-<div class="recommendation">
-  <h2>Mungkin Kamu Suka</h2>
-  <div class="grid-suggest" id="suggestList"></div>
+  <div class="actions">
+    <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
+    <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
+    <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
+  </div>
 </div>
 
 <script>
@@ -172,87 +143,41 @@ const movieId = params.get("id");
 const episodeId = params.get("episode");
 
 async function loadContent() {
-  let videoData = null;
-  if (movieId) {
-    const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
-    videoData = data;
-    if (data) renderUI(data.title, "Movie");
-  } else if (episodeId) {
-    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
-    videoData = data;
-    if (data) renderUI(`${data.Series.title} - Eps ${data.episode}`, "Series");
-  }
-
-  if (videoData) {
-    setupServers(videoData.video, videoData.video2);
-    loadSuggestions();
-  }
+  if (movieId) {
+    const { data, error } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    if (!error && data) render(data.title, data.video, "Movie");
+  } else if (episodeId) {
+    const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    if (!error && data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
+  } else {
+    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Video Tidak Ditemukan</h2>";
+  }
 }
 
-function renderUI(title, type) {
-  document.getElementById("navTitle").innerText = title;
-  document.getElementById("title").innerText = title;
-  document.getElementById("videoType").innerText = type;
-}
+function render(title, url, type) {
+  document.title = title + " - Anvi Create";
+  document.getElementById("navTitle").innerText = title;
+  document.getElementById("title").innerText = title;
+  document.getElementById("videoType").innerText = type;
+  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet atau tidak muncul, silakan klik tombol Refresh Player atau lapor ke admin kami.`;
 
-function setupServers(s1, s2) {
-  const container = document.getElementById("serverList");
-  container.innerHTML = "";
-  const list = [];
-  if (s1) list.push({ name: "Server 1", url: s1 });
-  if (s2) list.push({ name: "Server 2", url: s2 });
+  const frame = document.getElementById("playerFrame");
+  frame.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
 
-  list.forEach((srv, i) => {
-    const btn = document.createElement("button");
-    btn.className = "action-btn" + (i === 0 ? " active" : "");
-    btn.innerText = srv.name;
-    btn.onclick = () => {
-      playVideo(srv.url);
-      document.querySelectorAll('#serverList .action-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
-    container.appendChild(btn);
-  });
-  if(list.length > 0) playVideo(list[0].url);
-}
-
-function playVideo(url) {
-  const loader = document.getElementById("loader");
-  if(loader) loader.style.opacity = "1";
-  
-  let cleanUrl = url.trim();
-  // FIX GOOGLE DRIVE
-  if (cleanUrl.includes("drive.google.com")) {
-      cleanUrl = cleanUrl.replace("/view", "/preview");
-  }
-
-  document.getElementById("playerFrame").innerHTML = `
-    <iframe src="${cleanUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>
-  `;
-
-  setTimeout(() => { if(loader) loader.style.opacity = "0"; }, 1500);
-}
-
-async function loadSuggestions() {
-  const { data } = await sb.from("Movies").select("*").eq("is18", false).limit(8);
-  const container = document.getElementById("suggestList");
-  container.innerHTML = "";
-  data?.forEach(m => {
-    if(m.id == movieId) return;
-    container.innerHTML += `
-      <div class="card-suggest" onclick="location.href='player.html?id=${m.id}'">
-        <img src="${m.thumb}">
-        <p>${m.title}</p>
-      </div>`;
-  });
+  // Hilangkan loader setelah iframe mulai dimuat
+  setTimeout(() => {
+    document.getElementById("loader").style.opacity = "0";
+    setTimeout(() => document.getElementById("loader").remove(), 500);
+  }, 1500);
 }
 
 function shareVideo() {
-  navigator.clipboard.writeText(window.location.href);
-  alert("Link disalin!");
+  navigator.clipboard.writeText(window.location.href);
+  alert("Link video berhasil disalin ke clipboard!");
 }
 
 loadContent();
 </script>
+
 </body>
 </html>
