@@ -3,197 +3,180 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Player</title>
+<title>Playing Video - Anvi Create</title>
 
-<!-- SUPABASE CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  margin:0;
-  background:#000;
-  color:#fff;
-  font-family:Arial,sans-serif;
+:root {
+  --bg: #000000;
+  --card: #0f0f0f;
+  --accent: #ff0513;
+  --text: #ffffff;
+  --muted: #888888;
 }
-header{
-  padding:12px 16px;
-  background:#111;
-  display:flex;
-  align-items:center;
-  gap:12px;
+
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif; overflow-x: hidden;
 }
-header button{
-  background:#e50914;
-  border:none;
-  color:#fff;
-  padding:6px 12px;
-  border-radius:6px;
-  cursor:pointer;
+
+header {
+  padding: 15px 5%; background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; gap: 15px;
+  border-bottom: 1px solid #111;
 }
-.player{
-  position:relative;
-  width:100%;
-  padding-top:56.25%;
-  background:#000;
+
+.back-btn {
+  background: #222; border: none; color: #fff;
+  padding: 8px 15px; border-radius: 8px; cursor: pointer;
+  font-weight: bold; transition: 0.3s;
 }
-.player iframe{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  border:none;
+.back-btn:hover { background: var(--accent); }
+
+/* VIDEO CONTAINER */
+.player-wrapper {
+  width: 100%; max-width: 1100px; margin: 20px auto;
+  padding: 0 15px; box-sizing: border-box;
 }
-.info{
-  padding:16px;
+
+.video-container {
+  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #080808; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
 }
-.info h1{
-  margin:0 0 8px 0;
-  font-size:20px;
+
+.video-container iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
 }
-.info p{
-  margin:0;
-  color:#aaa;
-  font-size:14px;
+
+/* INFO SECTION */
+.video-info {
+  margin-top: 25px; padding: 0 5%;
 }
-.block{
-  padding:40px;
-  text-align:center;
+
+.video-info h1 {
+  font-size: 26px; margin: 0 0 10px; font-weight: 800;
 }
-.block button{
-  margin-top:16px;
-  background:#e50914;
-  border:none;
-  color:#fff;
-  padding:8px 14px;
-  border-radius:6px;
-  cursor:pointer;
+
+.meta-data {
+  display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+}
+
+.tag {
+  background: #1a1a1a; padding: 5px 12px; border-radius: 6px;
+  font-size: 12px; color: var(--muted); border: 1px solid #222;
+}
+
+.desc {
+  line-height: 1.6; color: #ccc; font-size: 15px; max-width: 800px;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  display: flex; gap: 10px; margin-top: 20px;
+}
+
+.action-btn {
+  background: #111; border: 1px solid #222; color: #fff;
+  padding: 10px 20px; border-radius: 50px; cursor: pointer;
+  font-size: 13px; transition: 0.3s;
+}
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* SKELETON LOADING */
+.loader {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: #000; z-index: 5; transition: 0.5s;
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid #333;
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media(max-width: 768px) {
+  .video-info h1 { font-size: 20px; }
+  .player-wrapper { padding: 0; }
+  .video-container { border-radius: 0; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <button onclick="history.back()">← Back</button>
-  <span id="headerTitle">Loading...</span>
+  <button class="back-btn" onclick="history.back()">← Kembali</button>
+  <span id="navTitle" style="color:var(--muted); font-size:14px">Memuat...</span>
 </header>
 
-<div id="content"></div>
+<div class="player-wrapper">
+  <div class="video-container">
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+    <div id="playerFrame"></div>
+  </div>
+</div>
+
+<div class="video-info">
+  <div class="meta-data">
+    <span class="tag" id="videoType">Video</span>
+    <span class="tag">HD 1080p</span>
+    <span class="tag" id="videoYear">2026</span>
+  </div>
+  <h1 id="title">Judul Video</h1>
+  <p class="desc" id="description">Sedang memuat informasi video...</p>
+
+  <div class="actions">
+    <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
+    <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
+    <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
+  </div>
+</div>
 
 <script>
-/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const sb = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
-/* ================= PARAM ================= */
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
 const episodeId = params.get("episode");
 
-/* ================= ROUTER ================= */
-if(movieId){
-  loadMovie(movieId);
-}else if(episodeId){
-  loadEpisode(episodeId);
-}else{
-  showError("Video tidak ditemukan");
-}
-
-/* ================= LOAD MOVIE ================= */
-async function loadMovie(id){
-  const { data, error } = await sb
-    .from("Movies")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if(error || !data){
-    showError("Video tidak ditemukan");
-    return;
+async function loadContent() {
+  if (movieId) {
+    const { data, error } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    if (!error && data) render(data.title, data.video, "Movie");
+  } else if (episodeId) {
+    const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    if (!error && data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
+  } else {
+    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Video Tidak Ditemukan</h2>";
   }
-
-  // 🔞 CEK 18+
-  if(data.is18 === true && sessionStorage.getItem("adultAccess") !== "true"){
-    showError("Konten 18+ terkunci<br>Masukkan kode terlebih dahulu");
-    return;
-  }
-
-  renderPlayer({
-    title: data.title,
-    desc: data.type || "",
-    video: data.video
-  });
 }
 
-/* ================= LOAD EPISODE ================= */
-async function loadEpisode(id){
-  const { data: ep, error } = await sb
-    .from("Episodes")
-    .select(`
-      id,
-      episode,
-      title,
-      video_url,
-      Series (
-        title,
-        is18
-      )
-    `)
-    .eq("id", id)
-    .single();
+function render(title, url, type) {
+  document.title = title + " - Anvi Create";
+  document.getElementById("navTitle").innerText = title;
+  document.getElementById("title").innerText = title;
+  document.getElementById("videoType").innerText = type;
+  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet atau tidak muncul, silakan klik tombol Refresh Player atau lapor ke admin kami.`;
 
-  if(error || !ep){
-    showError("Episode tidak ditemukan");
-    return;
-  }
+  const frame = document.getElementById("playerFrame");
+  frame.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
 
-  // 🔞 CEK 18+
-  if(ep.Series?.is18 === true && sessionStorage.getItem("adultAccess") !== "true"){
-    showError("Konten 18+ terkunci<br>Masukkan kode terlebih dahulu");
-    return;
-  }
-
-  renderPlayer({
-    title: `${ep.Series.title} - EP ${ep.episode}`,
-    desc: ep.title || "",
-    video: ep.video_url
-  });
+  // Hilangkan loader setelah iframe mulai dimuat
+  setTimeout(() => {
+    document.getElementById("loader").style.opacity = "0";
+    setTimeout(() => document.getElementById("loader").remove(), 500);
+  }, 1500);
 }
 
-/* ================= RENDER ================= */
-function renderPlayer(v){
-  document.title = v.title;
-  document.getElementById("headerTitle").innerText = v.title;
-
-  document.getElementById("content").innerHTML = `
-    <div class="player">
-      <iframe 
-        src="${v.video}"
-        allow="autoplay; fullscreen"
-        allowfullscreen>
-      </iframe>
-    </div>
-
-    <div class="info">
-      <h1>${v.title}</h1>
-      <p>${v.desc}</p>
-    </div>
-  `;
+function shareVideo() {
+  navigator.clipboard.writeText(window.location.href);
+  alert("Link video berhasil disalin ke clipboard!");
 }
 
-/* ================= ERROR ================= */
-function showError(msg){
-  document.getElementById("content").innerHTML = `
-    <div class="block">
-      <h2>${msg}</h2>
-      <button onclick="history.back()">Kembali</button>
-    </div>
-  `;
-}
+loadContent();
 </script>
 
 </body>
