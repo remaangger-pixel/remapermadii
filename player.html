@@ -59,6 +59,15 @@ header button{
   padding:40px;
   text-align:center;
 }
+.block button{
+  margin-top:16px;
+  background:#e50914;
+  border:none;
+  color:#fff;
+  padding:8px 14px;
+  border-radius:6px;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -75,7 +84,7 @@ header button{
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 
-const sb = window.supabase.createClient(
+const sb = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
@@ -83,17 +92,23 @@ const sb = window.supabase.createClient(
 /* ================= PARAM ================= */
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
+const episodeId = params.get("episode");
 
-if(!movieId){
+/* ================= ROUTER ================= */
+if(movieId){
+  loadMovie(movieId);
+}else if(episodeId){
+  loadEpisode(episodeId);
+}else{
   showError("Video tidak ditemukan");
 }
 
 /* ================= LOAD MOVIE ================= */
-async function loadMovie(){
+async function loadMovie(id){
   const { data, error } = await sb
     .from("Movies")
     .select("*")
-    .eq("id", movieId)
+    .eq("id", id)
     .single();
 
   if(error || !data){
@@ -107,26 +122,65 @@ async function loadMovie(){
     return;
   }
 
-  renderPlayer(data);
+  renderPlayer({
+    title: data.title,
+    desc: data.type || "",
+    video: data.video
+  });
+}
+
+/* ================= LOAD EPISODE ================= */
+async function loadEpisode(id){
+  const { data: ep, error } = await sb
+    .from("Episodes")
+    .select(`
+      id,
+      episode,
+      title,
+      video_url,
+      Series (
+        title,
+        is18
+      )
+    `)
+    .eq("id", id)
+    .single();
+
+  if(error || !ep){
+    showError("Episode tidak ditemukan");
+    return;
+  }
+
+  // 🔞 CEK 18+
+  if(ep.Series?.is18 === true && sessionStorage.getItem("adultAccess") !== "true"){
+    showError("Konten 18+ terkunci<br>Masukkan kode terlebih dahulu");
+    return;
+  }
+
+  renderPlayer({
+    title: `${ep.Series.title} - EP ${ep.episode}`,
+    desc: ep.title || "",
+    video: ep.video_url
+  });
 }
 
 /* ================= RENDER ================= */
-function renderPlayer(m){
-  document.title = m.title;
-  document.getElementById("headerTitle").innerText = m.title;
+function renderPlayer(v){
+  document.title = v.title;
+  document.getElementById("headerTitle").innerText = v.title;
 
   document.getElementById("content").innerHTML = `
     <div class="player">
       <iframe 
-        src="${m.video}" 
+        src="${v.video}"
         allow="autoplay; fullscreen"
         allowfullscreen>
       </iframe>
     </div>
 
     <div class="info">
-      <h1>${m.title}</h1>
-      <p>${m.type || ""}</p>
+      <h1>${v.title}</h1>
+      <p>${v.desc}</p>
     </div>
   `;
 }
@@ -140,9 +194,6 @@ function showError(msg){
     </div>
   `;
 }
-
-/* ================= INIT ================= */
-loadMovie();
 </script>
 
 </body>
