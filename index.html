@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Streaming</title>
 
-<!-- SUPABASE CDN v2 -->
+<!-- SUPABASE JS v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -34,7 +34,11 @@ header{
   justify-content:space-between;
   align-items:center;
 }
-header h1{margin:0;cursor:pointer;font-weight:600}
+header h1{
+  margin:0;
+  cursor:pointer;
+  font-weight:600;
+}
 nav a{
   color:var(--muted);
   margin-left:16px;
@@ -42,6 +46,7 @@ nav a{
   font-size:14px;
 }
 nav a:hover{color:#fff}
+
 .banner{
   height:340px;
   background-size:cover;
@@ -73,7 +78,10 @@ nav a:hover{color:#fff}
   font-size:14px;
   cursor:pointer;
 }
-.search{padding:20px}
+
+.search{
+  padding:20px;
+}
 .search input{
   width:100%;
   padding:12px 16px;
@@ -82,6 +90,7 @@ nav a:hover{color:#fff}
   border-radius:30px;
   color:#fff;
 }
+
 .grid{
   padding:20px;
   display:grid;
@@ -95,9 +104,20 @@ nav a:hover{color:#fff}
   cursor:pointer;
   transition:.25s;
 }
-.card:hover{transform:translateY(-6px) scale(1.03)}
-.card img{width:100%;height:220px;object-fit:cover}
-.card p{padding:10px;font-size:14px;margin:0}
+.card:hover{
+  transform:translateY(-6px) scale(1.03);
+}
+.card img{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+}
+.card p{
+  padding:10px;
+  font-size:14px;
+  margin:0;
+}
+
 @media(max-width:600px){
   .banner{height:200px}
   .banner-content h2{font-size:22px}
@@ -128,11 +148,11 @@ nav a:hover{color:#fff}
 <div class="grid" id="movieList"></div>
 
 <script>
-/* ================= SUPABASE INIT ================= */
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const SUPABASE_ANON_KEY = "PASTE_ANON_KEY_KAMU_DI_SINI";
 
-const supabaseClient = window.supabase.createClient(
+const supabaseClient = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
@@ -141,9 +161,10 @@ const supabaseClient = window.supabase.createClient(
 let movies = [];
 let bannerIndex = 0;
 
-const list = document.getElementById("movieList");
-const search = document.getElementById("search");
-const banner = document.getElementById("banner");
+/* ================= ELEMENT ================= */
+const list        = document.getElementById("movieList");
+const searchInput = document.getElementById("search");
+const banner      = document.getElementById("banner");
 const bannerTitle = document.getElementById("bannerTitle");
 
 /* ================= LOAD MOVIES ================= */
@@ -155,18 +176,19 @@ async function loadMovies(){
 
   if(error){
     console.error("Supabase error:", error);
+    bannerTitle.innerText = "Failed load data";
     return;
   }
 
   movies = data || [];
-  render();
+  renderGrid();
   renderBanner();
 }
 
 /* ================= RENDER GRID ================= */
-function render(){
+function renderGrid(){
   list.innerHTML = "";
-  const q = search.value.toLowerCase();
+  const q = searchInput.value.toLowerCase();
 
   movies.forEach(m=>{
     if(m.is18) return;
@@ -174,7 +196,7 @@ function render(){
 
     list.innerHTML += `
       <div class="card" onclick="openPlayer(${m.id})">
-        <img src="${m.thumb}">
+        <img src="${m.thumb}" loading="lazy">
         <p>${m.title}</p>
       </div>
     `;
@@ -187,51 +209,6 @@ function openPlayer(id){
 }
 
 /* ================= SEARCH ================= */
-search.addEventListener("input", render);
+searchInput.addEventListener("input", renderGrid);
 
-/* ================= BANNER ================= */
-function renderBanner(){
-  const bannerMovies = movies.filter(m => !m.is18);
-  if(bannerMovies.length === 0) return;
-
-  const m = bannerMovies[bannerIndex];
-  banner.style.backgroundImage = `url(${m.thumb})`;
-  bannerTitle.innerText = m.title;
-}
-
-function openBanner(){
-  const bannerMovies = movies.filter(m => !m.is18);
-  if(!bannerMovies[bannerIndex]) return;
-  openPlayer(bannerMovies[bannerIndex].id);
-}
-
-setInterval(()=>{
-  const bannerMovies = movies.filter(m => !m.is18);
-  if(bannerMovies.length === 0) return;
-  bannerIndex = (bannerIndex + 1) % bannerMovies.length;
-  renderBanner();
-},5000);
-
-/* ================= 18+ ACCESS ================= */
-const ADULT_CODE = "181818";
-
-function openAdult(){
-  if(sessionStorage.getItem("adultAccess") === "true"){
-    location.href = "adult.html";
-    return;
-  }
-  const code = prompt("Masukkan kode akses 18+");
-  if(code === ADULT_CODE){
-    sessionStorage.setItem("adultAccess","true");
-    location.href = "adult.html";
-  }else{
-    alert("Kode salah!");
-  }
-}
-
-/* ================= INIT ================= */
-loadMovies();
-</script>
-
-</body>
-</html>
+/* ===============*
