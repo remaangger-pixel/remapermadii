@@ -3,71 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Playing - Anvi Create</title>
+<title>Premium Player - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --bg: #060606;
-  --card: #121212;
-  --accent: #ff0513;
-  --text: #ffffff;
-  --muted: #888888;
-}
-
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font-family: 'Inter', sans-serif; overflow-x: hidden;
-}
-
-/* HEADER */
-header {
-  padding: 12px 5%; background: rgba(0,0,0,0.9);
-  display: flex; align-items: center; gap: 15px;
-  position: sticky; top: 0; z-index: 100;
-  border-bottom: 1px solid #111;
-}
-
-.back-btn {
-  background: var(--accent); border: none; color: #fff;
-  padding: 8px 18px; border-radius: 50px; cursor: pointer;
-  font-weight: bold; transition: 0.3s; text-decoration: none; font-size: 13px;
-}
-.back-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
-
-/* PLAYER WRAPPER */
-.player-wrapper {
-  width: 100%; max-width: 1100px; margin: 20px auto; padding: 0 15px;
-}
-.video-container {
-  position: relative; width: 100%; padding-top: 56.25%;
-  background: #000; border-radius: 12px; overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-.video-container iframe {
-  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
-}
-
-/* SERVER SWITCHER */
-.server-box {
-  margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;
-}
-.btn-server {
-  background: #1a1a1a; border: 1px solid #333; color: #fff;
-  padding: 10px 20px; border-radius: 8px; cursor: pointer;
-  font-size: 13px; transition: 0.3s; font-weight: 600;
-}
-.btn-server.active {
-  background: var(--accent); border-color: var(--accent);
-}
-.btn-server:hover:not(.active) { border-color: var(--accent); }
-
-/* INFO SECTION */
+:root { --bg: #060606; --card: #121212; --accent: #ff0513; --text: #ffffff; --muted: #888888; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+header { padding: 12px 5%; background: rgba(0,0,0,0.9); display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #111; }
+.back-btn { background: var(--accent); border: none; color: #fff; padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.3s; text-decoration: none; font-size: 13px; }
+.player-wrapper { width: 100%; max-width: 1100px; margin: 20px auto; padding: 0 15px; box-sizing: border-box; }
+.video-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.video-container iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+.server-box { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-server { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: 0.3s; font-weight: 600; }
+.btn-server.active { background: var(--accent); border-color: var(--accent); }
 .video-info { padding: 0 5%; margin-bottom: 40px; }
-.video-info h1 { font-size: clamp(20px, 4vw, 28px); margin: 20px 0 10px; }
 .tag { background: #1a1a1a; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--muted); margin-right: 10px; }
-
-/* LOADER */
-.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 10; transition: 0.5s; }
+.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 10; transition: 0.5s; pointer-events: none; }
 .spinner { width: 40px; height: 40px; border: 4px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
 @keyframes s { to { transform: rotate(360deg); } }
 </style>
@@ -76,7 +27,7 @@ header {
 
 <header>
   <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:13px;">Memuat...</span>
+  <span id="navTitle" style="color:var(--muted); font-size:13px;">Loading...</span>
 </header>
 
 <div class="player-wrapper">
@@ -84,17 +35,13 @@ header {
     <div id="loader" class="loader"><div class="spinner"></div></div>
     <div id="playerFrame"></div>
   </div>
-
   <div class="server-box" id="serverList"></div>
 </div>
 
 <div class="video-info">
-  <div style="margin-bottom: 15px;">
-    <span class="tag" id="vType">Video</span>
-    <span class="tag">HD Quality</span>
-  </div>
-  <h1 id="vTitle">...</h1>
-  <p id="vDesc" style="color:#aaa; font-size:14px;">Selamat menonton, Bosku! Gunakan server cadangan jika server utama lambat.</p>
+  <div style="margin-bottom: 15px;"><span class="tag" id="vType">Video</span><span class="tag">Multi-Server</span></div>
+  <h1 id="vTitle" style="margin:0 0 10px 0;">...</h1>
+  <p id="vDesc" style="color:#aaa; font-size:14px;">Ganti server jika video macet atau tidak muncul.</p>
 </div>
 
 <script>
@@ -104,11 +51,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
-const epsId = params.get("eps"); // Untuk navigasi episode nantinya
+const epsId = params.get("eps");
 
 async function init() {
   let videoData = null;
-
   if (movieId) {
     const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
     videoData = data;
@@ -122,53 +68,61 @@ async function init() {
   if (videoData) {
     setupServers(videoData.video, videoData.video2);
   } else {
-    alert("Video tidak ditemukan!");
     location.href = "index.html";
   }
 }
 
 function updateUI(title, type) {
-  document.title = title + " - Playing";
-  document.getElementById("navTitle").innerText = "Watching: " + title;
+  document.getElementById("navTitle").innerText = "Streaming: " + title;
   document.getElementById("vTitle").innerText = title;
   document.getElementById("vType").innerText = type;
 }
 
 function setupServers(s1, s2) {
   const serverBox = document.getElementById("serverList");
-  const servers = [];
+  serverBox.innerHTML = "";
   
-  if (s1) servers.push({ name: "Server 1", url: s1 });
-  if (s2) servers.push({ name: "Server 2", url: s2 });
+  const servers = [];
+  // Pengecekan lebih longgar agar tombol selalu muncul jika ada isi
+  if (s1 && s1.trim().length > 0) servers.push({ name: "Server 1", url: s1.trim() });
+  if (s2 && s2.trim().length > 0) servers.push({ name: "Server 2", url: s2.trim() });
 
   servers.forEach((srv, index) => {
     const btn = document.createElement("button");
     btn.className = "btn-server" + (index === 0 ? " active" : "");
     btn.innerText = srv.name;
     btn.onclick = () => {
-      // Ganti Iframe
       loadVideo(srv.url);
-      // Ganti status aktif tombol
       document.querySelectorAll('.btn-server').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     };
     serverBox.appendChild(btn);
   });
 
-  // Load server pertama secara otomatis
   if (servers.length > 0) loadVideo(servers[0].url);
 }
 
 function loadVideo(url) {
   const frame = document.getElementById("playerFrame");
   const loader = document.getElementById("loader");
+  const cleanUrl = url.replace(/,$/, "").trim();
   
-  loader.style.opacity = "1"; // Tampilkan loader saat ganti server
-  frame.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay"></iframe>`;
+  loader.style.opacity = "1";
   
-  setTimeout(() => {
-    loader.style.opacity = "0";
-  }, 1000);
+  // SOLUSI GOOGLE DRIVE & DBSTREAM:
+  // Kita hapus atribut 'sandbox' agar Google Drive bisa jalan.
+  // Tapi kita tetap pakai 'referrerpolicy' agar dbstream tembus.
+  frame.innerHTML = `
+    <iframe 
+      src="${cleanUrl}" 
+      allowfullscreen="true" 
+      webkitallowfullscreen="true" 
+      mozallowfullscreen="true" 
+      referrerpolicy="no-referrer"
+      allow="autoplay; encrypted-media; picture-in-picture">
+    </iframe>`;
+  
+  setTimeout(() => { loader.style.opacity = "0"; }, 1500);
 }
 
 init();
