@@ -55,6 +55,10 @@ header button{
   color:#aaa;
   font-size:14px;
 }
+.block{
+  padding:40px;
+  text-align:center;
+}
 </style>
 </head>
 <body>
@@ -64,15 +68,10 @@ header button{
   <span id="headerTitle">Loading...</span>
 </header>
 
-<div class="player" id="player"></div>
-
-<div class="info">
-  <h1 id="title"></h1>
-  <p id="type"></p>
-</div>
+<div id="content"></div>
 
 <script>
-/* ================= SUPABASE INIT ================= */
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 
@@ -81,13 +80,12 @@ const sb = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
-/* ================= GET ID ================= */
+/* ================= PARAM ================= */
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
 
 if(!movieId){
-  document.body.innerHTML = "<p style='padding:20px'>Video tidak ditemukan</p>";
-  throw new Error("No ID");
+  showError("Video tidak ditemukan");
 }
 
 /* ================= LOAD MOVIE ================= */
@@ -99,24 +97,51 @@ async function loadMovie(){
     .single();
 
   if(error || !data){
-    document.body.innerHTML = "<p style='padding:20px'>Video tidak ditemukan</p>";
+    showError("Video tidak ditemukan");
     return;
   }
 
-  document.title = data.title;
-  document.getElementById("title").innerText = data.title;
-  document.getElementById("headerTitle").innerText = data.title;
-  document.getElementById("type").innerText = data.type || "";
+  // 🔞 CEK 18+
+  if(data.is18 === true && sessionStorage.getItem("adultAccess") !== "true"){
+    showError("Konten 18+ terkunci<br>Masukkan kode terlebih dahulu");
+    return;
+  }
 
-  document.getElementById("player").innerHTML = `
-    <iframe 
-      src="${data.video}" 
-      allow="autoplay; fullscreen"
-      allowfullscreen>
-    </iframe>
+  renderPlayer(data);
+}
+
+/* ================= RENDER ================= */
+function renderPlayer(m){
+  document.title = m.title;
+  document.getElementById("headerTitle").innerText = m.title;
+
+  document.getElementById("content").innerHTML = `
+    <div class="player">
+      <iframe 
+        src="${m.video}" 
+        allow="autoplay; fullscreen"
+        allowfullscreen>
+      </iframe>
+    </div>
+
+    <div class="info">
+      <h1>${m.title}</h1>
+      <p>${m.type || ""}</p>
+    </div>
   `;
 }
 
+/* ================= ERROR ================= */
+function showError(msg){
+  document.getElementById("content").innerHTML = `
+    <div class="block">
+      <h2>${msg}</h2>
+      <button onclick="history.back()">Kembali</button>
+    </div>
+  `;
+}
+
+/* ================= INIT ================= */
 loadMovie();
 </script>
 
