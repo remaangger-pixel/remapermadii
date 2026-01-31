@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Playing - Anvi Create</title>
+<title>Premium Player - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -39,7 +39,7 @@ header {
   width: 100%; max-width: 1100px; margin: 20px auto; padding: 0 15px;
 }
 .video-container {
-  position: relative; width: 100%; padding-top: 56.25%;
+  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
   background: #000; border-radius: 12px; overflow: hidden;
   box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
@@ -59,7 +59,6 @@ header {
 .btn-server.active {
   background: var(--accent); border-color: var(--accent);
 }
-.btn-server:hover:not(.active) { border-color: var(--accent); }
 
 /* INFO SECTION */
 .video-info { padding: 0 5%; margin-bottom: 40px; }
@@ -76,7 +75,7 @@ header {
 
 <header>
   <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:13px;">Memuat...</span>
+  <span id="navTitle" style="color:var(--muted); font-size:13px;">Loading...</span>
 </header>
 
 <div class="player-wrapper">
@@ -91,10 +90,12 @@ header {
 <div class="video-info">
   <div style="margin-bottom: 15px;">
     <span class="tag" id="vType">Video</span>
-    <span class="tag">HD Quality</span>
+    <span class="tag">Auto Server</span>
   </div>
   <h1 id="vTitle">...</h1>
-  <p id="vDesc" style="color:#aaa; font-size:14px;">Selamat menonton, Bosku! Gunakan server cadangan jika server utama lambat.</p>
+  <p id="vDesc" style="color:#aaa; font-size:14px; line-height: 1.6;">
+    Tips: Jika server utama lambat atau tidak muncul, silakan klik tombol server lainnya di bawah video.
+  </p>
 </div>
 
 <script>
@@ -104,7 +105,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
-const epsId = params.get("eps"); // Untuk navigasi episode nantinya
+const epsId = params.get("eps");
 
 async function init() {
   let videoData = null;
@@ -112,24 +113,23 @@ async function init() {
   if (movieId) {
     const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
     videoData = data;
-    if(data) updateUI(data.title, "Movie");
+    if(data) renderUI(data.title, "Movie");
   } else if (epsId) {
     const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", epsId).single();
     videoData = data;
-    if(data) updateUI(`${data.Series.title} - Eps ${data.episode}`, "Series");
+    if(data) renderUI(`${data.Series.title} - Eps ${data.episode}`, "Series");
   }
 
   if (videoData) {
     setupServers(videoData.video, videoData.video2);
   } else {
-    alert("Video tidak ditemukan!");
     location.href = "index.html";
   }
 }
 
-function updateUI(title, type) {
+function renderUI(title, type) {
   document.title = title + " - Playing";
-  document.getElementById("navTitle").innerText = "Watching: " + title;
+  document.getElementById("navTitle").innerText = "Streaming: " + title;
   document.getElementById("vTitle").innerText = title;
   document.getElementById("vType").innerText = type;
 }
@@ -138,24 +138,21 @@ function setupServers(s1, s2) {
   const serverBox = document.getElementById("serverList");
   const servers = [];
   
-  if (s1) servers.push({ name: "Server 1", url: s1 });
-  if (s2) servers.push({ name: "Server 2", url: s2 });
+  if (s1 && s1.length > 5) servers.push({ name: "Server 1", url: s1.trim() });
+  if (s2 && s2.length > 5) servers.push({ name: "Server 2", url: s2.trim() });
 
   servers.forEach((srv, index) => {
     const btn = document.createElement("button");
     btn.className = "btn-server" + (index === 0 ? " active" : "");
     btn.innerText = srv.name;
     btn.onclick = () => {
-      // Ganti Iframe
       loadVideo(srv.url);
-      // Ganti status aktif tombol
       document.querySelectorAll('.btn-server').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     };
     serverBox.appendChild(btn);
   });
 
-  // Load server pertama secara otomatis
   if (servers.length > 0) loadVideo(servers[0].url);
 }
 
@@ -163,12 +160,26 @@ function loadVideo(url) {
   const frame = document.getElementById("playerFrame");
   const loader = document.getElementById("loader");
   
-  loader.style.opacity = "1"; // Tampilkan loader saat ganti server
-  frame.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay"></iframe>`;
+  // Membersihkan URL dari karakter tak terlihat atau koma di akhir
+  const cleanUrl = url.replace(/,$/, "").trim();
+  
+  loader.style.opacity = "1";
+  
+  // IFRAME BOOSTER (Agar tembus proteksi embed)
+  frame.innerHTML = `
+    <iframe 
+      src="${cleanUrl}" 
+      allowfullscreen="true" 
+      webkitallowfullscreen="true" 
+      mozallowfullscreen="true" 
+      referrerpolicy="no-referrer"
+      allow="autoplay; encrypted-media; picture-in-picture"
+      sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation">
+    </iframe>`;
   
   setTimeout(() => {
     loader.style.opacity = "0";
-  }, 1000);
+  }, 1200);
 }
 
 init();
