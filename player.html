@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Anvi Player - Premium</title>
+<title>Anvi Player - Premium Streaming</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root { --bg: #060606; --accent: #ff0513; --text: #ffffff; --muted: #888888; --card: #121212; }
@@ -12,62 +12,60 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter
 
 /* HEADER */
 header { 
-  padding: 12px 4%; background: rgba(0,0,0,0.95); 
+  padding: 12px 5%; background: rgba(0,0,0,0.95); 
   display: flex; align-items: center; gap: 15px; 
   position: sticky; top: 0; z-index: 100; 
   border-bottom: 1px solid #111; backdrop-filter: blur(10px);
 }
 .back-btn { background: var(--accent); border: none; color: #fff; padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 13px; }
 
-/* PLAYER AREA - Dibuat Lebih Luas */
-.player-section { width: 100%; background: #000; }
+/* PLAYER AREA - Dikecilkan ukurannya untuk Desktop */
+.player-section { width: 100%; background: #000; padding: 20px 0; }
 .video-container { 
-  position: relative; width: 100%; 
-  max-width: 1400px; /* Diperlebar agar tidak 'kurus' di monitor */
+  position: relative; 
+  width: 90%; /* Tidak menyentuh pinggir layar di desktop */
+  max-width: 1000px; /* Batas maksimal agar tidak raksasa */
   margin: 0 auto;
-  padding-top: 56.25%; /* Tetap 16:9 */
+  padding-top: 50.25%; /* Sedikit lebih ramping */
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
 .video-container iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; z-index: 10; }
 
-/* CONTENT WRAPPER - Menyesuaikan lebar video */
-.content-wrapper { padding: 25px 4%; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+/* CONTENT WRAPPER */
+.content-wrapper { padding: 25px 5%; max-width: 1000px; margin: 0 auto; box-sizing: border-box; }
 
-.server-box { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; }
+.server-box { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 25px; }
 .btn-server { 
-  background: var(--card); border: 1px solid #333; color: #fff; padding: 14px 30px; 
-  border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; 
-  transition: 0.3s;
+  background: var(--card); border: 1px solid #333; color: #fff; padding: 10px 20px; 
+  border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; 
 }
-.btn-server.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 15px rgba(255, 5, 19, 0.4); }
+.btn-server.active { background: var(--accent); border-color: var(--accent); }
 
-.video-title { font-size: clamp(22px, 4vw, 32px); margin: 10px 0; font-weight: 800; letter-spacing: -0.5px; }
+.video-title { font-size: clamp(18px, 4vw, 26px); margin: 10px 0; font-weight: 800; }
 .tags { display: flex; gap: 8px; margin-bottom: 15px; }
-.tag { background: #1a1a1a; padding: 5px 12px; border-radius: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
+.tag { background: #1a1a1a; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
 
-/* REKOMENDASI FILM - Full Width Grid */
-.recommendation-section { padding: 30px 4%; max-width: 1400px; margin: 0 auto; border-top: 1px solid #1a1a1a; }
-.section-title { font-size: 20px; font-weight: 700; margin-bottom: 25px; color: #fff; border-left: 4px solid var(--accent); padding-left: 15px; }
-.grid-suggest { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Card lebih besar di desktop */
-  gap: 20px; 
-}
-.suggest-card { background: var(--card); border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.4s; border: 1px solid #1a1a1a; }
-.suggest-card:hover { transform: translateY(-8px); border-color: var(--accent); }
+/* REKOMENDASI FILM */
+.recommendation-section { padding: 30px 5%; max-width: 1000px; margin: 0 auto; border-top: 1px solid #1a1a1a; }
+.section-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #fff; border-left: 4px solid var(--accent); padding-left: 12px; }
+.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+.suggest-card { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
 .suggest-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-.suggest-card p { padding: 12px; margin: 0; font-size: 14px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-card p { padding: 8px; margin: 0; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* MOBILE FIX */
+/* MOBILE FIX - Tetap Full di HP */
 @media (max-width: 768px) {
-  .video-container { max-width: 100%; }
-  .content-wrapper { padding: 20px 15px; }
-  .btn-server { flex: 1; padding: 12px; font-size: 13px; }
-  .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+  .player-section { padding: 0; }
+  .video-container { width: 100%; border-radius: 0; padding-top: 56.25%; }
+  .btn-server { flex: 1; }
 }
 
 /* LOADER */
 .loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 50; transition: 0.5s; }
-.spinner { width: 45px; height: 45px; border: 4px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
+.spinner { width: 35px; height: 35px; border: 3px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
 @keyframes s { to { transform: rotate(360deg); } }
 </style>
 </head>
@@ -75,7 +73,7 @@ header {
 
 <header>
   <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:12px; font-weight: 500;">Loading content...</span>
+  <span id="navTitle" style="color:var(--muted); font-size:12px;">Memuat...</span>
 </header>
 
 <div class="player-section">
@@ -90,10 +88,9 @@ header {
   <div class="tags">
     <span class="tag" id="vType">Movie</span>
     <span class="tag">Ultra HD</span>
-    <span class="tag">Free</span>
   </div>
   <h1 id="vTitle" class="video-title">...</h1>
-  <p style="color:#888; font-size:14px; line-height: 1.6;">Ganti server jika video lambat atau tidak muncul. Gunakan koneksi stabil untuk pengalaman menonton terbaik.</p>
+  <p style="color:#666; font-size:13px;">Ganti server jika video tidak muncul atau lambat.</p>
 </div>
 
 <div class="recommendation-section">
@@ -111,11 +108,9 @@ const movieId = params.get("id");
 
 async function init() {
   if (!movieId) { location.href = 'index.html'; return; }
-
   const { data: movie } = await sb.from("Movies").select("*").eq("id", movieId).maybeSingle();
-  
   if (movie) {
-    document.getElementById("navTitle").innerText = "Sedang Menonton: " + movie.title;
+    document.getElementById("navTitle").innerText = "Watching: " + movie.title;
     document.getElementById("vTitle").innerText = movie.title;
     setupServers(movie.video, movie.video2);
     loadSuggestions(); 
@@ -149,20 +144,21 @@ function loadVideo(url) {
   const frame = document.getElementById("playerFrame");
   const loader = document.getElementById("loader");
   loader.style.opacity = "1";
-  frame.innerHTML = `<iframe src="${url.trim()}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
-  setTimeout(() => { loader.style.opacity = "0"; }, 1200);
+  
+  let cleanUrl = url.trim();
+  if (cleanUrl.includes("drive.google.com")) {
+      cleanUrl = cleanUrl.replace("/view", "/preview");
+  }
+
+  frame.innerHTML = `<iframe src="${cleanUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>`;
+  
+  setTimeout(() => { loader.style.opacity = "0"; }, 1000);
 }
 
 async function loadSuggestions() {
-  const { data: list } = await sb.from("Movies")
-    .select("*")
-    .eq("is18", false)
-    .neq("id", movieId)
-    .limit(12); // Ditambah jadi 12 biar desktop makin penuh dan keren
-
+  const { data: list } = await sb.from("Movies").select("*").eq("is18", false).neq("id", movieId).limit(10);
   const container = document.getElementById("suggestList");
   container.innerHTML = "";
-  
   list?.forEach(m => {
     container.innerHTML += `
       <div class="suggest-card" onclick="location.href='player.html?id=${m.id}'">
