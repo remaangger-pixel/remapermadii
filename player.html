@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Premium Player - Anvi Create</title>
+<title>Anvi Player - Premium</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root { --bg: #060606; --accent: #ff0513; --text: #ffffff; --muted: #888888; --card: #121212; }
@@ -17,92 +17,79 @@ header {
   position: sticky; top: 0; z-index: 100; 
   border-bottom: 1px solid #111; backdrop-filter: blur(10px);
 }
+.back-btn { background: var(--accent); border: none; color: #fff; padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 13px; }
 
-.back-btn { 
-  background: var(--accent); border: none; color: #fff; padding: 8px 18px; 
-  border-radius: 50px; cursor: pointer; font-weight: bold; 
-  text-decoration: none; font-size: 13px; transition: 0.3s;
-}
-.back-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
-
-/* PLAYER SECTION */
-.player-wrapper { 
-  width: 100%; max-width: 1100px; margin: 0 auto; 
-  box-sizing: border-box; 
-}
-
+/* PLAYER AREA - Anti-Collision */
+.player-section { width: 100%; background: #000; position: relative; }
 .video-container { 
-  position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Ratio */
-  background: #000; z-index: 1; 
+  position: relative; width: 100%; max-width: 1100px; margin: 0 auto;
+  padding-top: 56.25%; /* 16:9 */
 }
+.video-container iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; z-index: 10; }
 
-.video-container iframe { 
-  position: absolute; inset: 0; width: 100%; height: 100%; border: none; z-index: 5;
-}
+/* CONTENT INFO */
+.content-wrapper { padding: 20px 5%; max-width: 1100px; margin: 0 auto; box-sizing: border-box; }
 
-/* CONTENT INFO - Bagian yang kita rapikan agar tidak berantakan di HP */
-.content-info {
-  padding: 20px 5%;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.server-box { 
-  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 25px;
-}
-
+.server-box { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; position: relative; z-index: 20; }
 .btn-server { 
-  flex: 1; min-width: 120px; background: var(--card); border: 1px solid #222; 
-  color: #fff; padding: 12px 20px; border-radius: 8px; cursor: pointer; 
-  font-size: 14px; font-weight: 600; transition: 0.3s; 
+  background: var(--card); border: 1px solid #333; color: #fff; padding: 12px 25px; 
+  border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; flex-grow: 1;
 }
-.btn-server.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px rgba(255, 5, 19, 0.3); }
+.btn-server.active { background: var(--accent); border-color: var(--accent); }
 
-.tag-container { margin-bottom: 15px; display: flex; gap: 8px; }
-.tag { background: #1a1a1a; padding: 4px 12px; border-radius: 4px; font-size: 11px; color: var(--muted); font-weight: bold; text-transform: uppercase; }
+.video-title { font-size: clamp(18px, 5vw, 26px); margin: 10px 0; font-weight: 800; }
+.tags { display: flex; gap: 8px; margin-bottom: 15px; }
+.tag { background: #1a1a1a; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
 
-.video-title { margin: 0 0 10px 0; font-size: clamp(20px, 4vw, 28px); font-weight: 800; line-height: 1.3; }
-.video-desc { color: #666; font-size: 14px; margin: 0; line-height: 1.5; }
+/* REKOMENDASI FILM */
+.recommendation-section { padding: 20px 5%; max-width: 1100px; margin: 0 auto; border-top: 1px solid #1a1a1a; }
+.section-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--accent); }
+.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+.suggest-card { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
+.suggest-card:hover { transform: scale(1.05); }
+.suggest-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+.suggest-card p { padding: 8px; margin: 0; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* MOBILE FIX */
+@media (max-width: 768px) {
+  .content-wrapper { padding: 15px; }
+  .btn-server { padding: 10px; font-size: 13px; }
+  .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+}
 
 /* LOADER */
-.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 20; transition: 0.5s; pointer-events: none; }
+.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 50; transition: 0.5s; pointer-events: none; }
 .spinner { width: 40px; height: 40px; border: 4px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
 @keyframes s { to { transform: rotate(360deg); } }
-
-/* RESPONSIVE PERBAIKAN */
-@media (max-width: 768px) {
-  .player-wrapper { margin-top: 0; }
-  .video-container { border-radius: 0; }
-  .btn-server { flex: 1; font-size: 13px; padding: 10px; }
-  .content-info { padding: 15px 5%; }
-}
 </style>
 </head>
 <body>
 
-<header id="mainHeader">
+<header>
   <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</span>
+  <span id="navTitle" style="color:var(--muted); font-size:12px;">Loading...</span>
 </header>
 
-<div class="player-wrapper">
+<div class="player-section">
   <div class="video-container" id="playerParent">
     <div id="loader" class="loader"><div class="spinner"></div></div>
     <div id="playerFrame"></div>
   </div>
 </div>
 
-<div class="content-info">
-  <div class="server-box" id="serverList">
-    </div>
-
-  <div class="tag-container">
-    <span class="tag" id="vType">Video</span>
+<div class="content-wrapper">
+  <div class="server-box" id="serverList"></div>
+  <div class="tags">
+    <span class="tag" id="vType">Movie</span>
     <span class="tag">Ultra HD</span>
   </div>
-
   <h1 id="vTitle" class="video-title">...</h1>
-  <p id="vDesc" class="video-desc">Ganti server jika video lambat atau tidak muncul.</p>
+  <p style="color:#666; font-size:13px; margin: 0;">Ganti server jika video lambat atau tidak muncul.</p>
+</div>
+
+<div class="recommendation-section">
+  <h2 class="section-title">Mungkin Kamu Suka</h2>
+  <div class="grid-suggest" id="suggestList"></div>
 </div>
 
 <script>
@@ -112,50 +99,40 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const params = new URLSearchParams(location.search);
 const movieId = params.get("id");
-const epsId = params.get("eps");
 
 async function init() {
-  let videoData = null;
-  if (movieId) {
-    const { data } = await sb.from("Movies").select("*").eq("id", movieId).maybeSingle();
-    videoData = data;
-    if(data) renderUI(data.title, "Movie");
-  } else if (epsId) {
-    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", epsId).maybeSingle();
-    videoData = data;
-    if(data) renderUI(`${data.Series.title} - Eps ${data.episode}`, "Series");
-  }
+  if (!movieId) { location.href = 'index.html'; return; }
 
-  if (videoData) {
-    setupServers(videoData.video, videoData.video2);
+  // 1. Ambil Detail Film
+  const { data: movie } = await sb.from("Movies").select("*").eq("id", movieId).maybeSingle();
+  
+  if (movie) {
+    document.getElementById("navTitle").innerText = "Watching: " + movie.title;
+    document.getElementById("vTitle").innerText = movie.title;
+    setupServers(movie.video, movie.video2);
+    loadSuggestions(); // Load rekomendasi
   } else {
-    location.href = "index.html";
+    location.href = 'index.html';
   }
-}
-
-function renderUI(title, type) {
-  document.getElementById("navTitle").innerText = "Watching: " + title;
-  document.getElementById("vTitle").innerText = title;
-  document.getElementById("vType").innerText = type;
 }
 
 function setupServers(s1, s2) {
-  const serverBox = document.getElementById("serverList");
-  serverBox.innerHTML = "";
+  const box = document.getElementById("serverList");
+  box.innerHTML = "";
   const servers = [];
-  if (s1 && s1.trim()) servers.push({ name: "Server 1", url: s1.trim() });
-  if (s2 && s2.trim()) servers.push({ name: "Server 2", url: s2.trim() });
+  if (s1) servers.push({ name: "Server 1", url: s1 });
+  if (s2) servers.push({ name: "Server 2", url: s2 });
 
-  servers.forEach((srv, index) => {
+  servers.forEach((srv, i) => {
     const btn = document.createElement("button");
-    btn.className = "btn-server" + (index === 0 ? " active" : "");
+    btn.className = "btn-server" + (i === 0 ? " active" : "");
     btn.innerText = srv.name;
     btn.onclick = () => {
       loadVideo(srv.url);
       document.querySelectorAll('.btn-server').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     };
-    serverBox.appendChild(btn);
+    box.appendChild(btn);
   });
   if (servers.length > 0) loadVideo(servers[0].url);
 }
@@ -163,21 +140,31 @@ function setupServers(s1, s2) {
 function loadVideo(url) {
   const frame = document.getElementById("playerFrame");
   const loader = document.getElementById("loader");
-  const cleanUrl = url.replace(/,$/, "").trim();
-  
   loader.style.opacity = "1";
   
-  frame.innerHTML = `
-    <iframe 
-      src="${cleanUrl}" 
-      allowfullscreen 
-      webkitallowfullscreen 
-      mozallowfullscreen 
-      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-      referrerpolicy="no-referrer">
-    </iframe>`;
+  frame.innerHTML = `<iframe src="${url.trim()}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
   
-  setTimeout(() => { loader.style.opacity = "0"; }, 1500);
+  setTimeout(() => { loader.style.opacity = "0"; }, 1000);
+}
+
+// 2. Fungsi Ambil Film Rekomendasi
+async function loadSuggestions() {
+  const { data: list } = await sb.from("Movies")
+    .select("*")
+    .eq("is18", false)
+    .neq("id", movieId) // Jangan tampilkan film yang sedang ditonton
+    .limit(6);
+
+  const container = document.getElementById("suggestList");
+  container.innerHTML = "";
+  
+  list.forEach(m => {
+    container.innerHTML += `
+      <div class="suggest-card" onclick="location.href='player.html?id=${m.id}'">
+        <img src="${m.thumb}">
+        <p>${m.title}</p>
+      </div>`;
+  });
 }
 
 init();
