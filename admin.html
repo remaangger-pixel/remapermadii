@@ -3,141 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel Multi-Server - Anvi Create</title>
-
+<title>Admin Panel Fix - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-:root{ --bg:#0b0b0b; --card:#151515; --accent:#e50914; --blue:#007bff; --green:#28a745; }
+:root{ --bg:#0b0b0b; --card:#151515; --accent:#e50914; --blue:#007bff; }
 body{margin:0;background:var(--bg);color:#fff;font-family:'Inter',sans-serif; padding-bottom: 50px;}
 header{background:#000;padding:15px 5%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:100}
 button{color:#fff;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-weight:bold;transition:0.3s}
 .container{padding:20px; max-width: 1100px; margin: auto;}
-
-/* TABS */
 .tabs{display:flex; gap:10px; margin-bottom:25px; background:#111; padding:10px; border-radius:12px}
-.tab-btn{background:transparent; flex:1; padding:12px; border-radius:8px; border:1px solid #333; color:#888}
+.tab-btn{background:transparent; flex:1; padding:12px; border-radius:8px; border:1px solid #333; color:#888; cursor:pointer}
 .tab-btn.active{background:var(--accent); border-color:var(--accent); color:#fff}
-
-/* FORMS */
 .form-section{background:var(--card);padding:25px;border-radius:15px;margin-bottom:30px; border: 1px solid #222; display:none}
-.form-section.active{display:block; animation: fadeIn 0.4s}
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-
+.form-section.active{display:block;}
 .form-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-label{display:block; margin-bottom:8px; font-size:13px; color:#aaa; font-weight:600}
+label{display:block; margin-bottom:8px; font-size:13px; color:#aaa;}
 input, select{width:100%;padding:12px;margin-bottom:15px;border:1px solid #333;border-radius:8px;background:#000;color:#fff;box-sizing:border-box}
-input:focus{border-color:var(--accent); outline:none}
-
-/* LIST CARDS */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
 .card{background:var(--card);border-radius:10px;overflow:hidden;border:1px solid #222}
 .card img{width:100%;height:220px;object-fit:cover}
 .card-body{padding:12px}
-.card-title{font-size:13px; font-weight:bold; margin-bottom:10px; height: 35px; overflow:hidden}
-.actions{display:flex;gap:5px}
+.card-title{font-size:13px; font-weight:bold; height: 35px; overflow:hidden}
+.actions{display:flex;gap:5px; margin-top:10px}
 .edit{background:#ffa500; flex:1; font-size:11px}
 .delete{background:#ff4d4d; flex:1; font-size:11px}
-
-.status-server { font-size: 10px; color: #555; margin-top: 5px; }
-.status-server.on { color: var(--green); }
 </style>
 </head>
 <body>
 
 <header>
-  <h2 style="margin:0; font-size:22px; color:var(--accent)">Anvi <span style="color:#fff">Admin</span></h2>
+  <h2 style="margin:0;">Anvi <span style="color:var(--accent)">Admin</span></h2>
   <button style="background:#333" onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
-  
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('tab-movies', this)">🎬 Movies</button>
-    <button class="tab-btn" onclick="switchTab('tab-series', this)">📺 Series</button>
-    <button class="tab-btn" onclick="switchTab('tab-episodes', this)">➕ Add Episode</button>
+    <button id="btn-m" class="tab-btn active" onclick="switchTab('Movies')">🎬 Movies</button>
+    <button id="btn-s" class="tab-btn" onclick="switchTab('Series')">📺 Series</button>
+    <button id="btn-e" class="tab-btn" onclick="switchTab('Episodes')">➕ Add Episode</button>
   </div>
 
-  <div id="tab-movies" class="form-section active">
+  <div id="form-Movies" class="form-section active">
     <h3 id="m_head">Tambah Movie Baru</h3>
     <div class="form-group">
-      <div>
-        <label>Judul Film</label>
-        <input id="m_title" placeholder="Contoh: Iron Man">
-      </div>
-      <div>
-        <label>Rating Konten</label>
-        <select id="m_is18">
-          <option value="false">Umum</option>
-          <option value="true">18+</option>
-        </select>
-      </div>
+      <input id="m_title" placeholder="Judul Film">
+      <select id="m_is18"><option value="false">Umum</option><option value="true">18+</option></select>
     </div>
-    <label>URL Thumbnail</label>
-    <input id="m_thumb" placeholder="https://link-gambar.jpg">
-    
+    <input id="m_thumb" placeholder="URL Thumbnail">
     <div class="form-group">
-      <div>
-        <label>Video Server 1 (Utama)</label>
-        <input id="m_video" placeholder="Embed/JW Player Link">
-      </div>
-      <div>
-        <label>Video Server 2 (Cadangan)</label>
-        <input id="m_video2" placeholder="Embed/JW Player Link">
-      </div>
+      <input id="m_video" placeholder="Video Server 1">
+      <input id="m_video2" placeholder="Video Server 2">
     </div>
-
-    <button onclick="saveData('Movies')" style="background:var(--accent); width:100%; padding:15px">SIMPAN MOVIE</button>
-    <button id="m_cancel" onclick="resetForm('Movies')" style="display:none; width:100%; background:#444; margin-top:10px">BATAL</button>
+    <button onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN MOVIE</button>
   </div>
 
-  <div id="tab-series" class="form-section">
+  <div id="form-Series" class="form-section">
     <h3 id="s_head">Tambah Series Baru</h3>
-    <label>Judul Series</label>
-    <input id="s_title" placeholder="Contoh: Stranger Things">
-    <label>URL Thumbnail</label>
-    <input id="s_thumb" placeholder="https://link-gambar.jpg">
-    <label>Rating</label>
-    <select id="s_is18">
-      <option value="false">Umum</option>
-      <option value="true">18+</option>
-    </select>
-    <button onclick="saveData('Series')" style="background:var(--accent); width:100%; padding:15px">SIMPAN SERIES</button>
-    <button id="s_cancel" onclick="resetForm('Series')" style="display:none; width:100%; background:#444; margin-top:10px">BATAL</button>
+    <input id="s_title" placeholder="Judul Series">
+    <input id="s_thumb" placeholder="URL Thumbnail">
+    <select id="s_is18"><option value="false">Umum</option><option value="true">18+</option></select>
+    <button onclick="saveData('Series')" style="background:var(--accent); width:100%">SIMPAN SERIES</button>
   </div>
 
-  <div id="tab-episodes" class="form-section">
-    <h3>Tambah Episode Baru</h3>
-    <label>Pilih Series</label>
-    <select id="ep_series_id"><option value="">Loading...</option></select>
-    
+  <div id="form-Episodes" class="form-section">
+    <h3>Tambah Episode</h3>
+    <select id="ep_series_id"><option value="">Pilih Series...</option></select>
     <div class="form-group">
-      <div>
-        <label>Episode Ke-</label>
-        <input id="ep_num" type="number" placeholder="1">
-      </div>
-      <div>
-        <label>Judul Episode (Opsional)</label>
-        <input id="ep_title" placeholder="Contoh: The Beginning">
-      </div>
+      <input id="ep_num" type="number" placeholder="Episode Ke-">
+      <input id="ep_title" placeholder="Judul Episode">
     </div>
-
     <div class="form-group">
-      <div>
-        <label>Video Server 1</label>
-        <input id="ep_video" placeholder="Link Server 1">
-      </div>
-      <div>
-        <label>Video Server 2</label>
-        <input id="ep_video2" placeholder="Link Server 2">
-      </div>
+      <input id="ep_video" placeholder="Video Server 1">
+      <input id="ep_video2" placeholder="Video Server 2">
     </div>
-    <button onclick="saveEpisode()" style="background:var(--blue); width:100%; padding:15px">TAMBAH EPISODE</button>
+    <button onclick="saveEpisode()" style="background:var(--blue); width:100%">TAMBAH EPISODE</button>
   </div>
 
-  <hr style="border:0; border-top:1px solid #222; margin:40px 0">
-  
-  <h3 id="listTitle">Daftar Movies</h3>
+  <h3 id="listTitle" style="margin-top:40px">Daftar Movies</h3>
   <div class="grid" id="dataList"></div>
 </div>
 
@@ -146,52 +88,80 @@ const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentTab = "Movies";
+let currentTable = "Movies";
 let editId = null;
 
+// FUNGSI UTAMA LOAD DATA
 async function loadData() {
-  const { data, error } = await sb.from(currentTab).select("*").order("created_at", {ascending: false});
   const listEl = document.getElementById("dataList");
-  listEl.innerHTML = "";
+  listEl.innerHTML = "<p>Loading data...</p>";
+
+  const { data, error } = await sb.from(currentTable).select("*").order("created_at", {ascending: false});
   
+  if(error) {
+    listEl.innerHTML = "<p>Gagal mengambil data: " + error.message + "</p>";
+    return;
+  }
+
+  listEl.innerHTML = "";
   data.forEach(item => {
-    // Cek ketersediaan server untuk tampilan di list
-    const s2 = item.video2 ? "✅ S2" : "❌ S2";
     listEl.innerHTML += `
       <div class="card">
         <img src="${item.thumb}">
         <div class="card-body">
           <div class="card-title">${item.title}</div>
-          <div class="status-server on">✅ S1 ${s2}</div>
-          <div class="actions" style="margin-top:10px">
+          <div class="actions">
             <button class="edit" onclick="prepareEdit('${item.id}')">Edit</button>
             <button class="delete" onclick="deleteItem('${item.id}')">Hapus</button>
           </div>
         </div>
       </div>`;
   });
-  updateSeriesList();
+}
+
+function switchTab(tab) {
+  currentTable = tab;
+  // UI Toggle
+  document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  
+  if(tab !== 'Episodes') {
+    document.getElementById('form-' + tab).classList.add('active');
+    document.getElementById('listTitle').style.display = "block";
+    document.getElementById('dataList').style.display = "grid";
+    document.getElementById('listTitle').innerText = "Daftar " + tab;
+    loadData();
+  } else {
+    document.getElementById('form-Episodes').classList.add('active');
+    document.getElementById('listTitle').style.display = "none";
+    document.getElementById('dataList').style.display = "none";
+    updateSeriesDropdown();
+  }
+  
+  // Set Active Button
+  if(tab === 'Movies') document.getElementById('btn-m').classList.add('active');
+  if(tab === 'Series') document.getElementById('btn-s').classList.add('active');
+  if(tab === 'Episodes') document.getElementById('btn-e').classList.add('active');
 }
 
 async function saveData(table) {
-  const prefix = table === "Movies" ? "m" : "s";
+  const px = table === "Movies" ? "m" : "s";
   const payload = {
-    title: document.getElementById(prefix + "_title").value,
-    thumb: document.getElementById(prefix + "_thumb").value,
-    is18: document.getElementById(prefix + "_is18").value === "true"
+    title: document.getElementById(px + "_title").value,
+    thumb: document.getElementById(px + "_thumb").value,
+    is18: document.getElementById(px + "_is18").value === "true"
   };
-
   if(table === "Movies") {
     payload.video = document.getElementById("m_video").value;
     payload.video2 = document.getElementById("m_video2").value;
   }
 
-  let res;
-  if(editId) res = await sb.from(table).update(payload).eq("id", editId);
-  else res = await sb.from(table).insert([payload]);
+  const { error } = editId 
+    ? await sb.from(table).update(payload).eq("id", editId)
+    : await sb.from(table).insert([payload]);
 
-  if(res.error) alert("Error: " + res.error.message);
-  else { alert("Berhasil!"); resetForm(table); loadData(); }
+  if(error) alert(error.message);
+  else { alert("Berhasil!"); location.reload(); }
 }
 
 async function saveEpisode() {
@@ -203,58 +173,38 @@ async function saveEpisode() {
     video2: document.getElementById("ep_video2").value
   };
   const { error } = await sb.from("Episodes").insert([payload]);
-  if(error) alert(error.message); else { alert("Episode Ditambah!"); resetEpisodeForm(); }
+  if(error) alert(error.message); else { alert("Episode Berhasil!"); location.reload(); }
 }
 
 async function prepareEdit(id) {
-  const { data } = await sb.from(currentTab).select("*").eq("id", id).single();
-  const px = currentTab === "Movies" ? "m" : "s";
+  const { data } = await sb.from(currentTable).select("*").eq("id", id).single();
+  const px = currentTable === "Movies" ? "m" : "s";
   document.getElementById(px + "_title").value = data.title;
   document.getElementById(px + "_thumb").value = data.thumb;
-  document.getElementById(px + "_is18").value = data.is18.toString();
-  if(currentTab === "Movies") {
+  if(currentTable === "Movies") {
     document.getElementById("m_video").value = data.video || "";
     document.getElementById("m_video2").value = data.video2 || "";
   }
   editId = id;
-  document.getElementById(px + "_head").innerText = "Edit: " + data.title;
-  document.getElementById(px + "_cancel").style.display = "block";
+  document.getElementById(px + "_head").innerText = "Mode Edit: " + data.title;
   window.scrollTo(0,0);
 }
 
 async function deleteItem(id) {
-  if(confirm("Hapus permanen?")) {
-    await sb.from(currentTab).delete().eq("id", id);
-    loadData();
-  }
+  if(confirm("Hapus?")) { await sb.from(currentTable).delete().eq("id", id); loadData(); }
 }
 
-async function updateSeriesList() {
+async function updateSeriesDropdown() {
   const { data } = await sb.from("Series").select("id, title");
   const sel = document.getElementById("ep_series_id");
-  if(data) {
-    sel.innerHTML = '<option value="">-- Pilih Series --</option>';
-    data.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
-  }
+  sel.innerHTML = '<option value="">Pilih Series...</option>';
+  data.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
 }
 
-function switchTab(id, btn) {
-  document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
-  currentTab = id === 'tab-movies' ? "Movies" : "Series";
-  document.getElementById("listTitle").innerText = "Daftar " + currentTab;
-  if(id !== 'tab-episodes') loadData();
-}
+function logout() { localStorage.removeItem("adminLogin"); location.href = "login.html"; }
 
-function resetForm(table) {
-  const px = table === "Movies" ? "m" : "s";
-  editId = null;
-  document.getElementById(px + "_title").value = "";
-  document.getElementById(px + "_thumb").value = "";
-  if(table === "Movies") { 
-    document.getElementById("m_video").value = ""; 
-    document.getElementById("m_video2").value = ""; 
-  }
-  document
+// Jalankan pertama kali
+loadData();
+</script>
+</body>
+</html>
