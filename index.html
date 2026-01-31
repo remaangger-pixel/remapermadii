@@ -168,7 +168,7 @@ const bannerTitle = document.getElementById("bannerTitle");
 /* ================= LOAD MOVIES ================= */
 async function loadMovies(){
   const { data, error } = await sb
-    .from("movies")
+    .from("Movies")
     .select("*")
     .order("created_at",{ ascending:false });
 
@@ -185,7 +185,7 @@ async function loadMovies(){
 /* ================= LOAD SERIES ================= */
 async function loadSeries(){
   const { data, error } = await sb
-    .from("series")
+    .from("Series")
     .select("*")
     .order("created_at",{ ascending:false });
 
@@ -290,4 +290,5 @@ loadSeries();
 
 </body>
 </html>
+
 
