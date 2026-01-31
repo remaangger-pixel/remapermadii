@@ -3,89 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>18+ Area</title>
-
+<title>18+ Premium Area - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-body{
-  margin:0;
-  background:#000;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
+:root { --bg: #000; --card: #111; --accent: #ff0513; --text: #fff; }
+
+body { 
+  margin: 0; background: var(--bg); color: var(--text); 
+  font-family: 'Inter', sans-serif; opacity: 0; transition: 0.5s; 
 }
-header{
-  padding:14px 20px;
-  background:#111;
+
+header { 
+  padding: 15px 5%; background: #000; border-bottom: 1px solid #222;
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; z-index: 100;
 }
-.grid{
-  padding:20px;
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-  gap:16px;
+
+.back-btn { 
+  background: var(--accent); color: #fff; border: none; 
+  padding: 8px 18px; border-radius: 50px; cursor: pointer; 
+  font-weight: bold; text-decoration: none; font-size: 13px;
 }
-.card{
-  background:#151515;
-  border-radius:10px;
-  overflow:hidden;
-  cursor:pointer;
+
+.container { padding: 20px 5%; }
+.grid { 
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+  gap: 20px; 
 }
-.card img{
-  width:100%;
-  height:220px;
-  object-fit:cover;
+
+.card { 
+  background: var(--card); border-radius: 12px; overflow: hidden; 
+  cursor: pointer; border: 1px solid #222; transition: 0.3s; 
 }
-.card p{
-  padding:10px;
-  margin:0;
-  font-size:14px;
+.card:hover { border-color: var(--accent); transform: translateY(-5px); }
+
+.card img { width: 100%; height: 240px; object-fit: cover; }
+.card p { 
+  padding: 12px; margin: 0; font-size: 14px; font-weight: 600; 
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
 }
+
+/* Badge 18+ */
+.badge {
+  position: absolute; top: 10px; right: 10px; background: red;
+  color: white; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 4px;
+}
+.relative { position: relative; }
 </style>
 </head>
 <body>
 
 <header>
-  <h2 onclick="location.href='index.html'" style="cursor:pointer">← Back</h2>
+  <a href="index.html" class="back-btn">← Back to Home</a>
+  <h3 style="margin:0; color:var(--accent); font-size: 16px;">18+ AREA</h3>
 </header>
 
-<div class="grid" id="list"></div>
+<div class="container">
+  <div class="grid" id="list"></div>
+</div>
 
 <script>
-/* 🔒 CEK AKSES 18+ */
-if(sessionStorage.getItem('adultAccess') !== 'true'){
-  alert("Akses ditolak");
-  location.href = 'index.html';
+/* 1. KUNCI AMAN (Anti-Bypass) */
+function checkGate() {
+  const isAccess = sessionStorage.getItem('adultAccess');
+  if (isAccess !== 'true') {
+    // Jika tidak ada akses, lempar balik tanpa ampun
+    window.location.replace('index.html');
+  } else {
+    // Jika ada, baru munculkan halaman
+    document.body.style.opacity = '1';
+    loadAdult();
+  }
 }
 
-/* 🔗 SUPABASE */
+/* 2. KONFIGURASI SUPABASE */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const list = document.getElementById('list');
 
-/* 📥 LOAD MOVIES 18+ */
-async function loadAdult(){
+/* 3. LOAD DATA */
+async function loadAdult() {
   const { data, error } = await sb
     .from("Movies")
     .select("*")
     .eq("is18", true)
-    .order("created_at",{ ascending:false });
+    .order("created_at", { ascending: false });
 
-  if(error){
-    console.error(error);
-    alert("Gagal load film 18+");
+  if (error) {
+    alert("Gagal memuat konten VIP");
     return;
   }
 
-  if(data.length === 0){
-    list.innerHTML = "<p>Tidak ada konten 18+</p>";
+  if (data.length === 0) {
+    list.innerHTML = "<p style='color:#888;'>Konten sedang disiapkan...</p>";
     return;
   }
 
-  data.forEach(m=>{
+  list.innerHTML = "";
+  data.forEach(m => {
     list.innerHTML += `
-      <div class="card" onclick="openPlayer(${m.id})">
+      <div class="card relative" onclick="openPlayer('${m.id}')">
+        <div class="badge">18+</div>
         <img src="${m.thumb}">
         <p>${m.title}</p>
       </div>
@@ -93,11 +113,13 @@ async function loadAdult(){
   });
 }
 
-function openPlayer(id){
-  window.open('player.html?id='+id,'_blank');
+function openPlayer(id) {
+  // Pakai location.href agar tetap dalam satu tab (lebih aman untuk konten dewasa)
+  window.location.href = 'player.html?id=' + id;
 }
 
-loadAdult();
+// Jalankan kunci segera setelah script terbaca
+checkGate();
 </script>
 
 </body>
