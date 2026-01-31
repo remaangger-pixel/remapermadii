@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel Secure - Anvi Create</title>
+<title>Admin Panel Verified - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{ --bg:#060606; --card:#121212; --accent:#ff0513; --blue:#007bff; --text:#fff; }
@@ -21,15 +21,13 @@ button{color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer
 input, select{width:100%;padding:14px;margin-bottom:15px;border:1px solid #333;border-radius:8px;background:#000;color:#fff;outline:none}
 input:focus{border-color:var(--accent)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
-.card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid #222; transition: 0.3s;}
-.card:hover{border-color:var(--accent)}
+.card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid #222;}
 .card img{width:100%;height:240px;object-fit:cover}
 .card-body{padding:12px}
 .card-title{font-size:14px; font-weight:bold; height: 38px; overflow:hidden; margin-bottom:10px}
 .actions{display:flex;gap:8px}
 .edit{background:#ffa500; flex:1; font-size:12px}
-.delete{background:rgba(255,77,77,0.2); color:#ff4d4d; border:1px solid #ff4d4d; flex:1; font-size:12px}
-.delete:hover{background:#ff4d4d; color:#fff}
+.delete{background:rgba(255,77,77,0.1); color:#ff4d4d; border:1px solid #ff4d4d; flex:1; font-size:12px}
 </style>
 </head>
 <body>
@@ -54,8 +52,8 @@ input:focus{border-color:var(--accent)}
     </div>
     <input id="m_thumb" placeholder="URL Thumbnail">
     <div class="form-group">
-      <input id="m_video" placeholder="URL Video Server 1">
-      <input id="m_video2" placeholder="URL Video Server 2 (Opsional)">
+      <input id="m_video" placeholder="Link Video Utama (Server 1)">
+      <input id="m_video2" placeholder="Link Video Cadangan (Server 2)">
     </div>
     <button onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN DATA MOVIE</button>
   </div>
@@ -70,16 +68,16 @@ input:focus{border-color:var(--accent)}
 
   <div id="form-Episodes" class="form-section">
     <h3>Tambah Episode</h3>
-    <select id="ep_series_id"><option value="">Pilih Series Terlebih Dahulu...</option></select>
+    <select id="ep_series_id"><option value="">Pilih Series...</option></select>
     <div class="form-group">
-      <input id="ep_num" type="number" placeholder="Eps ke- (Contoh: 1)">
-      <input id="ep_title" placeholder="Judul Episode (Contoh: Pilot)">
+      <input id="ep_num" type="number" placeholder="Eps ke-">
+      <input id="ep_title" placeholder="Judul Episode">
     </div>
     <div class="form-group">
-      <input id="ep_video" placeholder="Video Server 1">
-      <input id="ep_video2" placeholder="Video Server 2">
+      <input id="ep_video" placeholder="Link Video Server 1">
+      <input id="ep_video2" placeholder="Link Video Server 2">
     </div>
-    <button onclick="saveEpisode()" style="background:var(--blue); width:100%">UPLOAD EPISODE</button>
+    <button onclick="saveEpisode()" style="background:var(--blue); width:100%">SIMPAN EPISODE</button>
   </div>
 
   <h3 id="listTitle" style="margin-top:40px; border-left:4px solid var(--accent); padding-left:15px">Daftar Movies</h3>
@@ -94,26 +92,23 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentTable = "Movies";
 let editId = null;
 
-/* 1. PROTEKSI: CEK LOGIN */
+// Proteksi & Inisialisasi
 async function checkAuth() {
   const { data } = await sb.auth.getSession();
   if (!data.session) {
     window.location.replace("login.html");
   } else {
-    document.body.style.opacity = "1"; // Tampilkan halaman jika login valid
+    document.body.style.opacity = "1";
     loadData();
   }
 }
 
-/* 2. LOAD DATA LIST */
+// Load Data ke Grid
 async function loadData() {
   const listEl = document.getElementById("dataList");
-  listEl.innerHTML = "<p>Sedang mengambil data...</p>";
-
+  listEl.innerHTML = "<p>Loading...</p>";
   const { data, error } = await sb.from(currentTable).select("*").order("created_at", {ascending: false});
-  
   if(error) return listEl.innerHTML = "<p>Error: " + error.message + "</p>";
-
   listEl.innerHTML = "";
   data.forEach(item => {
     listEl.innerHTML += `
@@ -130,29 +125,7 @@ async function loadData() {
   });
 }
 
-/* 3. SWITCH TAB LOGIC */
-function switchTab(tab) {
-  currentTable = tab;
-  editId = null;
-  document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  
-  document.getElementById('form-' + tab).classList.add('active');
-  document.getElementById('btn-' + tab).classList.add('active');
-
-  if(tab !== 'Episodes') {
-    document.getElementById('listTitle').style.display = "block";
-    document.getElementById('dataList').style.display = "grid";
-    document.getElementById('listTitle').innerText = "Daftar " + tab;
-    loadData();
-  } else {
-    document.getElementById('listTitle').style.display = "none";
-    document.getElementById('dataList').style.display = "none";
-    updateSeriesDropdown();
-  }
-}
-
-/* 4. CRUD OPERATIONS */
+// Logika Simpan (Update & Insert)
 async function saveData(table) {
   const px = table === "Movies" ? "m" : "s";
   const payload = {
@@ -160,17 +133,22 @@ async function saveData(table) {
     thumb: document.getElementById(px + "_thumb").value,
     is18: document.getElementById(px + "_is18").value === "true"
   };
+
+  // Pastikan video & video2 terambil untuk tabel Movies
   if(table === "Movies") {
     payload.video = document.getElementById("m_video").value;
     payload.video2 = document.getElementById("m_video2").value;
   }
 
-  const { error } = editId 
-    ? await sb.from(table).update(payload).eq("id", editId)
-    : await sb.from(table).insert([payload]);
+  let res;
+  if(editId) {
+    res = await sb.from(table).update(payload).eq("id", editId);
+  } else {
+    res = await sb.from(table).insert([payload]);
+  }
 
-  if(error) alert("Gagal: " + error.message);
-  else { alert("Berhasil Disimpan!"); location.reload(); }
+  if(res.error) alert("Error: " + res.error.message);
+  else { alert("Sukses!"); location.reload(); }
 }
 
 async function saveEpisode() {
@@ -185,25 +163,44 @@ async function saveEpisode() {
   if(error) alert(error.message); else { alert("Episode Berhasil!"); location.reload(); }
 }
 
+// Logika Edit (Menarik data video2 ke form)
 async function prepareEdit(id) {
   const { data } = await sb.from(currentTable).select("*").eq("id", id).single();
   const px = currentTable === "Movies" ? "m" : "s";
+  
   document.getElementById(px + "_title").value = data.title;
   document.getElementById(px + "_thumb").value = data.thumb;
   document.getElementById(px + "_is18").value = data.is18.toString();
+  
   if(currentTable === "Movies") {
     document.getElementById("m_video").value = data.video || "";
-    document.getElementById("m_video2").value = data.video2 || "";
+    document.getElementById("m_video2").value = data.video2 || ""; // Kolom video2 ditarik ke sini
   }
+  
   editId = id;
   document.getElementById(px + "_head").innerText = "Sedang Edit: " + data.title;
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 async function deleteItem(id) {
-  if(confirm("Hapus data ini selamanya?")) { 
-    await sb.from(currentTable).delete().eq("id", id); 
-    loadData(); 
+  if(confirm("Hapus permanen?")) { await sb.from(currentTable).delete().eq("id", id); loadData(); }
+}
+
+function switchTab(tab) {
+  currentTable = tab;
+  document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('form-' + tab).classList.add('active');
+  document.getElementById('btn-' + tab).classList.add('active');
+  if(tab !== 'Episodes') {
+    document.getElementById('listTitle').style.display = "block";
+    document.getElementById('dataList').style.display = "grid";
+    document.getElementById('listTitle').innerText = "Daftar " + tab;
+    loadData();
+  } else {
+    document.getElementById('listTitle').style.display = "none";
+    document.getElementById('dataList').style.display = "none";
+    updateSeriesDropdown();
   }
 }
 
@@ -214,16 +211,12 @@ async function updateSeriesDropdown() {
   data.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
 }
 
-/* 5. LOGOUT FIX */
 async function logout() {
-  if(confirm("Yakin ingin keluar, Bosku?")) {
-    await sb.auth.signOut();
-    localStorage.removeItem("adminLogin");
-    window.location.replace("login.html");
-  }
+  await sb.auth.signOut();
+  localStorage.removeItem("adminLogin");
+  window.location.replace("login.html");
 }
 
-// Jalankan Proteksi saat buka halaman
 checkAuth();
 </script>
 </body>
