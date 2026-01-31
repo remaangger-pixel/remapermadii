@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>18+ Area</title>
 
+<!-- SUPABASE CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -14,27 +15,54 @@ body{
   color:#fff;
   font-family:Arial,Helvetica,sans-serif;
 }
+
 header{
   padding:14px 20px;
   background:#111;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
+
+header h2{
+  margin:0;
+  cursor:pointer;
+}
+
+button{
+  background:#e50914;
+  color:#fff;
+  border:none;
+  padding:6px 14px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
 .grid{
   padding:20px;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
   gap:16px;
 }
+
 .card{
   background:#151515;
   border-radius:10px;
   overflow:hidden;
   cursor:pointer;
+  transition:.25s;
 }
+
+.card:hover{
+  transform:scale(1.05);
+}
+
 .card img{
   width:100%;
   height:220px;
   object-fit:cover;
 }
+
 .card p{
   padding:10px;
   margin:0;
@@ -45,41 +73,55 @@ header{
 <body>
 
 <header>
-  <h2 onclick="location.href='index.html'" style="cursor:pointer">← Back</h2>
+  <h2 onclick="location.href='index.html'">← Back</h2>
+  <button onclick="adultLogout()">Logout</button>
 </header>
 
 <div class="grid" id="list"></div>
 
 <script>
-/* 🔒 CEK AKSES 18+ */
-if(sessionStorage.getItem('adultAccess') !== 'true'){
-  alert("Akses ditolak");
+/* ================= CEK AKSES + WAKTU ================= */
+const now = Date.now();
+const expire = sessionStorage.getItem('adultExpire');
+
+if(
+  sessionStorage.getItem('adultAccess') !== 'true' ||
+  !expire ||
+  now > parseInt(expire)
+){
+  alert("Akses 18+ sudah berakhir");
+  sessionStorage.removeItem('adultAccess');
+  sessionStorage.removeItem('adultExpire');
   location.href = 'index.html';
 }
 
-/* 🔗 SUPABASE */
+/* ================= SUPABASE INIT ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+/* ================= LOAD MOVIES 18+ ================= */
 const list = document.getElementById('list');
 
-/* 📥 LOAD MOVIES 18+ */
-async function loadAdult(){
-  const { data, error } = await sb
+async function loadAdultMovies(){
+  const { data, error } = await supabase
     .from("Movies")
     .select("*")
     .eq("is18", true)
-    .order("created_at",{ ascending:false });
+    .order("created_at", { ascending:false });
 
   if(error){
     console.error(error);
-    alert("Gagal load film 18+");
+    alert("Gagal memuat film 18+");
     return;
   }
 
   if(data.length === 0){
-    list.innerHTML = "<p>Tidak ada konten 18+</p>";
+    list.innerHTML = "<p>Tidak ada film 18+</p>";
     return;
   }
 
@@ -93,11 +135,22 @@ async function loadAdult(){
   });
 }
 
+/* ================= PLAYER ================= */
 function openPlayer(id){
   window.open('player.html?id='+id,'_blank');
 }
 
-loadAdult();
+/* ================= LOGOUT ================= */
+function adultLogout(){
+  if(confirm("Keluar dari mode 18+?")){
+    sessionStorage.removeItem('adultAccess');
+    sessionStorage.removeItem('adultExpire');
+    location.href='index.html';
+  }
+}
+
+/* ================= INIT ================= */
+loadAdultMovies();
 </script>
 
 </body>
