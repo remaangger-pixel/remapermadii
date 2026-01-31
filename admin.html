@@ -3,186 +3,218 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<title>Admin Panel - Anvi Create</title>
 
-<!-- PROTEKSI LOGIN -->
-<script>
-if(localStorage.getItem("adminLogin") !== "true"){
-  location.href = "login.html";
-}
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body{margin:0;background:#0f0f0f;color:#fff;font-family:Arial,sans-serif}
-header{background:#000;padding:15px 20px;display:flex;justify-content:space-between;align-items:center}
-button{background:#e50914;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
-.logout{background:#444}
-.container{padding:20px}
-.form{background:#1a1a1a;padding:15px;border-radius:8px;margin-bottom:20px}
-.form input,.form select{width:100%;padding:8px;margin-bottom:10px;border:none;border-radius:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:15px}
-.card{background:#1a1a1a;border-radius:8px;overflow:hidden}
-.card img{width:100%;height:220px;object-fit:cover}
-.card p{padding:6px;font-size:14px}
-.actions{display:flex;justify-content:space-between;padding:6px}
-.edit{background:#ffa500}
-.delete{background:#ff4d4d}
-.tools{margin-bottom:15px;display:flex;gap:10px;flex-wrap:wrap}
-.tag{font-size:12px;padding:4px 8px;border-radius:4px;margin-left:6px}
-.adult{background:#e50914}
-.normal{background:#444}
+:root{ --bg:#0f0f0f; --card:#1a1a1a; --accent:#e50914; }
+body{margin:0;background:var(--bg);color:#fff;font-family:Arial,sans-serif}
+header{background:#000;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}
+button:disabled{background:#555}
+.container{padding:20px; max-width: 1200px; margin: auto;}
+.form-section{background:var(--card);padding:20px;border-radius:8px;margin-bottom:30px; border: 1px solid #333;}
+.form-section h3{margin-top:0; color:var(--accent)}
+input, select, textarea{width:100%;padding:10px;margin-bottom:12px;border:1px solid #333;border-radius:6px;background:#000;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
+.card{background:var(--card);border-radius:8px;overflow:hidden;border:1px solid #222}
+.card img{width:100%;height:120px;object-fit:cover}
+.card-body{padding:10px}
+.card-title{font-size:14px; font-weight:bold; margin-bottom:10px; height: 40px; overflow: hidden}
+.actions{display:flex;gap:5px}
+.edit{background:#ffa500; flex:1}
+.delete{background:#ff4d4d; flex:1}
+.tabs{display:flex; gap:10px; margin-bottom:20px}
+.tab-btn{background:#222; flex:1; padding:12px}
+.tab-btn.active{background:var(--accent)}
 </style>
 </head>
 <body>
 
 <header>
-  <h2>Admin Panel</h2>
-  <button class="logout" onclick="logout()">Logout</button>
+  <h2>Anvi Admin</h2>
+  <button style="background:#444" onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('movies')">Manage Movies/Series</button>
+    <button class="tab-btn" onclick="switchTab('episodes')">Manage Episodes</button>
+  </div>
 
-<div class="tools">
-  <button onclick="exportData()">Export Data</button>
-  <input type="file" id="importFile" hidden accept="application/json">
-  <button onclick="document.getElementById('importFile').click()">Import Data</button>
-</div>
+  <div id="section-movies" class="form-section">
+    <h3 id="movieFormTitle">Tambah Movie / Series</h3>
+    <input id="m_title" placeholder="Judul (Contoh: Deadpool / Naruto)">
+    <input id="m_thumb" placeholder="URL Thumbnail Gambar">
+    <input id="m_video" placeholder="Link Video/Embed (Kosongkan jika Series)">
+    <textarea id="m_desc" placeholder="Deskripsi Singkat"></textarea>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+      <select id="m_type">
+        <option value="movie">Movie</option>
+        <option value="series">Series</option>
+        <option value="anime">Anime</option>
+      </select>
+      <select id="m_is18">
+        <option value="false">Rating: Umum</option>
+        <option value="true">Rating: 18+</option>
+      </select>
+    </div>
+    <button id="btnSaveMovie" onclick="saveMovie()" style="width:100%; margin-top:10px; font-weight:bold">SIMPAN DATA</button>
+  </div>
 
-<div class="form">
-  <h3 id="formTitle">Tambah Film</h3>
-  <input id="title" placeholder="Judul Film">
-  <input id="thumb" placeholder="URL Thumbnail">
-  <input id="video" placeholder="Google Drive Embed URL">
+  <div id="section-episodes" class="form-section" style="display:none">
+    <h3>Tambah Episode (Untuk Series)</h3>
+    <select id="ep_series_id"><option value="">Pilih Series...</option></select>
+    <input id="ep_num" type="number" placeholder="Episode Ke (Angka)">
+    <input id="ep_title" placeholder="Judul Episode (Opsional)">
+    <input id="ep_video" placeholder="Link Video Episode">
+    <button onclick="saveEpisode()" style="width:100%; background:#008cba">TAMBAH EPISODE</button>
+  </div>
 
-  <select id="type">
-    <option value="movie">Movie</option>
-    <option value="anime">Anime</option>
-    <option value="series">Series</option>
-  </select>
-
-  <select id="category">
-    <option value="normal">Umum</option>
-    <option value="18+">18+</option>
-  </select>
-
-  <button onclick="saveMovie()">Simpan</button>
-</div>
-
-<div class="grid" id="list"></div>
+  <hr style="border:0; border-top:1px solid #333; margin:30px 0">
+  
+  <h3>Daftar Konten</h3>
+  <div class="grid" id="dataList"></div>
 </div>
 
 <script>
-let movies = JSON.parse(localStorage.getItem("movies")) || [];
-let editIndex = null;
-const list = document.getElementById("list");
+/* ================= CONFIG ================= */
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function render(){
-  list.innerHTML = "";
-  movies.forEach((m,i)=>{
-    list.innerHTML += `
-    <div class="card">
-      <img src="${m.thumb}">
-      <p>
-        ${m.title}
-        <span class="tag ${m.category==='18+'?'adult':'normal'}">
-          ${m.category==='18+'?'18+':'Umum'}
-        </span>
-      </p>
-      <div class="actions">
-        <button class="edit" onclick="editMovie(${i})">Edit</button>
-        <button class="delete" onclick="deleteMovie(${i})">Hapus</button>
+let editMovieId = null;
+
+/* ================= CORE FUNCTIONS ================= */
+
+// Sinkronisasi data dari Supabase
+async function loadData() {
+  const { data: movies, error } = await sb.from("Movies").select("*").order("created_at", {ascending: false});
+  const { data: series } = await sb.from("Series").select("*").order("title"); // Untuk dropdown episode
+
+  if(error) return alert("Gagal ambil data");
+
+  // Render List
+  const listEl = document.getElementById("dataList");
+  listEl.innerHTML = "";
+  movies.forEach(m => {
+    listEl.innerHTML += `
+      <div class="card">
+        <img src="${m.thumb}">
+        <div class="card-body">
+          <div class="card-title">${m.title}</div>
+          <div class="actions">
+            <button class="edit" onclick="prepareEdit('${m.id}')">Edit</button>
+            <button class="delete" onclick="deleteMovie('${m.id}')">Hapus</button>
+          </div>
+        </div>
       </div>
-    </div>`;
+    `;
+  });
+
+  // Update Dropdown Series untuk Episode
+  const dropSeries = document.getElementById("ep_series_id");
+  dropSeries.innerHTML = '<option value="">Pilih Series...</option>';
+  series?.forEach(s => {
+    dropSeries.innerHTML += `<option value="${s.id}">${s.title}</option>`;
   });
 }
 
-function saveMovie(){
-  const data={
-    title:title.value,
-    thumb:thumb.value,
-    video:video.value,
-    type:type.value,
-    category:category.value
+// Simpan atau Update Movie/Series
+async function saveMovie() {
+  const btn = document.getElementById("btnSaveMovie");
+  btn.disabled = true;
+
+  const payload = {
+    title: document.getElementById("m_title").value,
+    thumb: document.getElementById("m_thumb").value,
+    video: document.getElementById("m_video").value,
+    description: document.getElementById("m_desc").value,
+    type: document.getElementById("m_type").value,
+    is18: document.getElementById("m_is18").value === "true"
   };
 
-  if(!data.title||!data.thumb||!data.video){
-    alert('Lengkapi data');
-    return;
+  let res;
+  if(editMovieId) {
+    res = await sb.from("Movies").update(payload).eq("id", editMovieId);
+    editMovieId = null;
+    document.getElementById("movieFormTitle").innerText = "Tambah Movie / Series";
+  } else {
+    res = await sb.from("Movies").insert([payload]);
+    // Jika tipe adalah series, masukkan juga ke tabel Series
+    if(payload.type === 'series') await sb.from("Series").insert([payload]);
   }
 
-  if(editIndex===null){
-    movies.push(data);
-  }else{
-    movies[editIndex]=data;
-    editIndex=null;
-    formTitle.innerText='Tambah Film';
+  if(res.error) alert("Error: " + res.error.message);
+  else {
+    alert("Berhasil disimpan!");
+    clearForm();
+    loadData();
   }
-
-  localStorage.setItem('movies',JSON.stringify(movies));
-  clearForm();
-  render();
+  btn.disabled = false;
 }
 
-function editMovie(i){
-  const m=movies[i];
-  title.value=m.title;
-  thumb.value=m.thumb;
-  video.value=m.video;
-  type.value=m.type;
-  category.value=m.category||'normal';
-  editIndex=i;
-  formTitle.innerText='Edit Film';
-}
-
-function deleteMovie(i){
-  if(!confirm('Hapus film ini?'))return;
-  movies.splice(i,1);
-  localStorage.setItem('movies',JSON.stringify(movies));
-  render();
-}
-
-function clearForm(){
-  title.value='';
-  thumb.value='';
-  video.value='';
-  type.value='movie';
-  category.value='normal';
-}
-
-function exportData(){
-  const data={movies};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='my-streaming-backup.json';
-  a.click();
-}
-
-document.getElementById('importFile').addEventListener('change',function(e){
-  const file=e.target.files[0];
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(){
-    try{
-      const data=JSON.parse(reader.result);
-      if(!data.movies)throw 'invalid';
-      movies=data.movies;
-      localStorage.setItem('movies',JSON.stringify(movies));
-      render();
-      alert('Import berhasil');
-    }catch{
-      alert('File tidak valid');
-    }
+// Simpan Episode
+async function saveEpisode() {
+  const payload = {
+    series_id: document.getElementById("ep_series_id").value,
+    episode: document.getElementById("ep_num").value,
+    title: document.getElementById("ep_title").value,
+    video: document.getElementById("ep_video").value
   };
-  reader.readAsText(file);
-});
 
-function logout(){
-  localStorage.removeItem('adminLogin');
-  location.href='login.html';
+  const { error } = await sb.from("Episodes").insert([payload]);
+  if(error) alert("Gagal: " + error.message);
+  else {
+    alert("Episode berhasil ditambah!");
+    document.getElementById("ep_num").value = "";
+    document.getElementById("ep_video").value = "";
+  }
 }
 
-render();
+// Hapus Data
+async function deleteMovie(id) {
+  if(!confirm("Yakin ingin menghapus?")) return;
+  await sb.from("Movies").delete().eq("id", id);
+  loadData();
+}
+
+// Edit Data
+async function prepareEdit(id) {
+  const { data } = await sb.from("Movies").select("*").eq("id", id).single();
+  document.getElementById("m_title").value = data.title;
+  document.getElementById("m_thumb").value = data.thumb;
+  document.getElementById("m_video").value = data.video || "";
+  document.getElementById("m_desc").value = data.description || "";
+  document.getElementById("m_type").value = data.type;
+  document.getElementById("m_is18").value = data.is18.toString();
+  
+  editMovieId = id;
+  document.getElementById("movieFormTitle").innerText = "Edit: " + data.title;
+  window.scrollTo(0, 0);
+}
+
+/* ================= UI HELPERS ================= */
+function switchTab(tab) {
+  document.getElementById('section-movies').style.display = tab === 'movies' ? 'block' : 'none';
+  document.getElementById('section-episodes').style.display = tab === 'episodes' ? 'block' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function clearForm() {
+  document.querySelectorAll('#section-movies input, #section-movies textarea').forEach(i => i.value = "");
+}
+
+function logout() {
+  localStorage.removeItem("adminLogin");
+  location.href = "login.html";
+}
+
+// Cek Login & Load
+if(localStorage.getItem("adminLogin") !== "true") location.href = "login.html";
+loadData();
 </script>
 </body>
 </html>
