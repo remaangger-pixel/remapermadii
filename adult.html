@@ -15,7 +15,6 @@ body{
   color:#fff;
   font-family:Arial,Helvetica,sans-serif;
 }
-
 header{
   padding:14px 20px;
   background:#111;
@@ -23,12 +22,7 @@ header{
   justify-content:space-between;
   align-items:center;
 }
-
-header h2{
-  margin:0;
-  cursor:pointer;
-}
-
+header h2{margin:0;cursor:pointer}
 button{
   background:#e50914;
   color:#fff;
@@ -37,14 +31,12 @@ button{
   border-radius:6px;
   cursor:pointer;
 }
-
 .grid{
   padding:20px;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
   gap:16px;
 }
-
 .card{
   background:#151515;
   border-radius:10px;
@@ -52,17 +44,12 @@ button{
   cursor:pointer;
   transition:.25s;
 }
-
-.card:hover{
-  transform:scale(1.05);
-}
-
+.card:hover{transform:scale(1.05)}
 .card img{
   width:100%;
   height:220px;
   object-fit:cover;
 }
-
 .card p{
   padding:10px;
   margin:0;
@@ -99,7 +86,7 @@ if(
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
@@ -108,7 +95,7 @@ const supabase = window.supabase.createClient(
 const list = document.getElementById('list');
 
 async function loadAdultMovies(){
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("Movies")
     .select("*")
     .eq("is18", true)
@@ -116,11 +103,11 @@ async function loadAdultMovies(){
 
   if(error){
     console.error(error);
-    alert("Gagal memuat film 18+");
+    list.innerHTML = "<p>Gagal memuat film 18+</p>";
     return;
   }
 
-  if(data.length === 0){
+  if(!data || data.length === 0){
     list.innerHTML = "<p>Tidak ada film 18+</p>";
     return;
   }
