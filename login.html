@@ -3,72 +3,113 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Login</title>
+<title>Admin Login - Anvi Create</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  background:#0f0f0f;
-  color:#fff;
-  font-family:Arial;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  height:100vh;
+:root { --bg: #0b0b0b; --card: #151515; --accent: #e50914; --text: #ffffff; }
+body {
+  margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex; justify-content: center; align-items: center; height: 100vh;
 }
-
-.box{
-  background:#1a1a1a;
-  padding:30px;
-  border-radius:10px;
-  width:300px;
+.login-card {
+  background: var(--card); padding: 40px; border-radius: 12px;
+  width: 100%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  text-align: center;
 }
-
-h2{text-align:center;margin-bottom:20px}
-
-input{
-  width:100%;
-  padding:10px;
-  margin-bottom:15px;
-  border:none;
-  border-radius:6px;
+h1 { margin-bottom: 24px; color: var(--accent); font-size: 28px; }
+input {
+  width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 6px;
+  border: 1px solid #333; background: #000; color: #fff; box-sizing: border-box;
 }
-
-button{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:6px;
-  background:#e50914;
-  color:#fff;
-  cursor:pointer;
+button {
+  width: 100%; padding: 12px; border: none; border-radius: 6px;
+  background: var(--accent); color: #fff; font-weight: bold; cursor: pointer;
 }
+button:disabled { background: #555; }
+.msg { margin-top: 15px; font-size: 14px; min-height: 20px; }
+.error { color: #ff4d4d; }
+.success { color: #2ecc71; }
 </style>
 </head>
-
 <body>
 
-<div class="box">
-  <h2>Admin Login</h2>
-  <input id="user" placeholder="Username">
-  <input id="pass" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
+<div class="login-card">
+  <h1>Anvi Admin</h1>
+  <input type="email" id="email" placeholder="Email Admin" required>
+  <input type="password" id="password" placeholder="Password" required>
+  <button id="loginBtn" onclick="handleLogin()">Login</button>
+  <div id="message" class="msg"></div>
 </div>
 
 <script>
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "12345";
+/* ================= CONFIG ================= */
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function login(){
-  const u = user.value;
-  const p = pass.value;
+const emailInput = document.getElementById("email");
+const passInput = document.getElementById("password");
+const loginBtn = document.getElementById("loginBtn");
+const msgDiv = document.getElementById("message");
 
-  if(u === ADMIN_USER && p === ADMIN_PASS){
-    localStorage.setItem("adminLogin","true");
-    location.href = "admin.html";
-  }else{
-    alert("Username atau password salah");
+/* ================= LOGIN FUNCTION ================= */
+async function handleLogin() {
+  const email = emailInput.value;
+  const password = passInput.value;
+
+  if(!email || !password) return showMsg("Isi email dan password!", "error");
+
+  loginBtn.disabled = true;
+  loginBtn.innerText = "Authenticating...";
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: email,
+    password: password,
+  });
+
+  if (error) {
+    showMsg("Login Gagal: " + error.message, "error");
+    loginBtn.disabled = false;
+    loginBtn.innerText = "Login";
+  } else {
+    showMsg("Login Berhasil! Mengalihkan...", "success");
+    // Simpan status di localStorage agar admin.html tetap bisa akses
+    localStorage.setItem("adminLogin", "true");
+    setTimeout(() => {
+      location.href = "admin.html";
+    }, 1500);
   }
 }
+
+/* ================= ENTER KEY FEATURE ================= */
+// Mendeteksi tombol Enter pada input password
+passInput.addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    handleLogin();
+  }
+});
+
+// Mendeteksi tombol Enter pada input email
+emailInput.addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    passInput.focus(); // Pindah ke password jika enter di email
+  }
+});
+
+function showMsg(text, type) {
+  msgDiv.innerText = text;
+  msgDiv.className = "msg " + type;
+}
+
+// Cek jika sudah login, langsung lempar ke admin
+sb.auth.getSession().then(({data}) => {
+  if(data.session) location.href = "admin.html";
+});
 </script>
 
 </body>
