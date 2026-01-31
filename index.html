@@ -1,278 +1,212 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anvi Create - Streaming Platform</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --bg: #060606;
-            --card: #121212;
-            --accent: #ff0513;
-            --text: #ffffff;
-            --muted: #888888;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anvi Create - Premium Streaming</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #060606;
+  --card: #121212;
+  --accent: #ff0513;
+  --text: #ffffff;
+  --muted: #a0a0a0;
+  --glass: rgba(0, 0, 0, 0.85);
+}
 
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', -apple-system, sans-serif;
-            overflow-x: hidden;
-        }
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  overflow-x: hidden; scroll-behavior: smooth;
+  opacity: 1; transition: opacity 0.5s ease;
+}
 
-        /* --- NAVBAR --- */
-        header {
-            padding: 15px 5%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            border-bottom: 1px solid #111;
-        }
+/* HEADER - Glassmorphism verified */
+header {
+  position: fixed; top: 0; width: 100%; z-index: 1000;
+  background: var(--glass); backdrop-filter: blur(12px);
+  padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+header h1 {
+  margin: 0; font-size: 22px; cursor: pointer;
+  background: linear-gradient(to right, #fff, var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-weight: 900;
+}
+nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 15px; font-weight: 500; transition: 0.3s; cursor: pointer; }
+nav a:hover { color: var(--accent); }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 900;
-            color: #fff;
-            text-decoration: none;
-            letter-spacing: -1px;
-        }
+/* BANNER (65vh) - Tetap Gahar */
+.banner {
+  height: 65vh; width: 100%; background-size: cover; background-position: center;
+  position: relative; display: flex; align-items: flex-end; padding: 0 5% 70px;
+  transition: background-image 0.8s ease-in-out;
+}
+.banner::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, var(--bg) 10%, transparent 80%),
+              linear-gradient(to right, var(--bg) 0%, transparent 60%);
+}
+.banner-content { position: relative; z-index: 2; max-width: 600px; animation: fadeInUp 0.8s ease; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .logo span {
-            color: var(--accent);
-        }
+.banner-content h2 { font-size: clamp(28px, 5vw, 48px); margin: 0 0 20px; font-weight: 800; text-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+.btn-play {
+  background: var(--accent); border: none; color: #fff; padding: 14px 35px;
+  border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 15px;
+}
+.btn-play:hover { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 20px rgba(229, 9, 20, 0.4); }
 
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+/* SEARCH BAR */
+.search-container { padding: 25px 5%; margin-top: -35px; position: relative; z-index: 10; }
+.search-container input {
+  width: 100%; padding: 16px 25px; background: #1a1a1a; border: 1px solid #333;
+  border-radius: 12px; color: #fff; outline: none; transition: 0.3s; font-size: 15px;
+}
+.search-container input:focus { border-color: var(--accent); background: #222; }
 
-        .btn-vip {
-            font-size: 11px;
-            color: #333;
-            text-decoration: none;
-            cursor: pointer;
-            transition: 0.3s;
-            text-transform: uppercase;
-            font-weight: bold;
-            padding: 5px 10px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-        }
+/* GRID SYSTEM */
+.section-title { padding: 0 5%; margin: 40px 0 15px; font-size: 19px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.section-title::before { content:""; width:4px; height:22px; background:var(--accent); border-radius: 2px; }
 
-        .btn-vip:hover {
-            color: var(--accent);
-            border-color: var(--accent);
-        }
+.grid { padding: 0 5% 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 25px; }
 
-        /* --- ORIGINAL BANNER --- */
-        .banner {
-            width: 100%;
-            height: 500px;
-            background: linear-gradient(to top, var(--bg) 5%, transparent 60%), 
-                        linear-gradient(to right, rgba(0,0,0,0.8), transparent),
-                        url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2044'); /* Ganti URL ini dengan image banner favoritmu */
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 0 5%;
-            box-sizing: border-box;
-        }
+/* CARD DESIGN */
+.card { background: var(--card); border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+.card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.6); }
+.card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; transition: 0.5s; }
+.card:hover img { filter: brightness(0.8); }
+.card-info { padding: 12px; font-size: 14px; font-weight: 600; text-align: center; }
+.card-info p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .banner h1 {
-            font-size: clamp(32px, 5vw, 56px);
-            margin: 0;
-            font-weight: 800;
-            max-width: 800px;
-            line-height: 1.1;
-        }
-
-        .banner p {
-            font-size: 18px;
-            color: #ccc;
-            max-width: 500px;
-            margin: 20px 0;
-            line-height: 1.6;
-        }
-
-        /* --- CONTENT SECTION --- */
-        .container {
-            padding: 40px 5%;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .section-header h2 {
-            font-size: 20px;
-            margin: 0;
-            font-weight: 700;
-        }
-
-        .line {
-            height: 2px;
-            background: var(--accent);
-            flex: 1;
-            opacity: 0.3;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-            gap: 25px;
-            margin-bottom: 60px;
-        }
-
-        /* --- CARD STYLE --- */
-        .card {
-            background: var(--card);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: 1px solid #1a1a1a;
-            position: relative;
-        }
-
-        .card:hover {
-            transform: scale(1.05);
-            border-color: var(--accent);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        }
-
-        .card img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-
-        .card-body {
-            padding: 12px;
-            text-align: center;
-        }
-
-        .card-body .title {
-            font-size: 14px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        @media (max-width: 768px) {
-            .banner { height: 350px; }
-            .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        }
-    </style>
+@media(max-width: 768px) {
+  .banner { height: 50vh; padding-bottom: 50px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
+}
+</style>
 </head>
 <body>
 
 <header>
-    <a href="index.html" class="logo">ANVI<span>CREATE</span></a>
-    <div class="nav-right">
-        <div class="btn-vip" onclick="enterVIP()">VIP Area</div>
-    </div>
+  <h1 onclick="location.reload()">ANVI CREATE</h1>
+  <nav>
+    <a onclick="openAdult()">🔞 18+</a>
+    <a href="admin.html">Admin</a>
+  </nav>
 </header>
 
-<div class="banner">
-    <h1>Your Ultimate Movie Destination</h1>
-    <p>Stream ribuan film dan series original secara gratis dengan kualitas terbaik.</p>
+<div class="banner" id="banner">
+  <div class="banner-content">
+    <h2 id="bannerTitle">Loading...</h2>
+    <button class="btn-play" onclick="openBanner()">▶ Play Now</button>
+  </div>
 </div>
 
-<div class="container">
-    <div class="section-header">
-        <h2>Latest Movies</h2>
-        <div class="line"></div>
-    </div>
-    <div class="grid" id="movieList">
-        </div>
-
-    <div class="section-header">
-        <h2>Popular Series</h2>
-        <div class="line"></div>
-    </div>
-    <div class="grid" id="seriesList">
-        </div>
+<div class="search-container">
+  <input id="search" placeholder="Cari film atau series favoritmu...">
 </div>
+
+<h2 class="section-title">Film Terbaru</h2>
+<div class="grid" id="movieList"></div>
+
+<h2 class="section-title">Series Unggulan</h2>
+<div class="grid" id="seriesList"></div>
 
 <script>
-    // INITIALIZE SUPABASE
-    const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function loadAllContent() {
-        try {
-            // 1. Load Movies (Hanya yang is18 = false)
-            const { data: movies, error: mError } = await sb
-                .from("Movies")
-                .select("*")
-                .eq("is18", false)
-                .order("created_at", { ascending: false });
+let movies = [], series = [], bannerItems = [], bIdx = 0;
 
-            if (mError) throw mError;
+function navigateTo(url) {
+  document.body.style.opacity = "0";
+  setTimeout(() => { location.href = url; }, 450);
+}
 
-            const mContainer = document.getElementById("movieList");
-            mContainer.innerHTML = movies.map(m => `
-                <div class="card" onclick="location.href='player.html?id=${m.id}'">
-                    <img src="${m.thumb}" alt="${m.title}">
-                    <div class="card-body">
-                        <div class="title">${m.title}</div>
-                    </div>
-                </div>
-            `).join('');
+async function init() {
+  const [mRes, sRes] = await Promise.all([
+    sb.from("Movies").select("*").order("created_at", { ascending: false }),
+    sb.from("Series").select("*").order("created_at", { ascending: false })
+  ]);
 
-            // 2. Load Series (Hanya yang is18 = false)
-            const { data: series, error: sError } = await sb
-                .from("Series")
-                .select("*")
-                .eq("is18", false)
-                .order("created_at", { ascending: false });
+  movies = mRes.data || [];
+  series = sRes.data || [];
 
-            if (sError) throw sError;
+  // Ambil 5 item terbaru untuk banner (kecuali yang 18+)
+  bannerItems = [...movies, ...series]
+    .filter(i => !i.is18)
+    .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
 
-            const sContainer = document.getElementById("seriesList");
-            sContainer.innerHTML = series.map(s => `
-                <div class="card" onclick="location.href='series.html?id=${s.id}'">
-                    <img src="${s.thumb}" alt="${s.title}">
-                    <div class="card-body">
-                        <div class="title">${s.title}</div>
-                    </div>
-                </div>
-            `).join('');
-
-        } catch (err) {
-            console.error("Fetch Error:", err.message);
-        }
+  renderAll();
+  
+  // Timer Banner Auto-Slide
+  setInterval(() => {
+    if (bannerItems.length > 0) {
+      bIdx = (bIdx + 1) % bannerItems.length;
+      updateBanner();
     }
+  }, 6000);
+}
 
-    // --- PINTU RAHASIA VIP ---
-    function enterVIP() {
-        const pin = prompt("Access Restricted. Enter PIN:");
-        // PIN default: 2026
-        if (pin === "2026") {
-            sessionStorage.setItem('adultAccess', 'true');
-            window.location.href = 'adult.html';
-        } else if (pin !== null) {
-            alert("Wrong PIN. Access Denied.");
-        }
-    }
+function renderAll() {
+  const q = document.getElementById("search").value.toLowerCase();
+  renderGrid("movieList", movies, q, "openMovie");
+  renderGrid("seriesList", series, q, "openSeries");
+  updateBanner();
+}
 
-    // Run loader
-    loadAllContent();
+function renderGrid(id, data, q, func) {
+  const el = document.getElementById(id); el.innerHTML = "";
+  data.forEach(item => {
+    // Sembunyikan item 18+ dari halaman utama
+    if(item.is18 || !item.title.toLowerCase().includes(q)) return;
+    el.innerHTML += `
+      <div class="card" onclick="${func}('${item.id}')">
+        <img src="${item.thumb}" loading="lazy">
+        <div class="card-info"><p>${item.title}</p></div>
+      </div>`;
+  });
+}
+
+function updateBanner() {
+  if (bannerItems.length === 0) return;
+  const item = bannerItems[bIdx];
+  const b = document.getElementById("banner");
+  b.style.backgroundImage = `url(${item.thumb})`;
+  document.getElementById("bannerTitle").innerText = item.title;
+  // Tandai tipe dan ID di elemen banner agar bisa diklik Play
+  b.dataset.type = item.video ? "movie" : "series"; 
+  b.dataset.id = item.id;
+}
+
+function openBanner() {
+  const b = document.getElementById("banner");
+  if(!b.dataset.id) return;
+  if(b.dataset.type === "movie") openMovie(b.dataset.id); 
+  else openSeries(b.dataset.id);
+}
+
+function openMovie(id) { navigateTo("player.html?id=" + id); }
+function openSeries(id) { navigateTo("series.html?id=" + id); }
+
+function openAdult() {
+  const pin = prompt("Masukkan PIN 18+:");
+  // Pakai PIN yang Bosku mau (Contoh: 1818)
+  if(pin === "1818") {
+    sessionStorage.setItem("adultAccess", "true");
+    navigateTo("adult.html");
+  } else if (pin !== null) { 
+    alert("Salah Bosku!"); 
+  }
+}
+
+document.getElementById("search").addEventListener("input", renderAll);
+init();
 </script>
-
 </body>
 </html>
