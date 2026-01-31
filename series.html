@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Series</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+header{
+  padding:16px 20px;
+  background:#111;
+  display:flex;
+  align-items:center;
+}
+header h2{margin:0;cursor:pointer}
+
+.hero{
+  display:flex;
+  gap:20px;
+  padding:20px;
+}
+.hero img{
+  width:220px;
+  border-radius:12px;
+}
+.hero-info h1{margin:0 0 10px}
+.hero-info p{color:#bbb;font-size:14px}
+
+.episodes{
+  padding:20px;
+}
+.episode{
+  background:#151515;
+  padding:14px 16px;
+  border-radius:10px;
+  margin-bottom:10px;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.episode:hover{background:#1f1f1f}
+.ep-num{
+  color:#e50914;
+  font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h2 onclick="history.back()">← Back</h2>
+</header>
+
+<div class="hero">
+  <img id="thumb">
+  <div class="hero-info">
+    <h1 id="title"></h1>
+    <p id="desc"></p>
+  </div>
+</div>
+
+<div class="episodes" id="episodes"></div>
+
+<script>
+/* ===== SUPABASE ===== */
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ===== GET ID ===== */
+const params = new URLSearchParams(location.search);
+const seriesId = params.get("id");
+
+if(!seriesId){
+  alert("Series tidak ditemukan");
+  history.back();
+}
+
+/* ===== LOAD SERIES ===== */
+async function loadSeries(){
+  const { data, error } = await sb
+    .from("Series")
+    .select("*")
+    .eq("id",seriesId)
+    .single();
+
+  if(error){
+    alert("Series tidak ditemukan");
+    return;
+  }
+
+  document.getElementById("thumb").src = data.thumb;
+  document.getElementById("title").innerText = data.title;
+  document.getElementById("desc").innerText = data.description || "";
+}
+
+/* ===== LOAD EPISODES ===== */
+async function loadEpisodes(){
+  const { data, error } = await sb
+    .from("Episodes")
+    .select("*")
+    .eq("series_id",seriesId)
+    .order("episode",{ascending:true});
+
+  if(error || !data.length){
+    document.getElementById("episodes").innerHTML = "<p>Episode belum tersedia</p>";
+    return;
+  }
+
+  data.forEach(ep=>{
+    document.getElementById("episodes").innerHTML += `
+      <div class="episode" onclick="openEpisode(${ep.id})">
+        <span><span class="ep-num">EP ${ep.episode}</span> - ${ep.title}</span>
+        <span>▶</span>
+      </div>
+    `;
+  });
+}
+
+/* ===== OPEN PLAYER ===== */
+function openEpisode(id){
+  window.open("player.html?episode="+id,"_blank");
+}
+
+loadSeries();
+loadEpisodes();
+</script>
+
+</body>
+</html>
