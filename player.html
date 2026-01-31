@@ -50,14 +50,19 @@ header {
   position: absolute; inset: 0; width: 100%; height: 100%; border: none;
 }
 
-/* SERVER SWITCH - Perbaikan Jarak Mobile */
+/* SERVER SELECTION - DIBUAT LEBIH LEGA */
 .server-selection {
-  margin-top: 15px; display: flex; gap: 12px; flex-wrap: wrap;
+  margin-top: 30px; /* Jarak ditambah agar tidak mepet video */
+  padding: 0 5%;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center; /* Tombol di tengah agar rapi di HP */
 }
 
 /* INFO SECTION */
 .video-info {
-  margin-top: 25px; padding: 0 5%;
+  margin-top: 35px; padding: 0 5%;
 }
 
 .video-info h1 {
@@ -79,26 +84,27 @@ header {
 
 /* ACTION BUTTONS */
 .actions {
-  display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;
+  display: flex; gap: 10px; margin-top: 25px; flex-wrap: wrap;
 }
 
 .action-btn {
   background: #111; border: 1px solid #222; color: #fff;
-  padding: 10px 20px; border-radius: 50px; cursor: pointer;
+  padding: 12px 22px; border-radius: 50px; cursor: pointer;
   font-size: 13px; transition: 0.3s;
+  min-width: 110px; /* Tombol lebih besar di HP */
 }
 .action-btn:hover { border-color: var(--accent); color: var(--accent); }
 .action-btn.active { background: var(--accent); border-color: var(--accent); }
 
 /* REKOMENDASI */
-.recommendation { padding: 40px 5%; max-width: 1100px; margin: 0 auto; }
-.recommendation h2 { font-size: 18px; margin-bottom: 20px; }
-.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+.recommendation { padding: 50px 5%; max-width: 1100px; margin: 0 auto; }
+.recommendation h2 { font-size: 18px; margin-bottom: 25px; border-left: 3px solid var(--accent); padding-left: 10px; }
+.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; }
 .card-suggest { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
 .card-suggest img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
 .card-suggest p { padding: 10px; font-size: 12px; margin: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* SKELETON LOADING */
+/* LOADING */
 .loader {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: #000; z-index: 5; transition: 0.5s;
@@ -111,10 +117,10 @@ header {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media(max-width: 768px) {
-  .video-info h1 { font-size: 20px; }
-  .player-wrapper { padding: 0; }
+  .player-wrapper { padding: 0; margin-top: 0; }
   .video-container { border-radius: 0; }
-  .server-selection { padding: 0 15px; gap: 10px; }
+  .server-selection { margin-top: 25px; gap: 10px; }
+  .action-btn { flex: 1; text-align: center; }
   .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
 }
 </style>
@@ -123,7 +129,7 @@ header {
 
 <header>
   <button class="back-btn" onclick="history.back()">← Kembali</button>
-  <span id="navTitle" style="color:var(--muted); font-size:14px">Memuat...</span>
+  <span id="navTitle" style="color:var(--muted); font-size:13px">Memuat...</span>
 </header>
 
 <div class="player-wrapper">
@@ -131,10 +137,9 @@ header {
     <div id="loader" class="loader"><div class="spinner"></div></div>
     <div id="playerFrame"></div>
   </div>
-
-  <div class="server-selection" id="serverButtons">
-    </div>
 </div>
+
+<div class="server-selection" id="serverList"></div>
 
 <div class="video-info">
   <div class="meta-data">
@@ -146,14 +151,14 @@ header {
   <p class="desc" id="description">Sedang memuat informasi video...</p>
 
   <div class="actions">
-    <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
-    <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
-    <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
+    <button class="action-btn" onclick="location.reload()">🔄 Refresh</button>
+    <button class="action-btn" onclick="alert('Laporan dikirim!')">🚩 Error</button>
+    <button class="action-btn" onclick="shareVideo()">🔗 Share</button>
   </div>
 </div>
 
 <div class="recommendation">
-  <h2 style="border-left: 3px solid var(--accent); padding-left: 10px;">Mungkin Kamu Suka</h2>
+  <h2>Mungkin Kamu Suka</h2>
   <div class="grid-suggest" id="suggestList"></div>
 </div>
 
@@ -168,15 +173,14 @@ const episodeId = params.get("episode");
 
 async function loadContent() {
   let videoData = null;
-
   if (movieId) {
     const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
     videoData = data;
-    if (data) render(data.title, data.video, "Movie");
+    if (data) renderUI(data.title, "Movie");
   } else if (episodeId) {
     const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
     videoData = data;
-    if (data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
+    if (data) renderUI(`${data.Series.title} - Eps ${data.episode}`, "Series");
   }
 
   if (videoData) {
@@ -185,38 +189,39 @@ async function loadContent() {
   }
 }
 
-function setupServers(s1, s2) {
-  const container = document.getElementById("serverButtons");
-  container.innerHTML = "";
-  const servers = [];
-  if (s1) servers.push({ name: "Server 1", url: s1 });
-  if (s2) servers.push({ name: "Server 2", url: s2 });
+function renderUI(title, type) {
+  document.getElementById("navTitle").innerText = title;
+  document.getElementById("title").innerText = title;
+  document.getElementById("videoType").innerText = type;
+}
 
-  servers.forEach((srv, i) => {
+function setupServers(s1, s2) {
+  const container = document.getElementById("serverList");
+  container.innerHTML = "";
+  const list = [];
+  if (s1) list.push({ name: "Server 1", url: s1 });
+  if (s2) list.push({ name: "Server 2", url: s2 });
+
+  list.forEach((srv, i) => {
     const btn = document.createElement("button");
     btn.className = "action-btn" + (i === 0 ? " active" : "");
     btn.innerText = srv.name;
     btn.onclick = () => {
-      play(srv.url);
-      document.querySelectorAll('.server-selection .action-btn').forEach(b => b.classList.remove('active'));
+      playVideo(srv.url);
+      document.querySelectorAll('#serverList .action-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     };
     container.appendChild(btn);
   });
+  if(list.length > 0) playVideo(list[0].url);
 }
 
-function render(title, url, type) {
-  document.getElementById("navTitle").innerText = title;
-  document.getElementById("title").innerText = title;
-  document.getElementById("videoType").innerText = type;
-  play(url);
-}
-
-function play(url) {
+function playVideo(url) {
   const loader = document.getElementById("loader");
   if(loader) loader.style.opacity = "1";
   
   let cleanUrl = url.trim();
+  // FIX GOOGLE DRIVE
   if (cleanUrl.includes("drive.google.com")) {
       cleanUrl = cleanUrl.replace("/view", "/preview");
   }
