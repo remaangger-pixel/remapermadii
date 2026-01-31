@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anvi Create - Premium Streaming</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root {
   --bg: #060606;
@@ -23,7 +25,7 @@ body {
   opacity: 1; transition: opacity 0.5s ease;
 }
 
-/* HEADER - Glassmorphism verified */
+/* HEADER - Glassmorphism */
 header {
   position: fixed; top: 0; width: 100%; z-index: 1000;
   background: var(--glass); backdrop-filter: blur(12px);
@@ -36,10 +38,10 @@ header h1 {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   font-weight: 900;
 }
-nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 15px; font-weight: 500; transition: 0.3s; cursor: pointer; }
+nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 20px; font-weight: 600; transition: 0.3s; cursor: pointer; }
 nav a:hover { color: var(--accent); }
 
-/* BANNER (65vh) - Tetap Gahar */
+/* BANNER (65vh) */
 .banner {
   height: 65vh; width: 100%; background-size: cover; background-position: center;
   position: relative; display: flex; align-items: flex-end; padding: 0 5% 70px;
@@ -93,8 +95,8 @@ nav a:hover { color: var(--accent); }
 <header>
   <h1 onclick="location.reload()">ANVI CREATE</h1>
   <nav>
-    <a onclick="openAdult()">🔞 18+</a>
-    <a href="admin.html">Admin</a>
+    <a onclick="openVIP()">VIP AREA</a>
+    <a href="admin.html">ADMIN</a>
   </nav>
 </header>
 
@@ -136,15 +138,12 @@ async function init() {
   movies = mRes.data || [];
   series = sRes.data || [];
 
-  // Ambil 5 item terbaru untuk banner (kecuali yang 18+)
   bannerItems = [...movies, ...series]
     .filter(i => !i.is18)
     .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5);
 
   renderAll();
-  
-  // Timer Banner Auto-Slide
   setInterval(() => {
     if (bannerItems.length > 0) {
       bIdx = (bIdx + 1) % bannerItems.length;
@@ -163,7 +162,6 @@ function renderAll() {
 function renderGrid(id, data, q, func) {
   const el = document.getElementById(id); el.innerHTML = "";
   data.forEach(item => {
-    // Sembunyikan item 18+ dari halaman utama
     if(item.is18 || !item.title.toLowerCase().includes(q)) return;
     el.innerHTML += `
       <div class="card" onclick="${func}('${item.id}')">
@@ -179,8 +177,7 @@ function updateBanner() {
   const b = document.getElementById("banner");
   b.style.backgroundImage = `url(${item.thumb})`;
   document.getElementById("bannerTitle").innerText = item.title;
-  // Tandai tipe dan ID di elemen banner agar bisa diklik Play
-  b.dataset.type = item.video ? "movie" : "series"; 
+  b.dataset.type = item.video ? "movie" : "series";
   b.dataset.id = item.id;
 }
 
@@ -194,14 +191,13 @@ function openBanner() {
 function openMovie(id) { navigateTo("player.html?id=" + id); }
 function openSeries(id) { navigateTo("series.html?id=" + id); }
 
-function openAdult() {
-  const pin = prompt("Masukkan PIN 18+:");
-  // Pakai PIN yang Bosku mau (Contoh: 1818)
+function openVIP() {
+  const pin = prompt("Masukkan PIN VIP Area:");
   if(pin === "1818") {
     sessionStorage.setItem("adultAccess", "true");
     navigateTo("adult.html");
   } else if (pin !== null) { 
-    alert("Salah Bosku!"); 
+    alert("PIN Salah, Bosku!"); 
   }
 }
 
