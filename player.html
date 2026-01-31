@@ -74,7 +74,7 @@ header {
 
 /* ACTION BUTTONS */
 .actions {
-  display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;
+  display: flex; gap: 10px; margin-top: 20px;
 }
 
 .action-btn {
@@ -84,15 +84,23 @@ header {
 }
 .action-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Class Tambahan untuk Server Aktif */
-.active-srv { background: var(--accent) !important; border-color: var(--accent) !important; }
-
-/* REKOMENDASI (Ditambah di bawah tanpa ganggu player) */
-.suggest-section { padding: 40px 5%; max-width: 1100px; }
-.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; margin-top: 20px; }
-.card-movie { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; }
-.card-movie img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-.card-movie p { padding: 8px; font-size: 11px; margin: 0; text-align: center; }
+/* REKOMENDASI FILM */
+.rekomendasi-container {
+  margin-top: 40px; padding-bottom: 40px;
+}
+.rekomendasi-title {
+  font-size: 18px; font-weight: bold; margin-bottom: 20px;
+  border-left: 3px solid var(--accent); padding-left: 10px;
+}
+.grid-rekomendasi {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;
+}
+.item-rekomendasi {
+  background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s;
+}
+.item-rekomendasi:hover { transform: scale(1.05); }
+.item-rekomendasi img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+.item-rekomendasi p { padding: 8px; margin: 0; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* SKELETON LOADING */
 .loader {
@@ -108,9 +116,9 @@ header {
 
 @media(max-width: 768px) {
   .video-info h1 { font-size: 20px; }
-  .player-wrapper { padding: 0; margin: 0; }
+  .player-wrapper { padding: 0; }
   .video-container { border-radius: 0; }
-  .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .grid-rekomendasi { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
 }
 </style>
 </head>
@@ -137,17 +145,15 @@ header {
   <h1 id="title">Judul Video</h1>
   <p class="desc" id="description">Sedang memuat informasi video...</p>
 
-  <div class="actions" id="serverList"></div>
-
   <div class="actions">
     <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
-    <button class="action-btn" onclick="alert('Laporan dikirim!')">🚩 Lapor Error</button>
+    <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
     <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
   </div>
 
-  <div class="suggest-section">
-      <p style="font-weight: bold; border-left: 3px solid var(--accent); padding-left: 10px;">Saran Film</p>
-      <div class="grid-suggest" id="suggestContent"></div>
+  <div class="rekomendasi-container">
+    <div class="rekomendasi-title">Mungkin Kamu Suka</div>
+    <div class="grid-rekomendasi" id="suggestBox"></div>
   </div>
 </div>
 
@@ -161,77 +167,69 @@ const movieId = params.get("id");
 const episodeId = params.get("episode");
 
 async function loadContent() {
-  let videoData = null;
   if (movieId) {
-    const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
-    videoData = data;
-    if (data) renderUI(data.title, "Movie");
+    const { data, error } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    if (!error && data) {
+      render(data.title, data.video, "Movie");
+      loadSuggestions(data.id);
+    }
   } else if (episodeId) {
-    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
-    videoData = data;
-    if (data) renderUI(`${data.Series.title} - Eps ${data.episode}`, "Series");
-  }
-
-  if (videoData) {
-    setupServers(videoData.video, videoData.video2);
-    loadSuggestions();
+    const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    if (!error && data) {
+      render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
+      loadSuggestions(null); // Bisa dikembangkan untuk series terkait
+    }
+  } else {
+    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Video Tidak Ditemukan</h2>";
   }
 }
 
-function renderUI(title, type) {
+function render(title, url, type) {
+  document.title = title + " - Anvi Create";
   document.getElementById("navTitle").innerText = title;
   document.getElementById("title").innerText = title;
   document.getElementById("videoType").innerText = type;
-}
+  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet atau tidak muncul, silakan klik tombol Refresh Player atau lapor ke admin kami.`;
 
-function setupServers(s1, s2) {
-  const container = document.getElementById("serverList");
-  const servers = [];
-  if (s1) servers.push({ name: "Server 1", url: s1 });
-  if (s2) servers.push({ name: "Server 2", url: s2 });
-
-  servers.forEach((srv, i) => {
-    const btn = document.createElement("button");
-    btn.className = "action-btn" + (i === 0 ? " active-srv" : "");
-    btn.innerText = srv.name;
-    btn.onclick = () => {
-      playVideo(srv.url);
-      document.querySelectorAll('#serverList .action-btn').forEach(b => b.classList.remove('active-srv'));
-      btn.classList.add('active-srv');
-    };
-    container.appendChild(btn);
-  });
-  if(servers.length > 0) playVideo(servers[0].url);
-}
-
-function playVideo(url) {
-  let cleanUrl = url.trim();
-  if (cleanUrl.includes("drive.google.com")) {
-      cleanUrl = cleanUrl.replace("/view", "/preview");
+  // Fix Google Drive Link
+  let finalUrl = url.trim();
+  if (finalUrl.includes("drive.google.com")) {
+      finalUrl = finalUrl.replace("/view", "/preview");
   }
-  document.getElementById("playerFrame").innerHTML = `<iframe src="${cleanUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>`;
-  
+
+  const frame = document.getElementById("playerFrame");
+  frame.innerHTML = `<iframe src="${finalUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>`;
+
   setTimeout(() => {
     const loader = document.getElementById("loader");
-    if(loader) loader.style.opacity = "0";
-  }, 1000);
+    if(loader) {
+      loader.style.opacity = "0";
+      setTimeout(() => loader.remove(), 500);
+    }
+  }, 1500);
 }
 
-async function loadSuggestions() {
-  const { data } = await sb.from("Movies").select("*").eq("is18", false).limit(8);
-  const container = document.getElementById("suggestContent");
-  data?.forEach(m => {
-    if(m.id == movieId) return;
-    container.innerHTML += `<div class="card-movie" onclick="location.href='player.html?id=${m.id}'"><img src="${m.thumb}"><p>${m.title}</p></div>`;
-  });
+async function loadSuggestions(currentId) {
+  const { data } = await sb.from("Movies").select("*").eq("is18", false).neq("id", currentId).limit(8);
+  const box = document.getElementById("suggestBox");
+  if (data) {
+    data.forEach(m => {
+      box.innerHTML += `
+        <div class="item-rekomendasi" onclick="location.href='player.html?id=${m.id}'">
+          <img src="${m.thumb}">
+          <p>${m.title}</p>
+        </div>`;
+    });
+  }
 }
 
 function shareVideo() {
   navigator.clipboard.writeText(window.location.href);
-  alert("Link disalin!");
+  alert("Link video berhasil disalin ke clipboard!");
 }
 
 loadContent();
 </script>
+
 </body>
 </html>
