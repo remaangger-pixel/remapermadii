@@ -25,7 +25,7 @@ body {
   opacity: 1; transition: opacity 0.5s ease;
 }
 
-/* HEADER - Glassmorphism */
+/* HEADER */
 header {
   position: fixed; top: 0; width: 100%; z-index: 1000;
   background: var(--glass); backdrop-filter: blur(12px);
@@ -41,7 +41,7 @@ header h1 {
 nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 20px; font-weight: 600; transition: 0.3s; cursor: pointer; }
 nav a:hover { color: var(--accent); }
 
-/* BANNER (65vh) */
+/* BANNER */
 .banner {
   height: 65vh; width: 100%; background-size: cover; background-position: center;
   position: relative; display: flex; align-items: flex-end; padding: 0 5% 70px;
@@ -84,6 +84,17 @@ nav a:hover { color: var(--accent); }
 .card-info { padding: 12px; font-size: 14px; font-weight: 600; text-align: center; }
 .card-info p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* SAVE ICON */
+.btn-save {
+  position: absolute; top: 10px; right: 10px; z-index: 20;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+  border: none; border-radius: 50%; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 14px; transition: 0.3s; cursor: pointer;
+}
+.btn-save:hover { transform: scale(1.1); background: var(--accent); }
+.btn-save.active { color: var(--accent); background: white; }
+
 @media(max-width: 768px) {
   .banner { height: 50vh; padding-bottom: 50px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
@@ -109,6 +120,11 @@ nav a:hover { color: var(--accent); }
 
 <div class="search-container">
   <input id="search" placeholder="Cari film atau series favoritmu...">
+</div>
+
+<div id="librarySection" style="display:none;">
+  <h2 class="section-title">Library Saya</h2>
+  <div class="grid" id="libraryList"></div>
 </div>
 
 <h2 class="section-title">Film Terbaru</h2>
@@ -156,19 +172,73 @@ function renderAll() {
   const q = document.getElementById("search").value.toLowerCase();
   renderGrid("movieList", movies, q, "openMovie");
   renderGrid("seriesList", series, q, "openSeries");
+  renderLibrary(); // Render Library setiap kali UI update
   updateBanner();
 }
 
 function renderGrid(id, data, q, func) {
   const el = document.getElementById(id); el.innerHTML = "";
+  const watchlist = JSON.parse(localStorage.getItem('myWatchlist')) || [];
+
   data.forEach(item => {
     if(item.is18 || !item.title.toLowerCase().includes(q)) return;
+    
+    const isSaved = watchlist.some(w => w.id === item.id);
+    const saveClass = isSaved ? 'active' : '';
+
     el.innerHTML += `
-      <div class="card" onclick="${func}('${item.id}')">
-        <img src="${item.thumb}" loading="lazy">
-        <div class="card-info"><p>${item.title}</p></div>
+      <div class="card">
+        <button class="btn-save ${saveClass}" onclick="toggleSave(event, '${item.id}', '${item.title.replace(/'/g, "\\'")}', '${item.thumb}', '${func}')">
+          ❤
+        </button>
+        <div onclick="${func}('${item.id}')">
+          <img src="${item.thumb}" loading="lazy">
+          <div class="card-info"><p>${item.title}</p></div>
+        </div>
       </div>`;
   });
+}
+
+function renderLibrary() {
+  const watchlist = JSON.parse(localStorage.getItem('myWatchlist')) || [];
+  const section = document.getElementById("librarySection");
+  const list = document.getElementById("libraryList");
+  
+  if (watchlist.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "block";
+  list.innerHTML = "";
+  
+  watchlist.forEach(item => {
+    list.innerHTML += `
+      <div class="card">
+        <button class="btn-save active" onclick="toggleSave(event, '${item.id}', '', '', '')">
+          ❤
+        </button>
+        <div onclick="${item.func}('${item.id}')">
+          <img src="${item.thumb}" loading="lazy">
+          <div class="card-info"><p>${item.title}</p></div>
+        </div>
+      </div>`;
+  });
+}
+
+function toggleSave(event, id, title, thumb, func) {
+  event.stopPropagation();
+  let watchlist = JSON.parse(localStorage.getItem('myWatchlist')) || [];
+  const index = watchlist.findIndex(w => w.id === id);
+
+  if (index > -1) {
+    watchlist.splice(index, 1);
+  } else {
+    watchlist.push({ id, title, thumb, func });
+  }
+
+  localStorage.setItem('myWatchlist', JSON.stringify(watchlist));
+  renderAll(); // Refresh semua grid untuk update ikon hati
 }
 
 function updateBanner() {
