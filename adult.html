@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>18+ Area</title>
 
-<!-- SUPABASE CDN -->
+<!-- SUPABASE CDN v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -77,16 +77,16 @@ if(
   now > parseInt(expire)
 ){
   alert("Akses 18+ sudah berakhir");
-  sessionStorage.removeItem('adultAccess');
-  sessionStorage.removeItem('adultExpire');
+  sessionStorage.clear();
   location.href = 'index.html';
 }
 
-/* ================= SUPABASE INIT ================= */
+/* ================= SUPABASE INIT (BENAR) ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 
-const supabaseClient = window.supabase.createClient(
+/* ⬇⬇⬇ INI KUNCI UTAMANYA ⬇⬇⬇ */
+const supabaseClient = Supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
@@ -127,11 +127,10 @@ function openPlayer(id){
   window.open('player.html?id='+id,'_blank');
 }
 
-/* ================= LOGOUT ================= */
-function adultLogout(){
+/* ================= LOGOUT (GLOBAL) ================= */
+window.adultLogout = function(){
   if(confirm("Keluar dari mode 18+?")){
-    sessionStorage.removeItem('adultAccess');
-    sessionStorage.removeItem('adultExpire');
+    sessionStorage.clear();
     location.href='index.html';
   }
 }
