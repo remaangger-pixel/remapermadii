@@ -74,7 +74,7 @@ header {
 
 /* ACTION BUTTONS */
 .actions {
-  display: flex; gap: 10px; margin-top: 20px;
+  display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;
 }
 
 .action-btn {
@@ -83,6 +83,14 @@ header {
   font-size: 13px; transition: 0.3s;
 }
 .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-active { border-color: var(--accent); background: var(--accent); }
+
+/* REKOMENDASI STYLE */
+.suggest-title { margin: 40px 0 20px; font-size: 18px; border-left: 3px solid var(--accent); padding-left: 10px; }
+.grid-suggest { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-bottom: 50px; }
+.card-s { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
+.card-s img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+.card-s p { padding: 8px; margin: 0; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* SKELETON LOADING */
 .loader {
@@ -100,6 +108,7 @@ header {
   .video-info h1 { font-size: 20px; }
   .player-wrapper { padding: 0; }
   .video-container { border-radius: 0; }
+  .grid-suggest { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
 }
 </style>
 </head>
@@ -126,11 +135,18 @@ header {
   <h1 id="title">Judul Video</h1>
   <p class="desc" id="description">Sedang memuat informasi video...</p>
 
+  <p style="font-size: 13px; color: var(--muted); margin-bottom: 10px;">Pilih Server:</p>
+  <div class="actions" id="serverContainer" style="margin-bottom: 25px;">
+    </div>
+
   <div class="actions">
     <button class="action-btn" onclick="location.reload()">🔄 Refresh Player</button>
     <button class="action-btn" onclick="alert('Terima kasih! Laporan dikirim ke admin.')">🚩 Lapor Error</button>
     <button class="action-btn" onclick="shareVideo()">🔗 Bagikan</button>
   </div>
+
+  <h2 class="suggest-title">Mungkin Kamu Suka</h2>
+  <div class="grid-suggest" id="recommendationGrid"></div>
 </div>
 
 <script>
@@ -143,37 +159,81 @@ const movieId = params.get("id");
 const episodeId = params.get("episode");
 
 async function loadContent() {
+  let content = null;
   if (movieId) {
-    const { data, error } = await sb.from("Movies").select("*").eq("id", movieId).single();
-    if (!error && data) render(data.title, data.video, "Movie");
+    const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    content = data;
+    if (data) render(data.title, data.video, "Movie", data.video2);
   } else if (episodeId) {
-    const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
-    if (!error && data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series");
-  } else {
-    document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Video Tidak Ditemukan</h2>";
+    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    content = data;
+    if (data) render(`${data.Series.title} - Eps ${data.episode}`, data.video, "Series", data.video2);
   }
+
+  if(content) loadSuggests(content.id);
 }
 
-function render(title, url, type) {
+function render(title, url, type, url2) {
   document.title = title + " - Anvi Create";
   document.getElementById("navTitle").innerText = title;
   document.getElementById("title").innerText = title;
   document.getElementById("videoType").innerText = type;
-  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet atau tidak muncul, silakan klik tombol Refresh Player atau lapor ke admin kami.`;
+  document.getElementById("description").innerText = `Kamu sedang menonton ${title}. Jika video macet, silakan ganti server atau refresh player.`;
+
+  // Setup Server Buttons
+  const serverBox = document.getElementById("serverContainer");
+  serverBox.innerHTML = `<button class="action-btn btn-active" onclick="switchServer(this, '${url}')">Server 1</button>`;
+  if(url2 && url2.trim() !== "") {
+    serverBox.innerHTML += `<button class="action-btn" onclick="switchServer(this, '${url2}')">Server 2</button>`;
+  }
+
+  play(url);
+}
+
+function switchServer(btn, url) {
+  document.querySelectorAll("#serverContainer .action-btn").forEach(b => b.classList.remove("btn-active"));
+  btn.classList.add("btn-active");
+  play(url);
+}
+
+function play(url) {
+  let finalUrl = url.trim();
+  if (finalUrl.includes("drive.google.com")) {
+      finalUrl = finalUrl.replace("/view", "/preview");
+  }
 
   const frame = document.getElementById("playerFrame");
-  frame.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
-
-  // Hilangkan loader setelah iframe mulai dimuat
-  setTimeout(() => {
-    document.getElementById("loader").style.opacity = "0";
-    setTimeout(() => document.getElementById("loader").remove(), 500);
-  }, 1500);
+  frame.innerHTML = `<iframe src="${finalUrl}" allowfullscreen allow="autoplay; fullscreen" referrerpolicy="no-referrer"></iframe>`;
 }
+
+async function loadSuggests(currentId) {
+  const { data } = await sb.from("Movies").select("*").eq("is18", false).neq("id", currentId).limit(6);
+  const grid = document.getElementById("recommendationGrid");
+  if(data) {
+    data.forEach(m => {
+      grid.innerHTML += `
+        <div class="card-s" onclick="location.href='player.html?id=${m.id}'">
+          <img src="${m.thumb}">
+          <p>${m.title}</p>
+        </div>`;
+    });
+  }
+}
+
+// Loader handling
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById("loader");
+    if(loader) {
+        loader.style.opacity = "0";
+        setTimeout(() => loader.remove(), 500);
+    }
+  }, 1500);
+});
 
 function shareVideo() {
   navigator.clipboard.writeText(window.location.href);
-  alert("Link video berhasil disalin ke clipboard!");
+  alert("Link video berhasil disalin!");
 }
 
 loadContent();
