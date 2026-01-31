@@ -3,83 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel Fix - Anvi Create</title>
+<title>Admin Panel Secure - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{ --bg:#0b0b0b; --card:#151515; --accent:#e50914; --blue:#007bff; }
-body{margin:0;background:var(--bg);color:#fff;font-family:'Inter',sans-serif; padding-bottom: 50px;}
+:root{ --bg:#060606; --card:#121212; --accent:#ff0513; --blue:#007bff; --text:#fff; }
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif; padding-bottom: 50px; opacity:0; transition: 0.5s;}
 header{background:#000;padding:15px 5%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:100}
-button{color:#fff;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-weight:bold;transition:0.3s}
-.container{padding:20px; max-width: 1100px; margin: auto;}
-.tabs{display:flex; gap:10px; margin-bottom:25px; background:#111; padding:10px; border-radius:12px}
-.tab-btn{background:transparent; flex:1; padding:12px; border-radius:8px; border:1px solid #333; color:#888; cursor:pointer}
-.tab-btn.active{background:var(--accent); border-color:var(--accent); color:#fff}
+button{color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;transition:0.3s}
+.container{padding:20px; max-width: 1000px; margin: auto;}
+.tabs{display:flex; gap:10px; margin-bottom:25px; background:#111; padding:8px; border-radius:12px}
+.tab-btn{background:transparent; flex:1; padding:12px; border-radius:8px; border:none; color:#888; cursor:pointer}
+.tab-btn.active{background:var(--accent); color:#fff; box-shadow: 0 4px 15px rgba(255,5,19,0.3)}
 .form-section{background:var(--card);padding:25px;border-radius:15px;margin-bottom:30px; border: 1px solid #222; display:none}
-.form-section.active{display:block;}
+.form-section.active{display:block; animation: fadeIn 0.3s;}
+@keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
 .form-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-label{display:block; margin-bottom:8px; font-size:13px; color:#aaa;}
-input, select{width:100%;padding:12px;margin-bottom:15px;border:1px solid #333;border-radius:8px;background:#000;color:#fff;box-sizing:border-box}
+input, select{width:100%;padding:14px;margin-bottom:15px;border:1px solid #333;border-radius:8px;background:#000;color:#fff;outline:none}
+input:focus{border-color:var(--accent)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
-.card{background:var(--card);border-radius:10px;overflow:hidden;border:1px solid #222}
-.card img{width:100%;height:220px;object-fit:cover}
+.card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid #222; transition: 0.3s;}
+.card:hover{border-color:var(--accent)}
+.card img{width:100%;height:240px;object-fit:cover}
 .card-body{padding:12px}
-.card-title{font-size:13px; font-weight:bold; height: 35px; overflow:hidden}
-.actions{display:flex;gap:5px; margin-top:10px}
-.edit{background:#ffa500; flex:1; font-size:11px}
-.delete{background:#ff4d4d; flex:1; font-size:11px}
+.card-title{font-size:14px; font-weight:bold; height: 38px; overflow:hidden; margin-bottom:10px}
+.actions{display:flex;gap:8px}
+.edit{background:#ffa500; flex:1; font-size:12px}
+.delete{background:rgba(255,77,77,0.2); color:#ff4d4d; border:1px solid #ff4d4d; flex:1; font-size:12px}
+.delete:hover{background:#ff4d4d; color:#fff}
 </style>
 </head>
 <body>
 
 <header>
-  <h2 style="margin:0;">Anvi <span style="color:var(--accent)">Admin</span></h2>
-  <button style="background:#333" onclick="logout()">Logout</button>
+  <h2 style="margin:0;">ANVI <span style="color:var(--accent)">ADMIN</span></h2>
+  <button style="background:#222; border:1px solid #444" onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
   <div class="tabs">
-    <button id="btn-m" class="tab-btn active" onclick="switchTab('Movies')">🎬 Movies</button>
-    <button id="btn-s" class="tab-btn" onclick="switchTab('Series')">📺 Series</button>
-    <button id="btn-e" class="tab-btn" onclick="switchTab('Episodes')">➕ Add Episode</button>
+    <button id="btn-Movies" class="tab-btn active" onclick="switchTab('Movies')">Movies</button>
+    <button id="btn-Series" class="tab-btn" onclick="switchTab('Series')">Series</button>
+    <button id="btn-Episodes" class="tab-btn" onclick="switchTab('Episodes')">Episodes</button>
   </div>
 
   <div id="form-Movies" class="form-section active">
-    <h3 id="m_head">Tambah Movie Baru</h3>
+    <h3 id="m_head">Tambah Movie</h3>
     <div class="form-group">
       <input id="m_title" placeholder="Judul Film">
-      <select id="m_is18"><option value="false">Umum</option><option value="true">18+</option></select>
+      <select id="m_is18"><option value="false">Rating: Umum</option><option value="true">Rating: 18+</option></select>
     </div>
     <input id="m_thumb" placeholder="URL Thumbnail">
     <div class="form-group">
-      <input id="m_video" placeholder="Video Server 1">
-      <input id="m_video2" placeholder="Video Server 2">
+      <input id="m_video" placeholder="URL Video Server 1">
+      <input id="m_video2" placeholder="URL Video Server 2 (Opsional)">
     </div>
-    <button onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN MOVIE</button>
+    <button onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN DATA MOVIE</button>
   </div>
 
   <div id="form-Series" class="form-section">
-    <h3 id="s_head">Tambah Series Baru</h3>
+    <h3 id="s_head">Tambah Series</h3>
     <input id="s_title" placeholder="Judul Series">
     <input id="s_thumb" placeholder="URL Thumbnail">
-    <select id="s_is18"><option value="false">Umum</option><option value="true">18+</option></select>
-    <button onclick="saveData('Series')" style="background:var(--accent); width:100%">SIMPAN SERIES</button>
+    <select id="s_is18"><option value="false">Rating: Umum</option><option value="true">Rating: 18+</option></select>
+    <button onclick="saveData('Series')" style="background:var(--accent); width:100%">SIMPAN DATA SERIES</button>
   </div>
 
   <div id="form-Episodes" class="form-section">
     <h3>Tambah Episode</h3>
-    <select id="ep_series_id"><option value="">Pilih Series...</option></select>
+    <select id="ep_series_id"><option value="">Pilih Series Terlebih Dahulu...</option></select>
     <div class="form-group">
-      <input id="ep_num" type="number" placeholder="Episode Ke-">
-      <input id="ep_title" placeholder="Judul Episode">
+      <input id="ep_num" type="number" placeholder="Eps ke- (Contoh: 1)">
+      <input id="ep_title" placeholder="Judul Episode (Contoh: Pilot)">
     </div>
     <div class="form-group">
       <input id="ep_video" placeholder="Video Server 1">
       <input id="ep_video2" placeholder="Video Server 2">
     </div>
-    <button onclick="saveEpisode()" style="background:var(--blue); width:100%">TAMBAH EPISODE</button>
+    <button onclick="saveEpisode()" style="background:var(--blue); width:100%">UPLOAD EPISODE</button>
   </div>
 
-  <h3 id="listTitle" style="margin-top:40px">Daftar Movies</h3>
+  <h3 id="listTitle" style="margin-top:40px; border-left:4px solid var(--accent); padding-left:15px">Daftar Movies</h3>
   <div class="grid" id="dataList"></div>
 </div>
 
@@ -91,17 +94,25 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentTable = "Movies";
 let editId = null;
 
-// FUNGSI UTAMA LOAD DATA
+/* 1. PROTEKSI: CEK LOGIN */
+async function checkAuth() {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) {
+    window.location.replace("login.html");
+  } else {
+    document.body.style.opacity = "1"; // Tampilkan halaman jika login valid
+    loadData();
+  }
+}
+
+/* 2. LOAD DATA LIST */
 async function loadData() {
   const listEl = document.getElementById("dataList");
-  listEl.innerHTML = "<p>Loading data...</p>";
+  listEl.innerHTML = "<p>Sedang mengambil data...</p>";
 
   const { data, error } = await sb.from(currentTable).select("*").order("created_at", {ascending: false});
   
-  if(error) {
-    listEl.innerHTML = "<p>Gagal mengambil data: " + error.message + "</p>";
-    return;
-  }
+  if(error) return listEl.innerHTML = "<p>Error: " + error.message + "</p>";
 
   listEl.innerHTML = "";
   data.forEach(item => {
@@ -119,31 +130,29 @@ async function loadData() {
   });
 }
 
+/* 3. SWITCH TAB LOGIC */
 function switchTab(tab) {
   currentTable = tab;
-  // UI Toggle
+  editId = null;
   document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   
+  document.getElementById('form-' + tab).classList.add('active');
+  document.getElementById('btn-' + tab).classList.add('active');
+
   if(tab !== 'Episodes') {
-    document.getElementById('form-' + tab).classList.add('active');
     document.getElementById('listTitle').style.display = "block";
     document.getElementById('dataList').style.display = "grid";
     document.getElementById('listTitle').innerText = "Daftar " + tab;
     loadData();
   } else {
-    document.getElementById('form-Episodes').classList.add('active');
     document.getElementById('listTitle').style.display = "none";
     document.getElementById('dataList').style.display = "none";
     updateSeriesDropdown();
   }
-  
-  // Set Active Button
-  if(tab === 'Movies') document.getElementById('btn-m').classList.add('active');
-  if(tab === 'Series') document.getElementById('btn-s').classList.add('active');
-  if(tab === 'Episodes') document.getElementById('btn-e').classList.add('active');
 }
 
+/* 4. CRUD OPERATIONS */
 async function saveData(table) {
   const px = table === "Movies" ? "m" : "s";
   const payload = {
@@ -160,8 +169,8 @@ async function saveData(table) {
     ? await sb.from(table).update(payload).eq("id", editId)
     : await sb.from(table).insert([payload]);
 
-  if(error) alert(error.message);
-  else { alert("Berhasil!"); location.reload(); }
+  if(error) alert("Gagal: " + error.message);
+  else { alert("Berhasil Disimpan!"); location.reload(); }
 }
 
 async function saveEpisode() {
@@ -181,30 +190,41 @@ async function prepareEdit(id) {
   const px = currentTable === "Movies" ? "m" : "s";
   document.getElementById(px + "_title").value = data.title;
   document.getElementById(px + "_thumb").value = data.thumb;
+  document.getElementById(px + "_is18").value = data.is18.toString();
   if(currentTable === "Movies") {
     document.getElementById("m_video").value = data.video || "";
     document.getElementById("m_video2").value = data.video2 || "";
   }
   editId = id;
-  document.getElementById(px + "_head").innerText = "Mode Edit: " + data.title;
-  window.scrollTo(0,0);
+  document.getElementById(px + "_head").innerText = "Sedang Edit: " + data.title;
+  window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 async function deleteItem(id) {
-  if(confirm("Hapus?")) { await sb.from(currentTable).delete().eq("id", id); loadData(); }
+  if(confirm("Hapus data ini selamanya?")) { 
+    await sb.from(currentTable).delete().eq("id", id); 
+    loadData(); 
+  }
 }
 
 async function updateSeriesDropdown() {
   const { data } = await sb.from("Series").select("id, title");
   const sel = document.getElementById("ep_series_id");
-  sel.innerHTML = '<option value="">Pilih Series...</option>';
+  sel.innerHTML = '<option value="">-- Pilih Series --</option>';
   data.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
 }
 
-function logout() { localStorage.removeItem("adminLogin"); location.href = "login.html"; }
+/* 5. LOGOUT FIX */
+async function logout() {
+  if(confirm("Yakin ingin keluar, Bosku?")) {
+    await sb.auth.signOut();
+    localStorage.removeItem("adminLogin");
+    window.location.replace("login.html");
+  }
+}
 
-// Jalankan pertama kali
-loadData();
+// Jalankan Proteksi saat buka halaman
+checkAuth();
 </script>
 </body>
 </html>
