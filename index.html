@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Streaming</title>
 
-<!-- SUPABASE CDN v2 -->
+<!-- SUPABASE CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -43,6 +43,7 @@ nav a{
 }
 nav a:hover{color:#fff}
 
+/* BANNER */
 .banner{
   height:340px;
   background-size:cover;
@@ -61,7 +62,10 @@ nav a:hover{color:#fff}
   left:30px;
   z-index:2;
 }
-.banner-content h2{font-size:36px;margin:0 0 12px}
+.banner-content h2{
+  font-size:36px;
+  margin:0 0 12px;
+}
 .banner-content button{
   background:var(--accent);
   border:none;
@@ -71,6 +75,7 @@ nav a:hover{color:#fff}
   cursor:pointer;
 }
 
+/* SEARCH */
 .search{padding:20px}
 .search input{
   width:100%;
@@ -81,19 +86,18 @@ nav a:hover{color:#fff}
   color:#fff;
 }
 
+/* LIST */
 .section-title{
   padding:0 20px;
   margin-top:10px;
   font-size:18px;
 }
-
 .grid{
   padding:20px;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
   gap:16px;
 }
-
 .card{
   background:var(--card);
   border-radius:10px;
@@ -104,6 +108,11 @@ nav a:hover{color:#fff}
 .card:hover{transform:translateY(-6px) scale(1.03)}
 .card img{width:100%;height:220px;object-fit:cover}
 .card p{padding:10px;margin:0;font-size:14px}
+
+@media(max-width:600px){
+  .banner{height:200px}
+  .banner-content h2{font-size:22px}
+}
 </style>
 </head>
 <body>
@@ -116,7 +125,7 @@ nav a:hover{color:#fff}
   </nav>
 </header>
 
-<!-- 🔥 BANNER -->
+<!-- BANNER -->
 <div class="banner" id="banner">
   <div class="banner-content">
     <h2 id="bannerTitle">Loading...</h2>
@@ -124,16 +133,16 @@ nav a:hover{color:#fff}
   </div>
 </div>
 
-<!-- 🔍 SEARCH -->
+<!-- SEARCH -->
 <div class="search">
   <input id="search" placeholder="Search movie or series...">
 </div>
 
-<!-- 🎬 MOVIES -->
+<!-- MOVIES -->
 <h2 class="section-title">🎬 Movies</h2>
 <div class="grid" id="movieList"></div>
 
-<!-- 📺 SERIES -->
+<!-- SERIES -->
 <h2 class="section-title">📺 Series</h2>
 <div class="grid" id="seriesList"></div>
 
@@ -149,6 +158,7 @@ let movies = [];
 let series = [];
 let bannerIndex = 0;
 
+/* ================= ELEMENT ================= */
 const movieList = document.getElementById("movieList");
 const seriesList = document.getElementById("seriesList");
 const search = document.getElementById("search");
@@ -158,11 +168,14 @@ const bannerTitle = document.getElementById("bannerTitle");
 /* ================= LOAD MOVIES ================= */
 async function loadMovies(){
   const { data, error } = await sb
-    .from("Movies")
+    .from("movies")
     .select("*")
     .order("created_at",{ ascending:false });
 
-  if(error){ console.error(error); return; }
+  if(error){
+    console.error("Movies error:", error);
+    return;
+  }
 
   movies = data || [];
   renderMovies();
@@ -172,11 +185,14 @@ async function loadMovies(){
 /* ================= LOAD SERIES ================= */
 async function loadSeries(){
   const { data, error } = await sb
-    .from("Series")
+    .from("series")
     .select("*")
     .order("created_at",{ ascending:false });
 
-  if(error){ console.error(error); return; }
+  if(error){
+    console.error("Series error:", error);
+    return;
+  }
 
   series = data || [];
   renderSeries();
@@ -220,24 +236,23 @@ function renderSeries(){
 
 /* ================= BANNER ================= */
 function renderBanner(){
-  const bannerMovies = movies.filter(m=>!m.is18);
-  if(bannerMovies.length === 0) return;
+  const list = movies.filter(m=>!m.is18);
+  if(list.length === 0) return;
 
-  const m = bannerMovies[bannerIndex];
+  const m = list[bannerIndex];
   banner.style.backgroundImage = `url(${m.thumb})`;
   bannerTitle.innerText = m.title;
 }
 
 function openBanner(){
-  const bannerMovies = movies.filter(m=>!m.is18);
-  if(!bannerMovies[bannerIndex]) return;
-  openMovie(bannerMovies[bannerIndex].id);
+  const list = movies.filter(m=>!m.is18);
+  if(list[bannerIndex]) openMovie(list[bannerIndex].id);
 }
 
 setInterval(()=>{
-  const bannerMovies = movies.filter(m=>!m.is18);
-  if(bannerMovies.length === 0) return;
-  bannerIndex = (bannerIndex + 1) % bannerMovies.length;
+  const list = movies.filter(m=>!m.is18);
+  if(list.length === 0) return;
+  bannerIndex = (bannerIndex + 1) % list.length;
   renderBanner();
 },5000);
 
@@ -275,4 +290,3 @@ loadSeries();
 
 </body>
 </html>
-
