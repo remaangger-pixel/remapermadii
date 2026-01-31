@@ -10,127 +10,184 @@
 <style>
 body{
   margin:0;
-  background:#0b0b0b;
+  background:#000;
   color:#fff;
   font-family:Arial,Helvetica,sans-serif;
 }
 header{
-  padding:16px 20px;
+  padding:12px 16px;
   background:#111;
   display:flex;
   align-items:center;
+  gap:12px;
 }
-header h2{margin:0;cursor:pointer}
+header button{
+  background:#e50914;
+  border:none;
+  color:#fff;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.banner{
+  height:280px;
+  background-size:cover;
+  background-position:center;
+  position:relative;
+}
+.banner::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.9),rgba(0,0,0,.3));
+}
+.banner-content{
+  position:absolute;
+  bottom:20px;
+  left:20px;
+  z-index:2;
+}
+.banner-content h1{margin:0}
+.banner-content p{
+  margin-top:6px;
+  font-size:14px;
+  color:#ccc;
+}
 
-.hero{
-  display:flex;
-  gap:20px;
-  padding:20px;
+.player{
+  position:relative;
+  width:100%;
+  padding-top:56.25%;
+  background:#000;
 }
-.hero img{
-  width:220px;
-  border-radius:12px;
+.player iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:none;
 }
-.hero-info h1{margin:0 0 10px}
-.hero-info p{color:#bbb;font-size:14px}
 
 .episodes{
-  padding:20px;
+  padding:16px;
 }
 .episode{
+  padding:12px;
   background:#151515;
-  padding:14px 16px;
-  border-radius:10px;
+  border-radius:8px;
   margin-bottom:10px;
   cursor:pointer;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
 }
-.episode:hover{background:#1f1f1f}
-.ep-num{
-  color:#e50914;
-  font-weight:bold;
-}
+.episode:hover{background:#222}
 </style>
 </head>
 <body>
 
 <header>
-  <h2 onclick="history.back()">← Back</h2>
+  <button onclick="history.back()">← Back</button>
+  <span id="headerTitle">Loading...</span>
 </header>
 
-<div class="hero">
-  <img id="thumb">
-  <div class="hero-info">
-    <h1 id="title"></h1>
-    <p id="desc"></p>
-  </div>
-</div>
+<div id="banner" class="banner"></div>
+
+<div id="player"></div>
 
 <div class="episodes" id="episodes"></div>
 
 <script>
-/* ===== SUPABASE ===== */
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ===== GET ID ===== */
+/* ================= PARAM ================= */
 const params = new URLSearchParams(location.search);
 const seriesId = params.get("id");
 
 if(!seriesId){
   alert("Series tidak ditemukan");
-  history.back();
 }
 
-/* ===== LOAD SERIES ===== */
+/* ================= LOAD SERIES ================= */
 async function loadSeries(){
   const { data, error } = await sb
     .from("Series")
     .select("*")
-    .eq("id",seriesId)
+    .eq("id", seriesId)
     .single();
 
-  if(error){
+  if(error || !data){
     alert("Series tidak ditemukan");
     return;
   }
 
-  document.getElementById("thumb").src = data.thumb;
-  document.getElementById("title").innerText = data.title;
-  document.getElementById("desc").innerText = data.description || "";
+  // 🔞 CEK 18+
+  if(data.is18 && sessionStorage.getItem("adultAccess") !== "true"){
+    alert("Konten 18+ terkunci");
+    location.href = "index.html";
+    return;
+  }
+
+  document.title = data.title;
+  document.getElementById("headerTitle").innerText = data.title;
+
+  document.getElementById("banner").style.backgroundImage =
+    `url(${data.thumb})`;
+
+  document.getElementById("banner").innerHTML = `
+    <div class="banner-content">
+      <h1>${data.title}</h1>
+      <p>${data.description || ""}</p>
+    </div>
+  `;
 }
 
-/* ===== LOAD EPISODES ===== */
+/* ================= LOAD EPISODES ================= */
 async function loadEpisodes(){
   const { data, error } = await sb
     .from("Episodes")
     .select("*")
-    .eq("series_id",seriesId)
-    .order("episode",{ascending:true});
+    .eq("series_id", seriesId)
+    .order("episode",{ ascending:true });
 
-  if(error || !data.length){
-    document.getElementById("episodes").innerHTML = "<p>Episode belum tersedia</p>";
+  if(error){
+    console.error(error);
     return;
   }
 
-  data.forEach(ep=>{
+  if(data.length === 0){
+    document.getElementById("episodes").innerHTML =
+      "<p>Episode belum tersedia</p>";
+    return;
+  }
+
+  data.forEach(e=>{
     document.getElementById("episodes").innerHTML += `
-      <div class="episode" onclick="openEpisode(${ep.id})">
-        <span><span class="ep-num">EP ${ep.episode}</span> - ${ep.title}</span>
-        <span>▶</span>
+      <div class="episode" onclick="playEpisode('${e.video}')">
+        Episode ${e.episode} – ${e.title}
       </div>
     `;
   });
+
+  // autoplay episode 1
+  playEpisode(data[0].video);
 }
 
-/* ===== OPEN PLAYER ===== */
-function openEpisode(id){
-  window.open("player.html?episode="+id,"_blank");
+/* ================= PLAYER ================= */
+function playEpisode(video){
+  document.getElementById("player").innerHTML = `
+    <div class="player">
+      <iframe 
+        src="${video}" 
+        allow="autoplay; fullscreen"
+        allowfullscreen>
+      </iframe>
+    </div>
+  `;
 }
 
+/* ================= INIT ================= */
 loadSeries();
 loadEpisodes();
 </script>
