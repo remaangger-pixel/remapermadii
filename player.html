@@ -79,7 +79,6 @@ async function init() {
       document.getElementById("vType").innerText = "Movie";
     }
   } else if (episodeId) {
-    // Relasi ke tabel Series untuk judul utama
     const { data, error } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
     if (data) {
       videoData = data;
@@ -111,11 +110,45 @@ async function init() {
   }
 }
 
+// FUNGSI PLAY YANG SUDAH DIMODIFIKASI UNTUK BYPASS GDRIVEPLAYER
 function play(url) {
   const loader = document.getElementById("loader");
   if(loader) { loader.style.display = "flex"; loader.style.opacity = "1"; }
-  let cleanUrl = url.trim().replace("/view", "/preview");
-  document.getElementById("playerFrame").innerHTML = `<iframe src="${cleanUrl}" allowfullscreen allow="autoplay"></iframe>`;
+  
+  let finalUrl = url.trim();
+  
+  // Deteksi jika link Google Drive, konversi ke GdrivePlayer
+  if (finalUrl.includes("drive.google.com")) {
+      const fileId = finalUrl.split('/d/')[1]?.split('/')[0];
+      finalUrl = `https://gdriveplayer.to/embed2.php?link=${fileId}`;
+  } else {
+      // Jika bukan Drive, tetap bersihkan link preview
+      finalUrl = finalUrl.replace("/view", "/preview");
+  }
+
+  // TRIK BLOB URL (Langkah Kedua)
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html style="margin:0;padding:0;height:100%;overflow:hidden;">
+      <body style="margin:0;padding:0;height:100%;background:#000;">
+        <iframe 
+          src="${finalUrl}" 
+          style="width:100%;height:100%;border:none;" 
+          allowfullscreen 
+          referrerpolicy="no-referrer">
+        </iframe>
+      </body>
+    </html>
+  `;
+
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const blobUrl = URL.createObjectURL(blob);
+
+  // Masukkan Blob URL ke dalam playerFrame
+  document.getElementById("playerFrame").innerHTML = `
+    <iframe src="${blobUrl}" allowfullscreen style="width:100%;height:100%;border:none;"></iframe>
+  `;
+  
   setTimeout(() => { if(loader) { loader.style.opacity = "0"; setTimeout(() => loader.style.display = "none", 500); } }, 1500);
 }
 
