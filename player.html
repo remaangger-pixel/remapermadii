@@ -49,7 +49,7 @@ header {
   position: absolute; inset: 0; width: 100%; height: 100%; border: none;
 }
 
-/* SERVER BUTTONS - Dibuat Lega */
+/* SERVER BUTTONS */
 .server-box { 
   display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; 
 }
@@ -68,9 +68,7 @@ header {
 /* RECOMMENDATION */
 .rec-section { padding: 0 5% 50px; }
 .rec-title { font-size: 18px; margin-bottom: 20px; border-left: 3px solid var(--accent); padding-left: 10px; }
-.grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;
-}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
 .card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; }
 .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
 .card-t { padding: 8px; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -103,11 +101,11 @@ header {
 
 <div class="video-info">
   <div class="meta">
-    <span class="tag" id="vType">Video</span>
+    <span class="tag" id="vType">Loading</span>
     <span class="tag">Ultra HD</span>
-    <span class="tag">2026</span>
+    <span class="tag" id="vYear">2026</span>
   </div>
-  <h1 id="vTitle">...</h1>
+  <h1 id="vTitle">Memuat Video...</h1>
   
   <div class="server-box" id="srvList"></div>
 
@@ -125,22 +123,41 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const params = new URLSearchParams(location.search);
-const id = params.get("id");
+const movieId = params.get("id");
+const episodeId = params.get("episode");
 
 async function init() {
-  if (!id) return location.href = "index.html";
+  let videoData = null;
+  let finalTitle = "";
 
-  const { data } = await sb.from("Movies").select("*").eq("id", id).single();
-  
-  if (data) {
-    document.title = data.title + " - Playing";
-    document.getElementById("navTitle").innerText = "Watching: " + data.title;
-    document.getElementById("vTitle").innerText = data.title;
+  // 1. CEK APAKAH INI MOVIE ATAU EPISODE SERIES
+  if (movieId) {
+    const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
+    if (data) {
+      videoData = data;
+      finalTitle = data.title;
+      document.getElementById("vType").innerText = "Movie";
+    }
+  } else if (episodeId) {
+    // Relasi ke tabel Series untuk ambil judul utamanya
+    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
+    if (data) {
+      videoData = data;
+      finalTitle = `${data.Series.title} - Eps ${data.episode}`;
+      document.getElementById("vType").innerText = "Series";
+    }
+  }
+
+  // 2. JIKA DATA DITEMUKAN, TAMPILKAN
+  if (videoData) {
+    document.title = finalTitle + " - Anvi Create";
+    document.getElementById("navTitle").innerText = "Watching: " + finalTitle;
+    document.getElementById("vTitle").innerText = finalTitle;
     
     // Setup Server Buttons
     const srvList = document.getElementById("srvList");
-    const servers = [{n: "Server 1", u: data.video}];
-    if(data.video2) servers.push({n: "Server 2", u: data.video2});
+    const servers = [{n: "Server 1", u: videoData.video}];
+    if(videoData.video2) servers.push({n: "Server 2", u: videoData.video2});
 
     servers.forEach((s, i) => {
       const b = document.createElement("button");
@@ -154,24 +171,21 @@ async function init() {
       srvList.appendChild(b);
     });
 
-    play(data.video);
+    play(videoData.video);
+    loadRecommendations(videoData.id);
+  } else {
+    // Jika tidak ada data sama sekali
+    document.getElementById("vTitle").innerText = "Video tidak ditemukan.";
+    setTimeout(() => { location.href = "index.html" }, 3000);
   }
-
-  const { data: recs } = await sb.from("Movies").select("*").neq("id", id).limit(6);
-  const recContent = document.getElementById("recList");
-  recs?.forEach(r => {
-    if(r.is18) return;
-    recContent.innerHTML += `
-      <div class="card" onclick="location.href='player.html?id=${r.id}'">
-        <img src="${r.thumb}">
-        <div class="card-t">${r.title}</div>
-      </div>`;
-  });
 }
 
 function play(url) {
   const loader = document.getElementById("loader");
-  if(loader) loader.style.opacity = "1";
+  if(loader) {
+    loader.style.display = "flex";
+    loader.style.opacity = "1";
+  }
 
   let cleanUrl = url.trim();
   if (cleanUrl.includes("drive.google.com")) {
@@ -183,10 +197,22 @@ function play(url) {
   setTimeout(() => {
     if(loader) {
       loader.style.opacity = "0";
-      // Kunci: Hapus elemen loader agar tidak menutupi Iframe
       setTimeout(() => loader.style.display = "none", 500);
     }
-  }, 1000);
+  }, 1500);
+}
+
+async function loadRecommendations(currentId) {
+  const { data: recs } = await sb.from("Movies").select("*").neq("id", currentId).limit(6);
+  const recContent = document.getElementById("recList");
+  recs?.forEach(r => {
+    if(r.is18) return;
+    recContent.innerHTML += `
+      <div class="card" onclick="location.href='player.html?id=${r.id}'">
+        <img src="${r.thumb}">
+        <div class="card-t">${r.title}</div>
+      </div>`;
+  });
 }
 
 init();
