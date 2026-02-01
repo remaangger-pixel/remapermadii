@@ -6,34 +6,152 @@
 <title>Playing - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root { --bg: #060606; --card: #121212; --accent: #ff0513; --text: #ffffff; --muted: #888888; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
-header { padding: 12px 5%; background: rgba(0,0,0,0.9); display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #111; }
-.back-btn { background: var(--accent); border: none; color: #fff; padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 13px; text-decoration: none; }
-.player-wrapper { width: 100%; max-width: 1100px; margin: 20px auto; padding: 0 15px; }
-.video-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 12px; overflow: hidden; }
-.video-container iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
-.server-box { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
-.srv-btn { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-size: 13px; }
-.srv-btn.active { background: var(--accent); border-color: var(--accent); }
+:root { 
+  --bg: #060606; 
+  --card: #121212; 
+  --accent: #ff0513; 
+  --text: #ffffff; 
+  --muted: #888888; 
+}
+
+body { 
+  margin: 0; 
+  background: var(--bg); 
+  color: var(--text); 
+  font-family: 'Inter', sans-serif; 
+  overflow-x: hidden; 
+}
+
+/* HEADER */
+header { 
+  padding: 12px 5%; 
+  background: rgba(0,0,0,0.9); 
+  display: flex; 
+  align-items: center; 
+  gap: 15px; 
+  position: sticky; 
+  top: 0; 
+  z-index: 100; 
+  border-bottom: 1px solid #111; 
+}
+
+.back-btn { 
+  background: var(--accent); 
+  border: none; 
+  color: #fff; 
+  padding: 8px 18px; 
+  border-radius: 50px; 
+  cursor: pointer; 
+  font-weight: bold; 
+  font-size: 13px; 
+  text-decoration: none; 
+}
+
+/* PLAYER AREA */
+.player-wrapper { 
+  width: 100%; 
+  max-width: 1100px; 
+  margin: 20px auto; 
+  padding: 0 15px; 
+}
+
+.video-container { 
+  position: relative; 
+  width: 100%; 
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #000; 
+  border-radius: 12px; 
+  overflow: hidden; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.video-container iframe { 
+  position: absolute; 
+  inset: 0; 
+  width: 100%; 
+  height: 100%; 
+  border: none; 
+}
+
+/* SERVER & INFO */
 .video-info { padding: 0 5%; margin-bottom: 40px; }
 .video-info h1 { font-size: clamp(20px, 4vw, 28px); margin: 20px 0 10px; }
-.tag { background: #1a1a1a; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--muted); margin-right: 8px; }
+
+.server-box { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+.srv-btn { 
+  background: #1a1a1a; 
+  border: 1px solid #333; 
+  color: #fff; 
+  padding: 10px 22px; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  font-size: 13px; 
+  transition: 0.3s;
+}
+.srv-btn.active { background: var(--accent); border-color: var(--accent); }
+.srv-btn:hover { border-color: var(--accent); }
+
+.tag { 
+  background: #1a1a1a; 
+  padding: 4px 12px; 
+  border-radius: 4px; 
+  font-size: 11px; 
+  color: var(--muted); 
+  margin-right: 8px; 
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* RECOMMENDATIONS */
 .rec-section { padding: 0 5% 50px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
-.card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; }
+.grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+  gap: 15px; 
+}
+
+.card { 
+  background: var(--card); 
+  border-radius: 8px; 
+  overflow: hidden; 
+  cursor: pointer; 
+  transition: 0.3s;
+}
+.card:hover { transform: translateY(-5px); }
 .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 10; transition: 0.5s; }
-.spinner { width: 40px; height: 40px; border: 4px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
+
+/* LOADING ANIMATION */
+.loader { 
+  position: absolute; 
+  inset: 0; 
+  background: #000; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 10; 
+  transition: 0.5s; 
+}
+.spinner { 
+  width: 45px; 
+  height: 45px; 
+  border: 4px solid #1a1a1a; 
+  border-top-color: var(--accent); 
+  border-radius: 50%; 
+  animation: s 0.8s linear infinite; 
+}
 @keyframes s { to { transform: rotate(360deg); } }
-@media(max-width: 768px) { .player-wrapper { padding: 0; margin: 0; } .video-container { border-radius: 0; } }
+
+@media(max-width: 768px) { 
+  .player-wrapper { padding: 0; margin: 0; } 
+  .video-container { border-radius: 0; } 
+}
 </style>
 </head>
 <body>
 
 <header>
-  <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:13px;">Loading...</span>
+  <a href="index.html" class="back-btn">✕ CLOSE</a>
+  <span id="navTitle" style="color:var(--muted); font-size:13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</span>
 </header>
 
 <div class="player-wrapper">
@@ -47,18 +165,20 @@ header { padding: 12px 5%; background: rgba(0,0,0,0.9); display: flex; align-ite
   <div class="meta">
     <span class="tag" id="vType">Video</span>
     <span class="tag">Ultra HD</span>
+    <span class="tag">No Limit</span>
   </div>
-  <h1 id="vTitle">Memuat...</h1>
+  <h1 id="vTitle">Memuat Judul...</h1>
   <div class="server-box" id="srvList"></div>
-  <p id="vDesc" style="color:#aaa; font-size:14px;">Selamat menonton di Anvi Create!</p>
+  <p id="vDesc" style="color:#aaa; font-size:14px; line-height:1.6;">Selamat menonton! Jika video macet atau limit, silakan coba ganti server yang tersedia.</p>
 </div>
 
 <div class="rec-section">
-  <h3 style="border-left:3px solid var(--accent); padding-left:10px;">Mungkin Kamu Suka</h3>
+  <h3 style="border-left:4px solid var(--accent); padding-left:15px; margin-bottom:20px;">Rekomendasi Film</h3>
   <div class="grid" id="recList"></div>
 </div>
 
 <script>
+// KONFIGURASI SUPABASE
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -71,75 +191,107 @@ async function init() {
   let videoData = null;
   let finalTitle = "";
 
+  // 1. Ambil Data (Movie atau Episode)
   if (movieId) {
     const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
-    if (data) { videoData = data; finalTitle = data.title; document.getElementById("vType").innerText = "Movie"; }
+    if (data) {
+      videoData = data;
+      finalTitle = data.title;
+      document.getElementById("vType").innerText = "Movie";
+    }
   } else if (episodeId) {
     const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
-    if (data) { videoData = data; finalTitle = `${data.Series.title} - Eps ${data.episode}`; document.getElementById("vType").innerText = "Series"; }
+    if (data) {
+      videoData = data;
+      finalTitle = `${data.Series.title} - Eps ${data.episode}`;
+      document.getElementById("vType").innerText = "Series";
+    }
   }
 
+  // 2. Tampilkan Data ke UI
   if (videoData) {
     document.getElementById("navTitle").innerText = "Watching: " + finalTitle;
     document.getElementById("vTitle").innerText = finalTitle;
     
+    // Setup Server List
     const srvList = document.getElementById("srvList");
-    // Masukkan server utama
-    const servers = [{n: "Server 1", u: videoData.video}];
-    // Jika ada server backup
-    if(videoData.video2) servers.push({n: "Server 2", u: videoData.video2});
+    const servers = [{n: "Server DBStream", u: videoData.video}];
+    if(videoData.video2) servers.push({n: "Server Backup", u: videoData.video2});
 
     servers.forEach((s, i) => {
       const b = document.createElement("button");
       b.className = "srv-btn" + (i === 0 ? " active" : "");
       b.innerText = s.n;
-      b.onclick = () => { play(s.u); document.querySelectorAll('.srv-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); };
+      b.onclick = () => { 
+        play(s.u); 
+        document.querySelectorAll('.srv-btn').forEach(btn => btn.classList.remove('active')); 
+        b.classList.add('active'); 
+      };
       srvList.appendChild(b);
     });
+
     play(videoData.video);
     loadRecs();
   } else {
     document.getElementById("vTitle").innerText = "Video tidak ditemukan.";
-    setTimeout(() => { location.href = "index.html" }, 2000);
+    setTimeout(() => { location.href = "index.html" }, 2500);
   }
 }
 
+// FUNGSI PLAY UTAMA (DBSTREAM ENGINE)
 function play(url) {
   const loader = document.getElementById("loader");
   if(loader) { loader.style.display = "flex"; loader.style.opacity = "1"; }
   
   let finalUrl = url.trim();
-  let useReferrerPolicy = false;
 
-  // LOGIKA SMART SWITCH
-  if (finalUrl.includes("gdriveplayer.to")) {
-      // Jika link sudah berupa GdrivePlayer, kita gunakan policy no-referrer
-      useReferrerPolicy = true;
-  } else if (finalUrl.includes("drive.google.com")) {
-      // Jika link Drive asli, kita bersihkan linknya (PAKAI IFRAME STANDAR GOOGLE)
+  // Jika input adalah link Google Drive, konversi otomatis ke DBStream
+  if (finalUrl.includes("drive.google.com")) {
+      const fileId = finalUrl.split('/d/')[1]?.split('/')[0];
+      finalUrl = `https://dbstream.net/db.php?id=${fileId}`;
+  } else {
+      // Jika link video lain, bersihkan format preview jika ada
       finalUrl = finalUrl.replace("/view", "/preview");
   }
 
-  // Render Player Standar (Lebih aman untuk Google Drive)
+  // Masukkan ke Iframe
   document.getElementById("playerFrame").innerHTML = `
     <iframe 
       src="${finalUrl}" 
-      allowfullscreen 
-      allow="autoplay"
-      ${useReferrerPolicy ? 'referrerpolicy="no-referrer"' : ''}
-    ></iframe>
+      allowfullscreen="true" 
+      webkitallowfullscreen="true" 
+      mozallowfullscreen="true" 
+      style="width:100%; height:100%; border:none;"
+      referrerpolicy="no-referrer-when-downgrade"
+      allow="autoplay; encrypted-media">
+    </iframe>
   `;
   
-  setTimeout(() => { if(loader) { loader.style.opacity = "0"; setTimeout(() => loader.style.display = "none", 500); } }, 1500);
+  // Sembunyikan loader setelah iframe dimuat
+  setTimeout(() => { 
+    if(loader) { 
+      loader.style.opacity = "0"; 
+      setTimeout(() => loader.style.display = "none", 500); 
+    } 
+  }, 1500);
 }
 
+// LOAD REKOMENDASI RANDOM
 async function loadRecs() {
-  const { data } = await sb.from("Movies").select("*").eq("is18", false).limit(6);
+  const { data } = await sb.from("Movies").select("*").limit(6);
   const grid = document.getElementById("recList");
+  grid.innerHTML = "";
   data?.forEach(r => {
-    grid.innerHTML += `<div class="card" onclick="location.href='player.html?id=${r.id}'"><img src="${r.thumb}"><div style="padding:8px;font-size:12px;text-align:center">${r.title}</div></div>`;
+    grid.innerHTML += `
+      <div class="card" onclick="location.href='player.html?id=${r.id}'">
+        <img src="${r.thumb}">
+        <div style="padding:10px; font-size:12px; font-weight:bold; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${r.title}
+        </div>
+      </div>`;
   });
 }
+
 init();
 </script>
 </body>
