@@ -13,13 +13,18 @@
   --text: #ffffff;
   --muted: #a0a0a0;
 }
-
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font-family: 'Inter', sans-serif; opacity: 0; transition: 0.5s;
 }
-
-/* BANNER SERIES */
+.nav-top {
+  position: fixed; top: 0; width: 100%; padding: 15px 5%;
+  z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+}
+.back-btn {
+  background: var(--accent); color: #fff; padding: 8px 20px;
+  border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 13px;
+}
 .series-banner {
   height: 50vh; width: 100%; position: relative;
   background-size: cover; background-position: center;
@@ -29,56 +34,33 @@ body {
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(to top, var(--bg) 10%, transparent 90%);
 }
-
 .banner-content { position: relative; z-index: 2; }
 .banner-content h1 { font-size: clamp(24px, 5vw, 42px); margin: 0; font-weight: 800; }
-
-/* NAV BACK */
-.nav-top {
-  position: fixed; top: 0; width: 100%; padding: 15px 5%;
-  z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-}
-.back-btn {
-  background: var(--accent); color: #fff; padding: 8px 20px;
-  border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 13px;
-}
-
-/* EPISODE LIST */
 .container { padding: 40px 5%; }
 .section-title { 
   font-size: 20px; margin-bottom: 25px; border-left: 4px solid var(--accent); 
   padding-left: 15px; font-weight: 700;
 }
-
-.ep-grid {
-  display: grid; grid-template-columns: 1fr; gap: 15px;
-}
-
+.ep-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
 .ep-item {
   background: var(--card); border-radius: 12px; display: flex;
   align-items: center; padding: 12px; cursor: pointer;
   transition: 0.3s; border: 1px solid #1a1a1a;
 }
 .ep-item:hover { transform: scale(1.02); border-color: var(--accent); background: #1a1a1a; }
-
 .ep-num {
   font-size: 24px; font-weight: 900; color: var(--accent);
   width: 50px; text-align: center; margin-right: 15px; opacity: 0.5;
 }
-
 .ep-info { flex: 1; }
 .ep-info div { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
 .ep-info span { font-size: 12px; color: var(--muted); }
-
 .play-icon {
   width: 35px; height: 35px; background: var(--accent);
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: 14px; margin-left: 10px;
 }
-
-@media(min-width: 768px) {
-  .ep-grid { grid-template-columns: 1fr 1fr; }
-}
+@media(min-width: 768px) { .ep-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
@@ -96,8 +78,7 @@ body {
 
 <div class="container">
   <h2 class="section-title">Daftar Episode</h2>
-  <div class="ep-grid" id="epList">
-    </div>
+  <div class="ep-grid" id="epList"></div>
 </div>
 
 <script>
@@ -111,9 +92,7 @@ const seriesId = params.get("id");
 async function init() {
   if (!seriesId) return location.href = "index.html";
 
-  // 1. Ambil Data Series
   const { data: series } = await sb.from("Series").select("*").eq("id", seriesId).single();
-  
   if (series) {
     document.title = series.title + " - Anvi Create";
     document.getElementById("sTitle").innerText = series.title;
@@ -121,12 +100,7 @@ async function init() {
     document.body.style.opacity = "1";
   }
 
-  // 2. Ambil Daftar Episode
-  const { data: episodes } = await sb.from("Episodes")
-    .select("*")
-    .eq("series_id", seriesId)
-    .order("episode", { ascending: true });
-
+  const { data: episodes } = await sb.from("Episodes").select("*").eq("series_id", seriesId).order("episode", { ascending: true });
   const listEl = document.getElementById("epList");
   listEl.innerHTML = "";
 
@@ -140,8 +114,7 @@ async function init() {
             <span>${ep.title || 'Tonton sekarang di Anvi Create'}</span>
           </div>
           <div class="play-icon">▶</div>
-        </div>
-      `;
+        </div>`;
     });
   } else {
     listEl.innerHTML = "<p style='color:var(--muted)'>Belum ada episode yang tersedia.</p>";
@@ -151,11 +124,10 @@ async function init() {
 function playEpisode(id) {
   document.body.style.opacity = "0";
   setTimeout(() => {
-    // Pastikan player.html sudah mendukung parameter ?eps=
-    location.href = "player.html?eps=" + id;
+    // SINKRONISASI: Menggunakan 'episode' bukan 'eps'
+    location.href = "player.html?episode=" + id;
   }, 400);
 }
-
 init();
 </script>
 </body>
