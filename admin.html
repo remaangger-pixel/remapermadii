@@ -28,6 +28,8 @@ input:focus{border-color:var(--accent)}
 .actions{display:flex;gap:8px}
 .edit{background:#ffa500; flex:1; font-size:12px}
 .delete{background:rgba(255,77,77,0.1); color:#ff4d4d; border:1px solid #ff4d4d; flex:1; font-size:12px}
+/* Khusus List Episode agar lebih rapi */
+.ep-list-item { background: #111; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
 </style>
 </head>
 <body>
@@ -55,7 +57,7 @@ input:focus{border-color:var(--accent)}
       <input id="m_video" placeholder="Link Video Utama (Server 1)">
       <input id="m_video2" placeholder="Link Video Cadangan (Server 2)">
     </div>
-    <button onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN DATA MOVIE</button>
+    <button id="m_btn" onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN DATA MOVIE</button>
   </div>
 
   <div id="form-Series" class="form-section">
@@ -63,11 +65,11 @@ input:focus{border-color:var(--accent)}
     <input id="s_title" placeholder="Judul Series">
     <input id="s_thumb" placeholder="URL Thumbnail">
     <select id="s_is18"><option value="false">Rating: Umum</option><option value="true">Rating: 18+</option></select>
-    <button onclick="saveData('Series')" style="background:var(--accent); width:100%">SIMPAN DATA SERIES</button>
+    <button id="s_btn" onclick="saveData('Series')" style="background:var(--accent); width:100%">SIMPAN DATA SERIES</button>
   </div>
 
   <div id="form-Episodes" class="form-section">
-    <h3>Tambah Episode</h3>
+    <h3 id="ep_head">Tambah Episode</h3>
     <select id="ep_series_id"><option value="">Pilih Series...</option></select>
     <div class="form-group">
       <input id="ep_num" type="number" placeholder="Eps ke-">
@@ -77,11 +79,11 @@ input:focus{border-color:var(--accent)}
       <input id="ep_video" placeholder="Link Video Server 1">
       <input id="ep_video2" placeholder="Link Video Server 2">
     </div>
-    <button onclick="saveEpisode()" style="background:var(--blue); width:100%">SIMPAN EPISODE</button>
+    <button id="ep_btn" onclick="saveEpisode()" style="background:var(--blue); width:100%">SIMPAN EPISODE</button>
   </div>
 
   <h3 id="listTitle" style="margin-top:40px; border-left:4px solid var(--accent); padding-left:15px">Daftar Movies</h3>
-  <div class="grid" id="dataList"></div>
+  <div id="dataList" class="grid"></div>
 </div>
 
 <script>
@@ -92,7 +94,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentTable = "Movies";
 let editId = null;
 
-// Proteksi & Inisialisasi
 async function checkAuth() {
   const { data } = await sb.auth.getSession();
   if (!data.session) {
@@ -103,29 +104,58 @@ async function checkAuth() {
   }
 }
 
-// Load Data ke Grid
 async function loadData() {
   const listEl = document.getElementById("dataList");
   listEl.innerHTML = "<p>Loading...</p>";
-  const { data, error } = await sb.from(currentTable).select("*").order("created_at", {ascending: false});
+  
+  let query = sb.from(currentTable).select("*");
+  
+  // Jika tab episode, ambil juga judul seriesnya
+  if(currentTable === "Episodes") {
+      query = sb.from("Episodes").select("*, Series(title)").order("series_id", {ascending: true}).order("episode", {ascending: true});
+  } else {
+      query = query.order("created_at", {ascending: false});
+  }
+
+  const { data, error } = await query;
   if(error) return listEl.innerHTML = "<p>Error: " + error.message + "</p>";
+  
   listEl.innerHTML = "";
+  
   data.forEach(item => {
-    listEl.innerHTML += `
-      <div class="card">
-        <img src="${item.thumb}">
-        <div class="card-body">
-          <div class="card-title">${item.title}</div>
-          <div class="actions">
-            <button class="edit" onclick="prepareEdit('${item.id}')">Edit</button>
-            <button class="delete" onclick="deleteItem('${item.id}')">Hapus</button>
-          </div>
-        </div>
-      </div>`;
+    if(currentTable === "Episodes") {
+        // Tampilan khusus list Episode
+        listEl.classList.remove("grid");
+        listEl.innerHTML += `
+            <div class="ep-list-item">
+                <div>
+                    <strong>${item.Series?.title || 'Series'}</strong> - Eps ${item.episode} <br>
+                    <small style="color:#666">${item.title || ''}</small>
+                </div>
+                <div class="actions" style="width:150px">
+                    <button class="edit" onclick="prepareEdit('${item.id}')">Edit</button>
+                    <button class="delete" onclick="deleteItem('${item.id}')">Hapus</button>
+                </div>
+            </div>`;
+    } else {
+        // Tampilan Card untuk Movie & Series
+        listEl.classList.add("grid");
+        listEl.innerHTML += `
+          <div class="card">
+            <img src="${item.thumb}">
+            <div class="card-body">
+              <div class="card-title">${item.title}</div>
+              <div class="actions">
+                <button class="edit" onclick="prepareEdit('${item.id}')">Edit</button>
+                <button class="delete" onclick="deleteItem('${item.id}')">Hapus</button>
+              </div>
+            </div>
+          </div>`;
+    }
   });
 }
 
-// Logika Simpan (Update & Insert)
+// SIMPAN MOVIE & SERIES
 async function saveData(table) {
   const px = table === "Movies" ? "m" : "s";
   const payload = {
@@ -134,7 +164,6 @@ async function saveData(table) {
     is18: document.getElementById(px + "_is18").value === "true"
   };
 
-  // Pastikan video & video2 terambil untuk tabel Movies
   if(table === "Movies") {
     payload.video = document.getElementById("m_video").value;
     payload.video2 = document.getElementById("m_video2").value;
@@ -148,9 +177,10 @@ async function saveData(table) {
   }
 
   if(res.error) alert("Error: " + res.error.message);
-  else { alert("Sukses!"); location.reload(); }
+  else { alert("Berhasil!"); location.reload(); }
 }
 
+// SIMPAN EPISODE (INSERT & UPDATE)
 async function saveEpisode() {
   const payload = {
     series_id: document.getElementById("ep_series_id").value,
@@ -159,49 +189,71 @@ async function saveEpisode() {
     video: document.getElementById("ep_video").value,
     video2: document.getElementById("ep_video2").value
   };
-  const { error } = await sb.from("Episodes").insert([payload]);
-  if(error) alert(error.message); else { alert("Episode Berhasil!"); location.reload(); }
+
+  let res;
+  if(editId) {
+      res = await sb.from("Episodes").update(payload).eq("id", editId);
+  } else {
+      res = await sb.from("Episodes").insert([payload]);
+  }
+
+  if(res.error) alert(res.error.message); 
+  else { alert("Episode Berhasil!"); location.reload(); }
 }
 
-// Logika Edit (Menarik data video2 ke form)
+// LOGIKA EDIT (HANDLING 3 TAB)
 async function prepareEdit(id) {
   const { data } = await sb.from(currentTable).select("*").eq("id", id).single();
-  const px = currentTable === "Movies" ? "m" : "s";
-  
-  document.getElementById(px + "_title").value = data.title;
-  document.getElementById(px + "_thumb").value = data.thumb;
-  document.getElementById(px + "_is18").value = data.is18.toString();
-  
-  if(currentTable === "Movies") {
-    document.getElementById("m_video").value = data.video || "";
-    document.getElementById("m_video2").value = data.video2 || ""; // Kolom video2 ditarik ke sini
+  editId = id;
+
+  if(currentTable === "Episodes") {
+      document.getElementById("ep_series_id").value = data.series_id;
+      document.getElementById("ep_num").value = data.episode;
+      document.getElementById("ep_title").value = data.title || "";
+      document.getElementById("ep_video").value = data.video;
+      document.getElementById("ep_video2").value = data.video2 || "";
+      document.getElementById("ep_head").innerText = "Edit Episode " + data.episode;
+      document.getElementById("ep_btn").innerText = "UPDATE EPISODE";
+  } else {
+      const px = currentTable === "Movies" ? "m" : "s";
+      document.getElementById(px + "_title").value = data.title;
+      document.getElementById(px + "_thumb").value = data.thumb;
+      document.getElementById(px + "_is18").value = data.is18.toString();
+      
+      if(currentTable === "Movies") {
+        document.getElementById("m_video").value = data.video || "";
+        document.getElementById("m_video2").value = data.video2 || "";
+      }
+      document.getElementById(px + "_head").innerText = "Edit: " + data.title;
+      document.getElementById(px + "_btn").innerText = "UPDATE DATA";
   }
   
-  editId = id;
-  document.getElementById(px + "_head").innerText = "Sedang Edit: " + data.title;
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 async function deleteItem(id) {
-  if(confirm("Hapus permanen?")) { await sb.from(currentTable).delete().eq("id", id); loadData(); }
+  if(confirm("Hapus data ini selamanya?")) { 
+      const { error } = await sb.from(currentTable).delete().eq("id", id);
+      if(error) alert(error.message); else loadData(); 
+  }
 }
 
 function switchTab(tab) {
   currentTable = tab;
+  editId = null; // Reset status edit saat pindah tab
+  
   document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  
   document.getElementById('form-' + tab).classList.add('active');
   document.getElementById('btn-' + tab).classList.add('active');
-  if(tab !== 'Episodes') {
-    document.getElementById('listTitle').style.display = "block";
-    document.getElementById('dataList').style.display = "grid";
-    document.getElementById('listTitle').innerText = "Daftar " + tab;
-    loadData();
-  } else {
-    document.getElementById('listTitle').style.display = "none";
-    document.getElementById('dataList').style.display = "none";
+  
+  document.getElementById('listTitle').innerText = "Daftar " + tab;
+  
+  if(tab === 'Episodes') {
     updateSeriesDropdown();
   }
+  loadData();
 }
 
 async function updateSeriesDropdown() {
@@ -213,7 +265,6 @@ async function updateSeriesDropdown() {
 
 async function logout() {
   await sb.auth.signOut();
-  localStorage.removeItem("adminLogin");
   window.location.replace("login.html");
 }
 
