@@ -3,27 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>18+ Premium Area - Anvi Create</title>
+<title>VIP Premium Area - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root { --bg: #000; --card: #111; --accent: #ff0513; --text: #fff; }
+:root { --bg: #060606; --card: #121212; --accent: #ff0513; --text: #fff; --glass: rgba(255, 255, 255, 0.05); }
 
 body { 
   margin: 0; background: var(--bg); color: var(--text); 
   font-family: 'Inter', sans-serif; opacity: 0; transition: 0.5s; 
 }
 
+/* HEADER PREMIUM */
 header { 
-  padding: 15px 5%; background: #000; border-bottom: 1px solid #222;
-  display: flex; justify-content: space-between; align-items: center;
-  position: sticky; top: 0; z-index: 100;
+  padding: 15px 5%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+  border-bottom: 1px solid #222; display: flex; justify-content: space-between; 
+  align-items: center; position: sticky; top: 0; z-index: 100;
 }
 
 .back-btn { 
   background: var(--accent); color: #fff; border: none; 
   padding: 8px 18px; border-radius: 50px; cursor: pointer; 
-  font-weight: bold; text-decoration: none; font-size: 13px;
+  font-weight: bold; text-decoration: none; font-size: 13px; transition: 0.3s;
 }
+.back-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255, 5, 19, 0.5); }
+
+/* SEARCH BOX VIP */
+.search-container { padding: 20px 5% 0; }
+.search-box {
+  width: 100%; background: var(--glass); border: 1px solid #333;
+  padding: 12px 20px; border-radius: 12px; color: #fff; outline: none;
+  font-size: 14px; transition: 0.3s; box-sizing: border-box;
+}
+.search-box:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
 
 .container { padding: 20px 5%; }
 .grid { 
@@ -31,59 +42,75 @@ header {
   gap: 20px; 
 }
 
+/* CARD UPGRADE */
 .card { 
-  background: var(--card); border-radius: 12px; overflow: hidden; 
-  cursor: pointer; border: 1px solid #222; transition: 0.3s; 
+  background: var(--card); border-radius: 15px; overflow: hidden; 
+  cursor: pointer; border: 1px solid #222; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
 }
-.card:hover { border-color: var(--accent); transform: translateY(-5px); }
+.card:hover { border-color: var(--accent); transform: scale(1.03); z-index: 2; }
 
-.card img { width: 100%; height: 240px; object-fit: cover; }
+.card img { 
+  width: 100%; height: 240px; object-fit: cover; 
+  object-position: center; transition: 0.5s;
+}
+.card:hover img { filter: brightness(1.2); }
+
 .card p { 
-  padding: 12px; margin: 0; font-size: 14px; font-weight: 600; 
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+  padding: 15px 12px; margin: 0; font-size: 13px; font-weight: 600; 
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(to top, #000, transparent);
 }
 
-/* Badge 18+ */
+/* Badge 18+ Premium */
 .badge {
-  position: absolute; top: 10px; right: 10px; background: red;
-  color: white; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 4px;
+  position: absolute; top: 12px; right: 12px; background: var(--accent);
+  color: white; padding: 3px 8px; font-size: 10px; font-weight: 900; 
+  border-radius: 6px; z-index: 5; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
-.relative { position: relative; }
+
+/* Skeleton Loading */
+.skeleton { background: #1a1a1a; height: 240px; border-radius: 12px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 </style>
 </head>
 <body>
 
 <header>
   <a href="index.html" class="back-btn">← Back to Home</a>
-  <h3 style="margin:0; color:var(--accent); font-size: 16px;">18+ AREA</h3>
+  <h3 style="margin:0; color:var(--accent); font-size: 16px; letter-spacing: 2px;">VIP AREA</h3>
 </header>
 
+<div class="search-container">
+    <input type="text" id="vipSearch" class="search-box" placeholder="Cari konten premium..." onkeyup="filterVip()">
+</div>
+
 <div class="container">
-  <div class="grid" id="list"></div>
+  <div class="grid" id="list">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
 </div>
 
 <script>
-/* 1. KUNCI AMAN (Anti-Bypass) */
+/* 1. KUNCI AMAN (Tetap dipertahankan) */
 function checkGate() {
   const isAccess = sessionStorage.getItem('adultAccess');
   if (isAccess !== 'true') {
-    // Jika tidak ada akses, lempar balik tanpa ampun
     window.location.replace('index.html');
   } else {
-    // Jika ada, baru munculkan halaman
     document.body.style.opacity = '1';
     loadAdult();
   }
 }
 
-/* 2. KONFIGURASI SUPABASE */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const list = document.getElementById('list');
+let vipData = []; // Untuk cache pencarian
 
-/* 3. LOAD DATA */
+/* 2. LOAD DATA DENGAN UPGRADE */
 async function loadAdult() {
   const { data, error } = await sb
     .from("Movies")
@@ -96,29 +123,39 @@ async function loadAdult() {
     return;
   }
 
+  vipData = data;
+  renderVip(vipData);
+}
+
+function renderVip(data) {
   if (data.length === 0) {
-    list.innerHTML = "<p style='color:#888;'>Konten sedang disiapkan...</p>";
+    list.innerHTML = "<p style='color:#888; text-align:center; grid-column: 1/-1; padding-top:50px;'>Konten tidak ditemukan...</p>";
     return;
   }
 
   list.innerHTML = "";
   data.forEach(m => {
     list.innerHTML += `
-      <div class="card relative" onclick="openPlayer('${m.id}')">
+      <div class="card" onclick="openPlayer('${m.id}')">
         <div class="badge">18+</div>
-        <img src="${m.thumb}">
+        <img src="${m.thumb}" loading="lazy">
         <p>${m.title}</p>
       </div>
     `;
   });
 }
 
+/* 3. FITUR SEARCH VIP */
+function filterVip() {
+    const keyword = document.getElementById('vipSearch').value.toLowerCase();
+    const filtered = vipData.filter(m => m.title.toLowerCase().includes(keyword));
+    renderVip(filtered);
+}
+
 function openPlayer(id) {
-  // Pakai location.href agar tetap dalam satu tab (lebih aman untuk konten dewasa)
   window.location.href = 'player.html?id=' + id;
 }
 
-// Jalankan kunci segera setelah script terbaca
 checkGate();
 </script>
 
