@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel Verified - Anvi Create</title>
+<title>Admin Panel - Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{ --bg:#060606; --card:#121212; --accent:#ff0513; --blue:#007bff; --text:#fff; }
@@ -20,15 +20,24 @@ button{color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer
 .form-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 input, select{width:100%;padding:14px;margin-bottom:15px;border:1px solid #333;border-radius:8px;background:#000;color:#fff;outline:none}
 input:focus{border-color:var(--accent)}
+
+/* SEARCH BAR */
+.search-wrapper { position: relative; margin-top: 40px; margin-bottom: 20px; }
+.search-input { padding: 15px 20px 15px 45px !important; font-size: 16px; border: 2px solid #222 !important; }
+.search-icon { position: absolute; left: 15px; top: 15px; color: #555; }
+
+/* GRID & CARDS */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
 .card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid #222;}
-.card img{width:100%;height:240px;object-fit:cover}
+/* FITUR EDIT GAMBAR DI TENGAH */
+.card img{width:100%;height:240px;object-fit:cover;object-position:center;} 
 .card-body{padding:12px}
 .card-title{font-size:14px; font-weight:bold; height: 38px; overflow:hidden; margin-bottom:10px}
 .actions{display:flex;gap:8px}
 .edit{background:#ffa500; flex:1; font-size:12px}
 .delete{background:rgba(255,77,77,0.1); color:#ff4d4d; border:1px solid #ff4d4d; flex:1; font-size:12px}
-/* Khusus List Episode agar lebih rapi */
+
+/* LIST EPISODE */
 .ep-list-item { background: #111; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
 </style>
 </head>
@@ -82,7 +91,12 @@ input:focus{border-color:var(--accent)}
     <button id="ep_btn" onclick="saveEpisode()" style="background:var(--blue); width:100%">SIMPAN EPISODE</button>
   </div>
 
-  <h3 id="listTitle" style="margin-top:40px; border-left:4px solid var(--accent); padding-left:15px">Daftar Movies</h3>
+  <div class="search-wrapper">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" class="search-input" placeholder="Cari berdasarkan judul..." onkeyup="filterData()">
+  </div>
+
+  <h3 id="listTitle" style="border-left:4px solid var(--accent); padding-left:15px">Daftar Movies</h3>
   <div id="dataList" class="grid"></div>
 </div>
 
@@ -93,6 +107,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentTable = "Movies";
 let editId = null;
+let allData = []; // Menampung semua data untuk fitur search
 
 async function checkAuth() {
   const { data } = await sb.auth.getSession();
@@ -104,13 +119,13 @@ async function checkAuth() {
   }
 }
 
+// LOAD DATA
 async function loadData() {
   const listEl = document.getElementById("dataList");
   listEl.innerHTML = "<p>Loading...</p>";
   
   let query = sb.from(currentTable).select("*");
   
-  // Jika tab episode, ambil juga judul seriesnya
   if(currentTable === "Episodes") {
       query = sb.from("Episodes").select("*, Series(title)").order("series_id", {ascending: true}).order("episode", {ascending: true});
   } else {
@@ -120,11 +135,17 @@ async function loadData() {
   const { data, error } = await query;
   if(error) return listEl.innerHTML = "<p>Error: " + error.message + "</p>";
   
+  allData = data; // Simpan ke variable global untuk search
+  renderList(allData);
+}
+
+// RENDER LIST (DIGUNAKAN OLEH LOAD & SEARCH)
+function renderList(dataToRender) {
+  const listEl = document.getElementById("dataList");
   listEl.innerHTML = "";
   
-  data.forEach(item => {
+  dataToRender.forEach(item => {
     if(currentTable === "Episodes") {
-        // Tampilan khusus list Episode
         listEl.classList.remove("grid");
         listEl.innerHTML += `
             <div class="ep-list-item">
@@ -138,7 +159,6 @@ async function loadData() {
                 </div>
             </div>`;
     } else {
-        // Tampilan Card untuk Movie & Series
         listEl.classList.add("grid");
         listEl.innerHTML += `
           <div class="card">
@@ -155,7 +175,18 @@ async function loadData() {
   });
 }
 
-// SIMPAN MOVIE & SERIES
+// FUNGSI SEARCH (FILTER DATA)
+function filterData() {
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = allData.filter(item => {
+    const title = item.title ? item.title.toLowerCase() : "";
+    const seriesTitle = item.Series?.title ? item.Series.title.toLowerCase() : "";
+    return title.includes(keyword) || seriesTitle.includes(keyword);
+  });
+  renderList(filtered);
+}
+
+// SIMPAN DATA
 async function saveData(table) {
   const px = table === "Movies" ? "m" : "s";
   const payload = {
@@ -180,7 +211,6 @@ async function saveData(table) {
   else { alert("Berhasil!"); location.reload(); }
 }
 
-// SIMPAN EPISODE (INSERT & UPDATE)
 async function saveEpisode() {
   const payload = {
     series_id: document.getElementById("ep_series_id").value,
@@ -201,7 +231,6 @@ async function saveEpisode() {
   else { alert("Episode Berhasil!"); location.reload(); }
 }
 
-// LOGIKA EDIT (HANDLING 3 TAB)
 async function prepareEdit(id) {
   const { data } = await sb.from(currentTable).select("*").eq("id", id).single();
   editId = id;
@@ -227,7 +256,6 @@ async function prepareEdit(id) {
       document.getElementById(px + "_head").innerText = "Edit: " + data.title;
       document.getElementById(px + "_btn").innerText = "UPDATE DATA";
   }
-  
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
@@ -240,7 +268,8 @@ async function deleteItem(id) {
 
 function switchTab(tab) {
   currentTable = tab;
-  editId = null; // Reset status edit saat pindah tab
+  editId = null;
+  document.getElementById("searchInput").value = ""; // Reset search saat ganti tab
   
   document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -250,9 +279,7 @@ function switchTab(tab) {
   
   document.getElementById('listTitle').innerText = "Daftar " + tab;
   
-  if(tab === 'Episodes') {
-    updateSeriesDropdown();
-  }
+  if(tab === 'Episodes') updateSeriesDropdown();
   loadData();
 }
 
