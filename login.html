@@ -3,114 +3,186 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Login - Anvi Create</title>
-
+<title>Admin Login — Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root { --bg: #0b0b0b; --card: #151515; --accent: #e50914; --text: #ffffff; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1f1f1f;
+  --red: #e50914; --text: #fff;
+  --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.15);
+}
 body {
-  margin: 0; padding: 0; background: var(--bg); color: var(--text);
-  font-family: 'Segoe UI', Arial, sans-serif;
-  display: flex; justify-content: center; align-items: center; height: 100vh;
+  background: var(--bg); color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
 }
-.login-card {
-  background: var(--card); padding: 40px; border-radius: 12px;
-  width: 100%; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  text-align: center;
+
+/* Cinematic background */
+.bg-art {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(229,9,20,0.07) 0%, transparent 70%),
+    linear-gradient(to bottom, #0a0a0a 0%, #111 50%, #0a0a0a 100%);
 }
-h1 { margin-bottom: 24px; color: var(--accent); font-size: 28px; }
+.bg-art::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 79px, rgba(255,255,255,0.015) 79px, rgba(255,255,255,0.015) 80px),
+    repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(255,255,255,0.015) 79px, rgba(255,255,255,0.015) 80px);
+}
+
+/* Top bar */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  padding: 18px 5%;
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 34px; letter-spacing: 3px; color: var(--red);
+  text-decoration: none; display: inline-block;
+  text-shadow: 0 0 30px rgba(229,9,20,0.35);
+}
+
+/* FORM CARD */
+.card {
+  position: relative; z-index: 5;
+  background: rgba(20,20,20,0.97);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 52px 52px 44px;
+  width: 100%; max-width: 420px;
+  animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-title {
+  font-size: 28px; font-weight: 700; margin-bottom: 6px;
+}
+.card-sub {
+  font-size: 14px; color: var(--text-muted); margin-bottom: 32px;
+}
+
+.field { margin-bottom: 16px; }
+label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 8px;
+}
 input {
-  width: 100%; padding: 12px; margin-bottom: 16px; border-radius: 6px;
-  border: 1px solid #333; background: #000; color: #fff; box-sizing: border-box;
+  width: 100%; padding: 14px 16px;
+  background: var(--surface2);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px; color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px; outline: none; transition: all 0.25s;
 }
-button {
-  width: 100%; padding: 12px; border: none; border-radius: 6px;
-  background: var(--accent); color: #fff; font-weight: bold; cursor: pointer;
+input::placeholder { color: var(--text-muted); }
+input:focus {
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.05);
 }
-button:disabled { background: #555; }
-.msg { margin-top: 15px; font-size: 14px; min-height: 20px; }
-.error { color: #ff4d4d; }
-.success { color: #2ecc71; }
+
+.btn-login {
+  width: 100%; padding: 15px;
+  background: var(--red); border: none;
+  border-radius: 4px; color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  margin-top: 8px;
+  box-shadow: 0 4px 20px rgba(229,9,20,0.3);
+}
+.btn-login:hover { background: #f40612; box-shadow: 0 6px 28px rgba(229,9,20,0.45); transform: translateY(-1px); }
+.btn-login:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.msg { margin-top: 14px; font-size: 13px; text-align: center; min-height: 18px; }
+.error { color: #ff6b6b; }
+.success { color: #6bffb8; }
+
+.divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 28px 0 22px; color: var(--text-muted); font-size: 12px;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.back-home {
+  display: block; text-align: center;
+  font-size: 13px; font-weight: 500; color: var(--text-dim);
+  text-decoration: none; transition: color 0.2s;
+}
+.back-home:hover { color: var(--text); }
 </style>
 </head>
 <body>
 
-<div class="login-card">
-  <h1>Anvi Admin</h1>
-  <input type="email" id="email" placeholder="Email Admin" required>
-  <input type="password" id="password" placeholder="Password" required>
-  <button id="loginBtn" onclick="handleLogin()">Login</button>
-  <div id="message" class="msg"></div>
+<div class="bg-art"></div>
+
+<div class="topbar">
+  <a href="index.html" class="logo">ANVI</a>
+</div>
+
+<div class="card">
+  <div class="card-title">Masuk ke Admin</div>
+  <div class="card-sub">Panel pengelolaan konten Anvi Create</div>
+
+  <div class="field">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="admin@example.com" autocomplete="email">
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+  </div>
+
+  <button class="btn-login" id="loginBtn" onclick="handleLogin()">Masuk</button>
+  <div class="msg" id="msg"></div>
+
+  <div class="divider">atau</div>
+  <a href="index.html" class="back-home">← Kembali ke Beranda</a>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const emailInput = document.getElementById("email");
-const passInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-const msgDiv = document.getElementById("message");
-
-/* ================= LOGIN FUNCTION ================= */
 async function handleLogin() {
-  const email = emailInput.value;
-  const password = passInput.value;
-
-  if(!email || !password) return showMsg("Isi email dan password!", "error");
-
-  loginBtn.disabled = true;
-  loginBtn.innerText = "Authenticating...";
-
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: email,
-    password: password,
-  });
-
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('password').value;
+  if (!email || !pass) return showMsg('Isi email dan password!', 'error');
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.innerText = 'Memverifikasi…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
   if (error) {
-    showMsg("Login Gagal: " + error.message, "error");
-    loginBtn.disabled = false;
-    loginBtn.innerText = "Login";
+    showMsg('Login gagal: ' + error.message, 'error');
+    btn.disabled = false; btn.innerText = 'Masuk';
   } else {
-    showMsg("Login Berhasil! Mengalihkan...", "success");
-    // Simpan status di localStorage agar admin.html tetap bisa akses
-    localStorage.setItem("adminLogin", "true");
-    setTimeout(() => {
-      location.href = "admin.html";
-    }, 1500);
+    showMsg('Berhasil! Mengalihkan…', 'success');
+    setTimeout(() => location.href = 'admin.html', 1200);
   }
 }
 
-/* ================= ENTER KEY FEATURE ================= */
-// Mendeteksi tombol Enter pada input password
-passInput.addEventListener("keypress", function(event) {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    handleLogin();
-  }
-});
-
-// Mendeteksi tombol Enter pada input email
-emailInput.addEventListener("keypress", function(event) {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    passInput.focus(); // Pindah ke password jika enter di email
-  }
-});
-
-function showMsg(text, type) {
-  msgDiv.innerText = text;
-  msgDiv.className = "msg " + type;
+function showMsg(t, c) {
+  const el = document.getElementById('msg');
+  el.innerText = t; el.className = 'msg ' + c;
 }
 
-// Cek jika sudah login, langsung lempar ke admin
-sb.auth.getSession().then(({data}) => {
-  if(data.session) location.href = "admin.html";
-});
+document.getElementById('password').addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('email').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('password').focus(); });
+
+sb.auth.getSession().then(({ data }) => { if (data.session) location.href = 'admin.html'; });
 </script>
-
 </body>
 </html>
