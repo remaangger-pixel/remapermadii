@@ -485,31 +485,31 @@ header.scrolled {
 <div class="genre-bar" id="genreBar">
   <div class="genre-dropdown-wrap" id="genreWrap">
     <div class="genre-selected" id="genreSelected" onclick="toggleGenreMenu()">
-      <span class="genre-selected-label" id="genreSelectedLabel">🎬 Semua Genre</span>
+      <span class="genre-selected-label" id="genreSelectedLabel">Semua Genre</span>
       <svg class="genre-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
     </div>
     <div class="genre-menu" id="genreMenu">
       <div class="genre-menu-inner">
-        <button class="genre-option active" onclick="pickGenre('Semua','🎬 Semua Genre')">Semua</button>
-        <button class="genre-option" onclick="pickGenre('Aksi','💥 Aksi')">Aksi</button>
-        <button class="genre-option" onclick="pickGenre('Petualangan','🗺 Petualangan')">Petualangan</button>
-        <button class="genre-option" onclick="pickGenre('Drama','🎭 Drama')">Drama</button>
-        <button class="genre-option" onclick="pickGenre('Komedi','😂 Komedi')">Komedi</button>
-        <button class="genre-option" onclick="pickGenre('Horor','👻 Horor')">Horor</button>
-        <button class="genre-option" onclick="pickGenre('Thriller','😰 Thriller')">Thriller</button>
-        <button class="genre-option" onclick="pickGenre('Fiksi Ilmiah','🚀 Fiksi Ilmiah')">Fiksi Ilmiah</button>
-        <button class="genre-option" onclick="pickGenre('Fantasi','🧙 Fantasi')">Fantasi</button>
-        <button class="genre-option" onclick="pickGenre('Animasi','🎨 Animasi')">Animasi</button>
-        <button class="genre-option" onclick="pickGenre('Roman','❤️ Roman')">Roman</button>
-        <button class="genre-option" onclick="pickGenre('Kejahatan','🔫 Kejahatan')">Kejahatan</button>
-        <button class="genre-option" onclick="pickGenre('Misteri','🔍 Misteri')">Misteri</button>
-        <button class="genre-option" onclick="pickGenre('Keluarga','👨‍👩‍👧 Keluarga')">Keluarga</button>
-        <button class="genre-option" onclick="pickGenre('Dokumenter','📽 Dokumenter')">Dokumenter</button>
-        <button class="genre-option" onclick="pickGenre('Sejarah','📜 Sejarah')">Sejarah</button>
-        <button class="genre-option" onclick="pickGenre('Musik','🎵 Musik')">Musik</button>
-        <button class="genre-option" onclick="pickGenre('Perang','⚔️ Perang')">Perang</button>
-        <button class="genre-option" onclick="pickGenre('Barat','🤠 Barat')">Barat</button>
-        <button class="genre-option" onclick="pickGenre('Aksi & Petualangan','🎬 Aksi & Petualangan')">Aksi & Petualangan</button>
+        <button class="genre-option active" onclick="pickGenre('Semua','Semua Genre')">Semua</button>
+        <button class="genre-option" onclick="pickGenre('Aksi','Aksi')">Aksi</button>
+        <button class="genre-option" onclick="pickGenre('Petualangan','Petualangan')">Petualangan</button>
+        <button class="genre-option" onclick="pickGenre('Drama','Drama')">Drama</button>
+        <button class="genre-option" onclick="pickGenre('Komedi','Komedi')">Komedi</button>
+        <button class="genre-option" onclick="pickGenre('Horor','Horor')">Horor</button>
+        <button class="genre-option" onclick="pickGenre('Thriller','Thriller')">Thriller</button>
+        <button class="genre-option" onclick="pickGenre('Fiksi Ilmiah','Fiksi Ilmiah')">Fiksi Ilmiah</button>
+        <button class="genre-option" onclick="pickGenre('Fantasi','Fantasi')">Fantasi</button>
+        <button class="genre-option" onclick="pickGenre('Animasi','Animasi')">Animasi</button>
+        <button class="genre-option" onclick="pickGenre('Roman','Roman')">Roman</button>
+        <button class="genre-option" onclick="pickGenre('Kejahatan','Kejahatan')">Kejahatan</button>
+        <button class="genre-option" onclick="pickGenre('Misteri','Misteri')">Misteri</button>
+        <button class="genre-option" onclick="pickGenre('Keluarga','Keluarga')">Keluarga</button>
+        <button class="genre-option" onclick="pickGenre('Dokumenter','Dokumenter')">Dokumenter</button>
+        <button class="genre-option" onclick="pickGenre('Sejarah','Sejarah')">Sejarah</button>
+        <button class="genre-option" onclick="pickGenre('Musik','Musik')">Musik</button>
+        <button class="genre-option" onclick="pickGenre('Perang','Perang')">Perang</button>
+        <button class="genre-option" onclick="pickGenre('Barat','Barat')">Barat</button>
+        <button class="genre-option" onclick="pickGenre('Aksi & Petualangan','Aksi & Petualangan')">Aksi & Petualangan</button>
       </div>
     </div>
   </div>
@@ -714,8 +714,8 @@ function renderRows() {
   document.getElementById('top10Row').style.display = isFiltered ? 'none' : 'block';
 
   // Update judul row sesuai genre
-  document.getElementById('movieRowTitle').innerText  = isFiltered ? `🎬 Film: ${genreName}` : 'Film Terbaru';
-  document.getElementById('seriesRowTitle').innerText = isFiltered ? `📺 Series: ${genreName}` : 'Series Unggulan';
+  document.getElementById('movieRowTitle').innerText  = isFiltered ? `Film: ${genreName}` : 'Film Terbaru';
+  document.getElementById('seriesRowTitle').innerText = isFiltered ? `Series: ${genreName}` : 'Series Unggulan';
 
   renderCarousel('movieCarousel', movies, 'movie');
   renderCarousel('seriesCarousel', series, 'series');
