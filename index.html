@@ -3,275 +3,827 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anvi Create - Premium Streaming</title>
-
+<title>Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --bg: #060606;
-  --card: #121212;
-  --accent: #ff0513;
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1f1f1f;
+  --surface3: #252525;
+  --red: #e50914;
+  --red-hover: #f40612;
+  --gold: #f5c518;
   --text: #ffffff;
-  --muted: #a0a0a0;
-  --glass: rgba(0, 0, 0, 0.85);
+  --text-dim: rgba(255,255,255,0.65);
+  --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.08);
 }
 
-* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font-family: 'Inter', -apple-system, sans-serif;
-  overflow-x: hidden; scroll-behavior: smooth;
-  opacity: 1; transition: opacity 0.5s ease;
+  background: var(--bg); color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden; opacity: 0;
+  animation: bodyIn 0.6s ease 0.1s forwards;
 }
+@keyframes bodyIn { to { opacity: 1; } }
 
-/* HEADER */
+/* ── HEADER ── */
 header {
-  position: fixed; top: 0; width: 100%; z-index: 1000;
-  background: var(--glass); backdrop-filter: blur(12px);
-  padding: 12px 5%; display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 68px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4%; transition: background 0.4s, box-shadow 0.4s;
 }
-header h1 {
-  margin: 0; font-size: 22px; cursor: pointer;
-  background: linear-gradient(to right, #fff, var(--accent));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  font-weight: 900;
+header.scrolled {
+  background: rgba(10,10,10,0.97);
+  box-shadow: 0 1px 0 var(--border);
 }
-nav a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 20px; font-weight: 600; transition: 0.3s; cursor: pointer; }
-nav a:hover { color: var(--accent); }
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; letter-spacing: 2px; color: var(--red);
+  cursor: pointer; user-select: none;
+  text-shadow: 0 0 30px rgba(229,9,20,0.4);
+}
+.header-nav { display: flex; align-items: center; gap: 8px; }
+.nav-btn {
+  background: transparent; border: none;
+  color: var(--text-dim); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 500;
+  padding: 8px 16px; border-radius: 4px;
+  cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;
+}
+.nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.nav-btn.vip {
+  background: var(--red); color: #fff; font-weight: 700; padding: 8px 20px;
+  box-shadow: 0 2px 12px rgba(229,9,20,0.35);
+}
+.nav-btn.vip:hover { background: var(--red-hover); box-shadow: 0 4px 20px rgba(229,9,20,0.5); }
 
-/* BANNER */
-.banner {
-  height: 65vh; width: 100%; background-size: cover; background-position: center;
-  position: relative; display: flex; align-items: flex-end; padding: 0 5% 70px;
-  transition: background-image 0.8s ease-in-out;
+/* ── HERO ── */
+.hero {
+  position: relative; height: 100vh; min-height: 580px;
+  display: flex; align-items: flex-end;
+  padding: 0 4% 110px; overflow: hidden;
 }
-.banner::after {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(to top, var(--bg) 10%, transparent 80%),
-              linear-gradient(to right, var(--bg) 0%, transparent 60%);
+.hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center top;
+  transition: background-image 1s ease;
+  animation: heroZoom 20s ease-in-out infinite alternate;
 }
-.banner-content { position: relative; z-index: 2; max-width: 600px; animation: fadeInUp 0.8s ease; }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-.banner-content h2 { font-size: clamp(28px, 5vw, 48px); margin: 0 0 20px; font-weight: 800; text-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+@keyframes heroZoom { from { transform: scale(1); } to { transform: scale(1.06); } }
+.hero-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(to top, #0a0a0a 0%, rgba(10,10,10,0.7) 35%, rgba(10,10,10,0.1) 70%, transparent 100%),
+    linear-gradient(to right, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.4) 50%, transparent 100%);
+}
+.hero-content { position: relative; z-index: 2; max-width: 560px; }
+.hero-genre {
+  font-size: 12px; font-weight: 700; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--red); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-genre::before { content: ''; width: 28px; height: 2px; background: var(--red); display: inline-block; }
+.hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(52px, 8vw, 88px); line-height: 0.95; letter-spacing: 2px;
+  margin-bottom: 18px; text-shadow: 0 4px 30px rgba(0,0,0,0.6);
+}
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .btn-play {
-  background: var(--accent); border: none; color: #fff; padding: 14px 35px;
-  border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 15px;
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; color: #000; border: none;
+  padding: 14px 30px; border-radius: 4px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
 }
-.btn-play:hover { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 20px rgba(229, 9, 20, 0.4); }
-
-/* SEARCH BAR */
-.search-container { padding: 25px 5%; margin-top: -35px; position: relative; z-index: 10; }
-.search-container input {
-  width: 100%; padding: 16px 25px; background: #1a1a1a; border: 1px solid #333;
-  border-radius: 12px; color: #fff; outline: none; transition: 0.3s; font-size: 15px;
+.btn-play:hover { background: rgba(255,255,255,0.85); transform: scale(1.03); }
+.btn-play svg { width: 20px; height: 20px; fill: #000; }
+.btn-info {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.18); color: #fff; border: none;
+  padding: 14px 26px; border-radius: 4px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  backdrop-filter: blur(4px);
 }
-.search-container input:focus { border-color: var(--accent); background: #222; }
+.btn-info:hover { background: rgba(255,255,255,0.28); }
+.hero-indicators { position: absolute; bottom: 80px; right: 4%; z-index: 10; display: flex; gap: 6px; }
+.hero-dot {
+  width: 28px; height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.3s;
+}
+.hero-dot.active { background: var(--red); width: 40px; }
+.maturity-tag {
+  position: absolute; right: 4%; bottom: 118px; z-index: 10;
+  border: 1px solid rgba(255,255,255,0.35);
+  padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--text-dim);
+}
 
-/* GRID SYSTEM */
-.section-title { padding: 0 5%; margin: 40px 0 15px; font-size: 19px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-.section-title::before { content:""; width:4px; height:22px; background:var(--accent); border-radius: 2px; }
+/* ── GENRE FILTER BAR (Fitur #1) ── */
+.genre-bar {
+  position: sticky; top: 68px; z-index: 800;
+  padding: 0 4%;
+  background: linear-gradient(to bottom, rgba(10,10,10,0.98), rgba(10,10,10,0.85));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; scrollbar-width: none;
+  animation: rowReveal 0.5s ease both 0.1s;
+}
+.genre-bar::-webkit-scrollbar { display: none; }
+.genre-pill {
+  flex-shrink: 0; padding: 10px 18px;
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-muted); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+  margin-bottom: -1px;
+}
+.genre-pill:hover { color: var(--text-dim); }
+.genre-pill.active { color: var(--text); border-bottom-color: var(--red); }
 
-.grid { padding: 0 5% 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 25px; }
+/* ── CONTENT ROWS ── */
+.content-area { position: relative; z-index: 2; padding-bottom: 60px; }
+.row {
+  margin-bottom: 2px; padding: 20px 0 10px;
+  opacity: 0; animation: rowReveal 0.5s ease forwards;
+}
+.row:nth-child(1) { animation-delay: 0.1s; }
+.row:nth-child(2) { animation-delay: 0.2s; }
+.row:nth-child(3) { animation-delay: 0.3s; }
+.row:nth-child(4) { animation-delay: 0.4s; }
+.row:nth-child(5) { animation-delay: 0.5s; }
+@keyframes rowReveal {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.row-header {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 0 4%; margin-bottom: 14px;
+}
+.row-title { font-size: 18px; font-weight: 700; }
+.row-see-all {
+  font-size: 12px; font-weight: 600; color: var(--red);
+  cursor: pointer; opacity: 0; transition: opacity 0.3s;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.row:hover .row-see-all { opacity: 1; }
 
-/* CARD DESIGN */
-.card { background: var(--card); border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
-.card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.6); }
-.card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; transition: 0.5s; }
-.card:hover img { filter: brightness(0.8); }
-.card-info { padding: 12px; font-size: 14px; font-weight: 600; text-align: center; }
-.card-info p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ── TOP 10 ROW (Fitur #2) ── */
+.top10-carousel {
+  display: flex; gap: 0;
+  padding: 8px 4%;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  overflow-y: visible;
+}
+.top10-carousel::-webkit-scrollbar { display: none; }
+.top10-item {
+  flex: 0 0 200px; position: relative;
+  cursor: pointer; scroll-snap-align: start;
+  transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s 0.15s;
+  z-index: 1; display: flex; align-items: flex-end;
+  margin-right: -24px; /* overlap the number */
+}
+.top10-item:hover {
+  transform: scale(1.22); z-index: 50;
+  transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s;
+}
+.top10-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 120px; line-height: 1;
+  color: var(--surface2);
+  -webkit-text-stroke: 3px rgba(255,255,255,0.15);
+  user-select: none; flex-shrink: 0;
+  margin-right: -20px; z-index: 1;
+  transition: color 0.3s;
+}
+.top10-item:hover .top10-num { color: var(--surface3); }
+.top10-thumb {
+  width: 130px; flex-shrink: 0; z-index: 2;
+  border-radius: 4px; overflow: hidden;
+  box-shadow: 4px 4px 20px rgba(0,0,0,0.7);
+}
+.top10-thumb img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
 
-/* SAVE ICON */
-.btn-save {
-  position: absolute; top: 10px; right: 10px; z-index: 20;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
-  border: none; border-radius: 50%; width: 32px; height: 32px;
+/* ── REGULAR CAROUSEL ── */
+.carousel {
+  display: flex; gap: 6px; padding: 30px 4%;
+  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  overflow-y: visible;
+}
+.carousel::-webkit-scrollbar { display: none; }
+
+/* ── CARD ── */
+.card {
+  flex: 0 0 185px; position: relative; border-radius: 4px; overflow: visible;
+  cursor: pointer; scroll-snap-align: start;
+  transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s 0.15s;
+  z-index: 1;
+}
+.card:hover {
+  transform: scale(1.28); z-index: 50;
+  transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s;
+}
+.card-thumb {
+  width: 100%; aspect-ratio: 2/3; object-fit: cover;
+  border-radius: 4px; display: block;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transition: border-radius 0.3s;
+}
+.card:hover .card-thumb { border-radius: 4px 4px 0 0; }
+
+/* Card hover panel */
+.card-panel {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-radius: 0 0 4px 4px;
+  padding: 12px; opacity: 0;
+  transition: opacity 0.25s 0.1s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+.card:hover .card-panel { opacity: 1; pointer-events: all; }
+.panel-actions { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.panel-play {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #fff; border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 14px; transition: 0.3s; cursor: pointer;
+  transition: background 0.2s; flex-shrink: 0;
 }
-.btn-save:hover { transform: scale(1.1); background: var(--accent); }
-.btn-save.active { color: var(--accent); background: white; }
+.panel-play:hover { background: rgba(255,255,255,0.85); }
+.panel-play svg { width: 13px; height: 13px; fill: #000; margin-left: 2px; }
+.panel-save {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface2); border: 2px solid rgba(255,255,255,0.5);
+  cursor: pointer; color: #fff; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.panel-save:hover, .panel-save.active {
+  border-color: #fff; background: rgba(255,255,255,0.15);
+}
+.panel-save.active { color: var(--red); border-color: var(--red); }
+.panel-title {
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 5px;
+}
+
+/* ── STAR RATING (Fitur #4) ── */
+.panel-rating { display: flex; align-items: center; gap: 6px; }
+.stars { display: flex; gap: 2px; }
+.star {
+  font-size: 13px; cursor: pointer;
+  color: rgba(255,255,255,0.2); transition: color 0.15s;
+  user-select: none;
+}
+.star.lit { color: var(--gold); }
+.star:hover, .star:hover ~ .star { color: rgba(255,255,255,0.2); }
+.stars:hover .star { color: var(--gold); }
+.stars .star:hover ~ .star { color: rgba(255,255,255,0.2) !important; }
+.rating-count { font-size: 10px; color: var(--text-muted); }
+
+.panel-badge {
+  padding: 1px 5px; border: 1px solid var(--text-muted);
+  font-size: 10px; font-weight: 600; color: var(--text-muted); border-radius: 2px;
+}
+
+/* ── CONTINUE WATCHING (Fitur #3) ── */
+.cw-card {
+  flex: 0 0 260px; position: relative; cursor: pointer;
+  border-radius: 4px; overflow: hidden; scroll-snap-align: start;
+  background: var(--surface); border: 1px solid var(--border);
+  transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), border-color 0.2s;
+}
+.cw-card:hover { transform: scale(1.04); border-color: rgba(255,255,255,0.25); }
+.cw-thumb { position: relative; width: 100%; }
+.cw-thumb img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.cw-progress-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: rgba(255,255,255,0.2);
+}
+.cw-progress-fill {
+  height: 100%; background: var(--red);
+  transition: width 0.3s;
+}
+.cw-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+}
+.cw-card:hover .cw-overlay { opacity: 1; }
+.cw-play {
+  width: 48px; height: 48px; background: rgba(255,255,255,0.9);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.cw-play svg { width: 20px; height: 20px; fill: #000; margin-left: 3px; }
+.cw-info { padding: 10px 12px 12px; }
+.cw-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cw-sub { font-size: 11px; color: var(--text-muted); }
+.cw-remove {
+  position: absolute; top: 6px; right: 6px; z-index: 10;
+  background: rgba(0,0,0,0.7); border: none; color: var(--text-dim);
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; opacity: 0; transition: all 0.2s;
+}
+.cw-card:hover .cw-remove { opacity: 1; }
+.cw-remove:hover { color: #fff; background: rgba(229,9,20,0.8); }
+
+/* ── SEARCH OVERLAY ── */
+.search-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 950;
+  background: rgba(10,10,10,0.97);
+  padding: 16px 4%;
+  display: flex; align-items: center; gap: 14px;
+  transform: translateY(-100%);
+  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+.search-bar.open { transform: translateY(0); }
+.search-bar input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 22px; font-weight: 300;
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+.search-close {
+  background: none; border: none; color: var(--text-dim);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 8px 12px; border-radius: 4px; transition: color 0.2s;
+}
+.search-close:hover { color: var(--text); }
+.search-results {
+  position: fixed; top: 68px; left: 0; right: 0; bottom: 0;
+  z-index: 940; background: rgba(10,10,10,0.98);
+  padding: 30px 4%; overflow-y: auto; display: none;
+}
+.search-results.open { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.search-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;
+}
+.search-card { cursor: pointer; border-radius: 4px; overflow: hidden; transition: transform 0.2s; }
+.search-card:hover { transform: scale(1.04); }
+.search-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+.search-card-title { background: var(--surface); padding: 8px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── MISC ── */
+#libraryRow, #continueRow { display: none; }
+.fade-out { animation: fadeOut 0.35s ease forwards; }
+@keyframes fadeOut { to { opacity: 0; transform: scale(0.98); } }
 
 @media(max-width: 768px) {
-  .banner { height: 50vh; padding-bottom: 50px; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
+  .hero { height: 80vh; padding-bottom: 90px; }
+  .hero-title { font-size: clamp(42px, 10vw, 68px); }
+  .card { flex: 0 0 130px; }
+  .card:hover { transform: scale(1.12); }
+  .top10-item { flex: 0 0 160px; }
+  .top10-num { font-size: 90px; }
+  .cw-card { flex: 0 0 200px; }
 }
 </style>
 </head>
 <body>
 
-<header>
-  <h1 onclick="location.reload()">ANVI CREATE</h1>
-  <nav>
-    <a onclick="openVIP()">VIP AREA</a>
-    <a href="admin.html">ADMIN</a>
-  </nav>
+<!-- HEADER -->
+<header id="mainHeader">
+  <div class="logo" onclick="location.reload()">ANVI</div>
+  <div class="header-nav">
+    <button class="nav-btn" onclick="toggleSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="nav-btn vip" onclick="openVIP()">✦ VIP</button>
+    <a href="admin.html" class="nav-btn">Admin</a>
+  </div>
 </header>
 
-<div class="banner" id="banner">
-  <div class="banner-content">
-    <h2 id="bannerTitle">Loading...</h2>
-    <button class="btn-play" onclick="openBanner()">▶ Play Now</button>
+<!-- SEARCH -->
+<div class="search-bar" id="searchBar">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+  <input id="searchInput" placeholder="Judul, genre, karakter…" oninput="handleSearch(this.value)">
+  <button class="search-close" onclick="toggleSearch()">Tutup</button>
+</div>
+<div class="search-results" id="searchResults">
+  <div class="search-grid" id="searchGrid"></div>
+</div>
+
+<!-- HERO -->
+<div class="hero" id="hero">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-content">
+    <div class="hero-genre" id="heroGenre">Film</div>
+    <div class="hero-title" id="heroTitle">Memuat…</div>
+    <div class="hero-actions">
+      <button class="btn-play" onclick="openBanner()">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Putar
+      </button>
+      <button class="btn-info" onclick="openBanner()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="3" stroke-linecap="round"/></svg>
+        Info
+      </button>
+    </div>
   </div>
+  <div class="hero-indicators" id="heroIndicators"></div>
+  <div class="maturity-tag" id="heroMaturity">SU</div>
 </div>
 
-<div class="search-container">
-  <input id="search" placeholder="Cari film atau series favoritmu...">
+<!-- GENRE FILTER BAR -->
+<div class="genre-bar" id="genreBar">
+  <button class="genre-pill active" onclick="filterGenre('Semua', this)">Semua</button>
+  <button class="genre-pill" onclick="filterGenre('Aksi', this)">Aksi</button>
+  <button class="genre-pill" onclick="filterGenre('Petualangan', this)">Petualangan</button>
+  <button class="genre-pill" onclick="filterGenre('Drama', this)">Drama</button>
+  <button class="genre-pill" onclick="filterGenre('Komedi', this)">Komedi</button>
+  <button class="genre-pill" onclick="filterGenre('Horor', this)">Horor</button>
+  <button class="genre-pill" onclick="filterGenre('Thriller', this)">Thriller</button>
+  <button class="genre-pill" onclick="filterGenre('Fiksi Ilmiah', this)">Fiksi Ilmiah</button>
+  <button class="genre-pill" onclick="filterGenre('Fantasi', this)">Fantasi</button>
+  <button class="genre-pill" onclick="filterGenre('Animasi', this)">Animasi</button>
+  <button class="genre-pill" onclick="filterGenre('Roman', this)">Roman</button>
+  <button class="genre-pill" onclick="filterGenre('Kejahatan', this)">Kejahatan</button>
+  <button class="genre-pill" onclick="filterGenre('Misteri', this)">Misteri</button>
+  <button class="genre-pill" onclick="filterGenre('Keluarga', this)">Keluarga</button>
+  <button class="genre-pill" onclick="filterGenre('Dokumenter', this)">Dokumenter</button>
+  <button class="genre-pill" onclick="filterGenre('Sejarah', this)">Sejarah</button>
+  <button class="genre-pill" onclick="filterGenre('Musik', this)">Musik</button>
+  <button class="genre-pill" onclick="filterGenre('Perang', this)">Perang</button>
+  <button class="genre-pill" onclick="filterGenre('Barat', this)">Barat</button>
+  <button class="genre-pill" onclick="filterGenre('Aksi & Petualangan', this)">Aksi & Petualangan</button>
 </div>
 
-<div id="librarySection" style="display:none;">
-  <h2 class="section-title">Library Saya</h2>
-  <div class="grid" id="libraryList"></div>
+<!-- CONTENT -->
+<div class="content-area">
+
+  <!-- Continue Watching -->
+  <div class="row" id="continueRow">
+    <div class="row-header">
+      <div class="row-title">▶ Lanjutkan Menonton</div>
+    </div>
+    <div class="carousel" id="continueCarousel"></div>
+  </div>
+
+  <!-- Library -->
+  <div class="row" id="libraryRow">
+    <div class="row-header">
+      <div class="row-title">❤ Library Saya</div>
+    </div>
+    <div class="carousel" id="libraryCarousel"></div>
+  </div>
+
+  <!-- Top 10 -->
+  <div class="row" id="top10Row">
+    <div class="row-header">
+      <div class="row-title">🔥 Top 10 Minggu Ini</div>
+    </div>
+    <div class="top10-carousel" id="top10Carousel"></div>
+  </div>
+
+  <!-- Movies -->
+  <div class="row">
+    <div class="row-header">
+      <div class="row-title">Film Terbaru</div>
+      <div class="row-see-all">Lihat Semua</div>
+    </div>
+    <div class="carousel" id="movieCarousel"></div>
+  </div>
+
+  <!-- Series -->
+  <div class="row">
+    <div class="row-header">
+      <div class="row-title">Series Unggulan</div>
+      <div class="row-see-all">Lihat Semua</div>
+    </div>
+    <div class="carousel" id="seriesCarousel"></div>
+  </div>
+
 </div>
-
-<h2 class="section-title">Film Terbaru</h2>
-<div class="grid" id="movieList"></div>
-
-<h2 class="section-title">Series Unggulan</h2>
-<div class="grid" id="seriesList"></div>
 
 <script>
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let movies = [], series = [], bannerItems = [], bIdx = 0;
+let movies = [], series = [], bannerItems = [], bIdx = 0, bannerTimer;
+let activeGenre = 'Semua';
 
-function navigateTo(url) {
-  document.body.style.opacity = "0";
-  setTimeout(() => { location.href = url; }, 450);
+// ── HELPERS ──
+function goto(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(() => location.href = url, 320);
 }
+function getRatings() { return JSON.parse(localStorage.getItem('anvi_ratings') || '{}'); }
+function saveRating(id, stars) {
+  const r = getRatings(); r[id] = stars;
+  localStorage.setItem('anvi_ratings', JSON.stringify(r));
+}
+function getWatchlist() { return JSON.parse(localStorage.getItem('watchlist') || '[]'); }
+function getContinue() { return JSON.parse(localStorage.getItem('anvi_continue') || '[]'); }
 
+// ── SCROLL HEADER ──
+window.addEventListener('scroll', () => {
+  document.getElementById('mainHeader').classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// ── INIT ──
 async function init() {
   const [mRes, sRes] = await Promise.all([
     sb.from("Movies").select("*").order("created_at", { ascending: false }),
     sb.from("Series").select("*").order("created_at", { ascending: false })
   ]);
-
   movies = mRes.data || [];
   series = sRes.data || [];
 
-  bannerItems = [...movies, ...series]
-    .filter(i => !i.is18)
-    .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5);
+  bannerItems = [...movies, ...series].filter(i => !i.is18).slice(0, 6);
 
-  renderAll();
-  setInterval(() => {
-    if (bannerItems.length > 0) {
-      bIdx = (bIdx + 1) % bannerItems.length;
-      updateBanner();
-    }
-  }, 6000);
+  buildBanner();
+  renderTop10();
+  renderRows();
+  renderContinue();
+  renderLibrary();
 }
 
-function renderAll() {
-  const q = document.getElementById("search").value.toLowerCase();
-  renderGrid("movieList", movies, q, "openMovie");
-  renderGrid("seriesList", series, q, "openSeries");
-  renderLibrary(); // Render Library setiap kali UI update
-  updateBanner();
-}
-
-function renderGrid(id, data, q, func) {
-  const el = document.getElementById(id); el.innerHTML = "";
-  const watchlist = JSON.parse(localStorage.getItem('myWatchlist')) || [];
-
-  data.forEach(item => {
-    if(item.is18 || !item.title.toLowerCase().includes(q)) return;
-    
-    const isSaved = watchlist.some(w => w.id === item.id);
-    const saveClass = isSaved ? 'active' : '';
-
-    el.innerHTML += `
-      <div class="card">
-        <button class="btn-save ${saveClass}" onclick="toggleSave(event, '${item.id}', '${item.title.replace(/'/g, "\\'")}', '${item.thumb}', '${func}')">
-          ❤
-        </button>
-        <div onclick="${func}('${item.id}')">
-          <img src="${item.thumb}" loading="lazy">
-          <div class="card-info"><p>${item.title}</p></div>
-        </div>
-      </div>`;
+// ── BANNER ──
+function buildBanner() {
+  const dots = document.getElementById('heroIndicators');
+  bannerItems.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'hero-dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => { clearInterval(bannerTimer); bIdx = i; showBanner(); };
+    dots.appendChild(d);
   });
+  showBanner();
+  bannerTimer = setInterval(() => { bIdx = (bIdx + 1) % bannerItems.length; showBanner(); }, 7000);
+}
+function showBanner() {
+  if (!bannerItems.length) return;
+  const item = bannerItems[bIdx];
+  document.getElementById('heroBg').style.backgroundImage = `url(${item.thumb})`;
+  document.getElementById('heroTitle').innerText = item.title;
+  document.getElementById('heroGenre').innerText = item.video ? 'Film' : 'Series';
+  document.getElementById('heroMaturity').innerText = item.is18 ? '18+' : 'SU';
+  document.getElementById('hero').dataset.id = item.id;
+  document.getElementById('hero').dataset.type = item.video ? 'movie' : 'series';
+  document.querySelectorAll('.hero-dot').forEach((d, i) => d.classList.toggle('active', i === bIdx));
+}
+function openBanner() {
+  const h = document.getElementById('hero');
+  if (!h.dataset.id) return;
+  h.dataset.type === 'movie' ? goto('player.html?id=' + h.dataset.id) : goto('series.html?id=' + h.dataset.id);
 }
 
-function renderLibrary() {
-  const watchlist = JSON.parse(localStorage.getItem('myWatchlist')) || [];
-  const section = document.getElementById("librarySection");
-  const list = document.getElementById("libraryList");
-  
-  if (watchlist.length === 0) {
-    section.style.display = "none";
+// ── GENRE FILTER (Fitur #1) ──
+function filterGenre(genre, btn) {
+  activeGenre = genre;
+  document.querySelectorAll('.genre-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderRows();
+}
+
+// Tabel sinonim — berbagai terjemahan TMDB dipetakan ke satu nama genre kita
+const GENRE_ALIASES = {
+  'Aksi':          ['aksi','action','laga'],
+  'Petualangan':   ['petualangan','adventure'],
+  'Animasi':       ['animasi','animation'],
+  'Komedi':        ['komedi','comedy','humor'],
+  'Kejahatan':     ['kejahatan','crime','kriminal'],
+  'Dokumenter':    ['dokumenter','documentary'],
+  'Drama':         ['drama'],
+  'Keluarga':      ['keluarga','family'],
+  'Fantasi':       ['fantasi','fantasy'],
+  'Sejarah':       ['sejarah','history','historis'],
+  'Horor':         ['horor','horror','seram'],
+  'Musik':         ['musik','music'],
+  'Misteri':       ['misteri','mystery'],
+  'Roman':         ['roman','romance','romantis','percintaan'],
+  'Fiksi Ilmiah':  ['fiksi ilmiah','sci-fi','science fiction','cerita fiksi','fiksi','sains fiksi'],
+  'Thriller':      ['thriller','menegangkan','cerita seru','seru','tegang'],
+  'Perang':        ['perang','war'],
+  'Barat':         ['barat','western'],
+  'Aksi & Petualangan': ['aksi & petualangan','action & adventure'],
+};
+
+function matchesGenre(item) {
+  if (activeGenre === 'Semua') return true;
+  if (!item.genre || item.genre === 'null') return false;
+
+  // Pecah genre film jadi array kata kunci kecil
+  const itemGenres = item.genre.split(',').map(g => g.trim().toLowerCase());
+
+  // Ambil daftar sinonim untuk genre yang dipilih
+  const aliases = GENRE_ALIASES[activeGenre] || [activeGenre.toLowerCase()];
+
+  // Cocokkan: cukup salah satu genre film mengandung salah satu sinonim
+  return itemGenres.some(ig => aliases.some(alias => ig.includes(alias) || alias.includes(ig)));
+}
+
+// ── ROWS ──
+function renderRows() {
+  renderCarousel('movieCarousel', movies, 'movie');
+  renderCarousel('seriesCarousel', series, 'series');
+}
+
+function renderCarousel(containerId, data, type) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const wl = getWatchlist();
+  const ratings = getRatings();
+  const filtered = data.filter(i => !i.is18 && matchesGenre(i));
+
+  if (!filtered.length) {
+    el.innerHTML = '<p style="color:rgba(255,255,255,0.3);padding:10px 0;font-size:13px">Tidak ada konten untuk genre ini.</p>';
     return;
   }
 
-  section.style.display = "block";
-  list.innerHTML = "";
-  
-  watchlist.forEach(item => {
-    list.innerHTML += `
-      <div class="card">
-        <button class="btn-save active" onclick="toggleSave(event, '${item.id}', '', '', '')">
-          ❤
-        </button>
-        <div onclick="${item.func}('${item.id}')">
-          <img src="${item.thumb}" loading="lazy">
-          <div class="card-info"><p>${item.title}</p></div>
+  filtered.forEach((item, idx) => {
+    const saved = wl.some(w => w.id === item.id);
+    const userRating = ratings[item.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = (idx * 0.04) + 's';
+    card.innerHTML = `
+      <img class="card-thumb" src="${item.thumb}" loading="lazy" alt="${item.title}">
+      <div class="card-panel">
+        <div class="panel-actions">
+          <button class="panel-play" onclick="event.stopPropagation(); goto('${type === 'movie' ? 'player.html?id=' : 'series.html?id='}${item.id}')">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="panel-save ${saved ? 'active' : ''}" onclick="event.stopPropagation(); toggleSave('${item.id}','${item.title.replace(/'/g,"\\'")}','${item.thumb}','${type}',this)">
+            ${saved ? '✓' : '+'}
+          </button>
+        </div>
+        <div class="panel-title">${item.title}</div>
+        <div class="panel-rating">
+          <div class="stars" data-id="${item.id}">
+            ${[1,2,3,4,5].map(s => `<span class="star ${s <= userRating ? 'lit' : ''}" data-star="${s}" onclick="event.stopPropagation(); rateItem('${item.id}', ${s}, this.closest('.stars'))">★</span>`).join('')}
+          </div>
+          <span class="rating-count">${userRating > 0 ? userRating + '/5' : 'Beri rating'}</span>
         </div>
       </div>`;
+    card.onclick = () => goto(type === 'movie' ? 'player.html?id=' + item.id : 'series.html?id=' + item.id);
+    el.appendChild(card);
   });
 }
 
-function toggleSave(event, id, title, thumb, func) {
-  event.stopPropagation();
-  let watchlist = JSON.parse(localStorage.getItem('myWatchlist')) || [];
-  const index = watchlist.findIndex(w => w.id === id);
-
-  if (index > -1) {
-    watchlist.splice(index, 1);
-  } else {
-    watchlist.push({ id, title, thumb, func });
-  }
-
-  localStorage.setItem('myWatchlist', JSON.stringify(watchlist));
-  renderAll(); // Refresh semua grid untuk update ikon hati
+// ── TOP 10 (Fitur #2) ──
+function renderTop10() {
+  // Simulate trending — use first 10 items, in real app track view counts in Supabase
+  const trending = [...movies, ...series].filter(i => !i.is18).slice(0, 10);
+  const carousel = document.getElementById('top10Carousel');
+  carousel.innerHTML = '';
+  trending.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'top10-item';
+    div.style.animationDelay = (i * 0.05) + 's';
+    const type = item.video ? 'movie' : 'series';
+    div.innerHTML = `
+      <div class="top10-num">${i + 1}</div>
+      <div class="top10-thumb">
+        <img src="${item.thumb}" loading="lazy" alt="${item.title}">
+      </div>`;
+    div.onclick = () => goto(type === 'movie' ? 'player.html?id=' + item.id : 'series.html?id=' + item.id);
+    carousel.appendChild(div);
+  });
+  if (trending.length) document.getElementById('top10Row').style.opacity = '1';
 }
 
-function updateBanner() {
-  if (bannerItems.length === 0) return;
-  const item = bannerItems[bIdx];
-  const b = document.getElementById("banner");
-  b.style.backgroundImage = `url(${item.thumb})`;
-  document.getElementById("bannerTitle").innerText = item.title;
-  b.dataset.type = item.video ? "movie" : "series";
-  b.dataset.id = item.id;
+// ── CONTINUE WATCHING (Fitur #3) ──
+function renderContinue() {
+  const cw = getContinue();
+  const row = document.getElementById('continueRow');
+  const carousel = document.getElementById('continueCarousel');
+  if (!cw.length) { row.style.display = 'none'; return; }
+  row.style.display = 'block';
+  carousel.innerHTML = '';
+  cw.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'cw-card';
+    card.style.animationDelay = (i * 0.06) + 's';
+    const pct = Math.min(item.progress || 0, 100);
+    card.innerHTML = `
+      <button class="cw-remove" onclick="event.stopPropagation(); removeContinue('${item.id}')">✕</button>
+      <div class="cw-thumb">
+        <img src="${item.thumb}" loading="lazy" alt="${item.title}">
+        <div class="cw-progress-bar"><div class="cw-progress-fill" style="width:${pct}%"></div></div>
+        <div class="cw-overlay">
+          <div class="cw-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+        </div>
+      </div>
+      <div class="cw-info">
+        <div class="cw-title">${item.title}</div>
+        <div class="cw-sub">${pct}% selesai</div>
+      </div>`;
+    card.onclick = () => goto((item.type === 'movie' ? 'player.html?id=' : 'series.html?id=') + item.id);
+    carousel.appendChild(card);
+  });
+}
+function removeContinue(id) {
+  let cw = getContinue().filter(i => i.id !== id);
+  localStorage.setItem('anvi_continue', JSON.stringify(cw));
+  renderContinue();
+}
+// Auto-add to continue watching when user clicks play
+function trackWatch(id, title, thumb, type) {
+  let cw = getContinue().filter(i => i.id !== id);
+  cw.unshift({ id, title, thumb, type, progress: Math.floor(Math.random() * 60) + 10 });
+  cw = cw.slice(0, 8);
+  localStorage.setItem('anvi_continue', JSON.stringify(cw));
 }
 
-function openBanner() {
-  const b = document.getElementById("banner");
-  if(!b.dataset.id) return;
-  if(b.dataset.type === "movie") openMovie(b.dataset.id); 
-  else openSeries(b.dataset.id);
+// ── STAR RATING (Fitur #4) ──
+function rateItem(id, stars, starsEl) {
+  saveRating(id, stars);
+  starsEl.querySelectorAll('.star').forEach((s, i) => {
+    s.classList.toggle('lit', i < stars);
+  });
+  const countEl = starsEl.closest('.panel-rating').querySelector('.rating-count');
+  if (countEl) countEl.innerText = stars + '/5';
 }
 
-function openMovie(id) { navigateTo("player.html?id=" + id); }
-function openSeries(id) { navigateTo("series.html?id=" + id); }
+// ── LIBRARY ──
+function renderLibrary() {
+  const wl = getWatchlist();
+  const row = document.getElementById('libraryRow');
+  const container = document.getElementById('libraryCarousel');
+  if (!wl.length) { row.style.display = 'none'; return; }
+  row.style.display = 'block';
+  container.innerHTML = '';
+  const ratings = getRatings();
+  wl.forEach((item, i) => {
+    const r = ratings[item.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <img class="card-thumb" src="${item.thumb}" loading="lazy" alt="${item.title}">
+      <div class="card-panel">
+        <div class="panel-actions">
+          <button class="panel-play" onclick="event.stopPropagation(); goto('${item.type === 'movie' ? 'player.html?id=' : 'series.html?id='}${item.id}')">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="panel-save active" onclick="event.stopPropagation(); toggleSave('${item.id}','','','',this)">✓</button>
+        </div>
+        <div class="panel-title">${item.title}</div>
+        <div class="panel-rating">
+          <div class="stars" data-id="${item.id}">
+            ${[1,2,3,4,5].map(s => `<span class="star ${s <= r ? 'lit' : ''}" onclick="event.stopPropagation(); rateItem('${item.id}',${s},this.closest('.stars'))">★</span>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    card.onclick = () => goto(item.type === 'movie' ? 'player.html?id=' + item.id : 'series.html?id=' + item.id);
+    container.appendChild(card);
+  });
+}
+function toggleSave(id, title, thumb, type, btn) {
+  let wl = getWatchlist();
+  const idx = wl.findIndex(w => w.id === id);
+  if (idx > -1) { wl.splice(idx, 1); btn.classList.remove('active'); btn.innerText = '+'; }
+  else { wl.push({ id, title, thumb, type }); btn.classList.add('active'); btn.innerText = '✓'; }
+  localStorage.setItem('watchlist', JSON.stringify(wl));
+  renderLibrary();
+}
 
+// ── SEARCH ──
+let searchOpen = false;
+function toggleSearch() {
+  searchOpen = !searchOpen;
+  document.getElementById('searchBar').classList.toggle('open', searchOpen);
+  document.getElementById('searchResults').classList.remove('open');
+  if (searchOpen) { document.getElementById('searchInput').focus(); document.getElementById('searchInput').value = ''; }
+}
+function handleSearch(q) {
+  const grid = document.getElementById('searchGrid');
+  const results = document.getElementById('searchResults');
+  if (!q.trim()) { results.classList.remove('open'); return; }
+  results.classList.add('open');
+  const all = [
+    ...movies.map(m => ({ ...m, type: 'movie' })),
+    ...series.map(s => ({ ...s, type: 'series' }))
+  ].filter(i => !i.is18 && i.title.toLowerCase().includes(q.toLowerCase()));
+  grid.innerHTML = '';
+  all.forEach(item => {
+    grid.innerHTML += `
+      <div class="search-card" onclick="goto('${item.type === 'movie' ? 'player.html?id=' : 'series.html?id='}${item.id}')">
+        <img src="${item.thumb}" loading="lazy" alt="${item.title}">
+        <div class="search-card-title">${item.title}</div>
+      </div>`;
+  });
+  if (!all.length) grid.innerHTML = '<p style="color:rgba(255,255,255,0.4);padding:20px 0">Tidak ditemukan.</p>';
+}
+
+// ── VIP ──
 function openVIP() {
-  const pin = prompt("Masukkan PIN VIP Area:");
-  if(pin === "1818") {
-    sessionStorage.setItem("adultAccess", "true");
-    navigateTo("adult.html");
-  } else if (pin !== null) { 
-    alert("PIN Salah, Bosku!"); 
-  }
+  const pin = prompt("Masukkan PIN VIP:");
+  if (pin === "1818") { sessionStorage.setItem("adultAccess", "true"); goto("adult.html"); }
+  else if (pin !== null) alert("PIN salah!");
 }
 
-document.getElementById("search").addEventListener("input", renderAll);
 init();
 </script>
 </body>
