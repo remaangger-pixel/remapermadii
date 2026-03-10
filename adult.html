@@ -3,161 +3,217 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIP Premium Area - Anvi Create</title>
+<title>VIP Area — Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root { --bg: #060606; --card: #121212; --accent: #ff0513; --text: #fff; --glass: rgba(255, 255, 255, 0.05); }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1f1f1f;
+  --red: #e50914; --text: #fff;
+  --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.08);
+  --gold: #d4a017;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  opacity: 0; animation: fadeIn 0.5s ease forwards;
+}
+@keyframes fadeIn { to { opacity: 1; } }
 
-body { 
-  margin: 0; background: var(--bg); color: var(--text); 
-  font-family: 'Inter', sans-serif; opacity: 0; transition: 0.5s; 
+header {
+  position: sticky; top: 0; z-index: 900;
+  height: 64px; padding: 0 4%;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(10,10,10,0.97);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: 2px; color: var(--red);
+  text-decoration: none;
+}
+.vip-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px; letter-spacing: 3px;
+  color: var(--gold);
+}
+.back-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--text-dim); padding: 7px 16px; border-radius: 4px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  text-decoration: none; transition: all 0.2s; display: inline-block;
+}
+.back-btn:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
+
+/* VIP BANNER */
+.vip-banner {
+  padding: 50px 4% 32px;
+  display: flex; align-items: center; gap: 20px;
+  border-bottom: 1px solid var(--border);
+  animation: slideDown 0.5s ease both;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.vip-crown { font-size: 40px; }
+.vip-text h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px; letter-spacing: 3px; color: var(--gold); line-height: 1;
+}
+.vip-text p { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+/* SEARCH */
+.search-wrap { padding: 24px 4% 0; }
+.search-inner { position: relative; max-width: 480px; }
+.search-inner input {
+  width: 100%; padding: 13px 16px 13px 42px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
+  outline: none; transition: all 0.2s;
+}
+.search-inner input::placeholder { color: var(--text-muted); }
+.search-inner input:focus { border-color: rgba(255,255,255,0.3); background: var(--surface2); }
+.search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 16px; pointer-events: none;
 }
 
-/* HEADER PREMIUM */
-header { 
-  padding: 15px 5%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-  border-bottom: 1px solid #222; display: flex; justify-content: space-between; 
-  align-items: center; position: sticky; top: 0; z-index: 100;
+/* GRID */
+.content { padding: 28px 4% 80px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 8px;
 }
-
-.back-btn { 
-  background: var(--accent); color: #fff; border: none; 
-  padding: 8px 18px; border-radius: 50px; cursor: pointer; 
-  font-weight: bold; text-decoration: none; font-size: 13px; transition: 0.3s;
+.card {
+  position: relative; cursor: pointer; border-radius: 4px; overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s 0.15s;
+  z-index: 1; animation: fadeCard 0.4s ease both;
 }
-.back-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255, 5, 19, 0.5); }
-
-/* SEARCH BOX VIP */
-.search-container { padding: 20px 5% 0; }
-.search-box {
-  width: 100%; background: var(--glass); border: 1px solid #333;
-  padding: 12px 20px; border-radius: 12px; color: #fff; outline: none;
-  font-size: 14px; transition: 0.3s; box-sizing: border-box;
+@keyframes fadeCard {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.search-box:focus { border-color: var(--accent); background: rgba(255,255,255,0.1); }
+.card:hover { transform: scale(1.06); z-index: 10; transition: transform 0.3s, z-index 0s; }
+.card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
 
-.container { padding: 20px 5%; }
-.grid { 
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
-  gap: 20px; 
+.card-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(10,10,10,0.95) 0%, transparent 80%);
+  padding: 30px 10px 10px;
+  opacity: 0; transition: opacity 0.25s;
 }
-
-/* CARD UPGRADE */
-.card { 
-  background: var(--card); border-radius: 15px; overflow: hidden; 
-  cursor: pointer; border: 1px solid #222; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-}
-.card:hover { border-color: var(--accent); transform: scale(1.03); z-index: 2; }
-
-.card img { 
-  width: 100%; height: 240px; object-fit: cover; 
-  object-position: center; transition: 0.5s;
-}
-.card:hover img { filter: brightness(1.2); }
-
-.card p { 
-  padding: 15px 12px; margin: 0; font-size: 13px; font-weight: 600; 
+.card:hover .card-overlay { opacity: 1; }
+.card-title {
+  font-size: 12px; font-weight: 700;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  background: linear-gradient(to top, #000, transparent);
+  margin-bottom: 6px;
+}
+.card-play {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--red); border: none; color: #fff;
+  padding: 6px 12px; border-radius: 3px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px; font-weight: 700; cursor: pointer;
 }
 
-/* Badge 18+ Premium */
-.badge {
-  position: absolute; top: 12px; right: 12px; background: var(--accent);
-  color: white; padding: 3px 8px; font-size: 10px; font-weight: 900; 
-  border-radius: 6px; z-index: 5; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+.badge-18 {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(212,160,23,0.9); color: #000;
+  font-size: 10px; font-weight: 900;
+  padding: 2px 7px; border-radius: 2px; letter-spacing: 0.5px;
 }
 
-/* Skeleton Loading */
-.skeleton { background: #1a1a1a; height: 240px; border-radius: 12px; animation: pulse 1.5s infinite; }
-@keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+/* Skeleton */
+.skel { background: var(--surface); border-radius: 4px; aspect-ratio: 2/3; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.7} }
+
+.fade-out { animation: fadeOut 0.35s ease forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+
+@media(max-width: 600px) { .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } }
 </style>
 </head>
 <body>
 
 <header>
-  <a href="index.html" class="back-btn">← Back to Home</a>
-  <h3 style="margin:0; color:var(--accent); font-size: 16px; letter-spacing: 2px;">VIP AREA</h3>
+  <a href="index.html" class="logo">ANVI</a>
+  <div class="vip-label">♛ VIP AREA</div>
+  <a href="index.html" class="back-btn">← Kembali</a>
 </header>
 
-<div class="search-container">
-    <input type="text" id="vipSearch" class="search-box" placeholder="Cari konten premium..." onkeyup="filterVip()">
+<div class="vip-banner">
+  <div class="vip-crown">♛</div>
+  <div class="vip-text">
+    <h1>VIP Premium</h1>
+    <p>Konten eksklusif khusus member VIP</p>
+  </div>
 </div>
 
-<div class="container">
-  <div class="grid" id="list">
-      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+<div class="search-wrap">
+  <div class="search-inner">
+    <span class="search-icon">⌕</span>
+    <input id="vipSearch" placeholder="Cari konten VIP…" oninput="filterVip()">
+  </div>
+</div>
+
+<div class="content">
+  <div class="grid" id="grid">
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
   </div>
 </div>
 
 <script>
-/* 1. KUNCI AMAN (Tetap dipertahankan) */
-function checkGate() {
-  const isAccess = sessionStorage.getItem('adultAccess');
-  if (isAccess !== 'true') {
-    window.location.replace('index.html');
-  } else {
-    document.body.style.opacity = '1';
-    loadAdult();
-  }
-}
-
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let vipData = [];
 
-const list = document.getElementById('list');
-let vipData = []; // Untuk cache pencarian
+function goto(url) { document.body.classList.add('fade-out'); setTimeout(() => location.href = url, 320); }
 
-/* 2. LOAD DATA DENGAN UPGRADE */
-async function loadAdult() {
-  const { data, error } = await sb
-    .from("Movies")
-    .select("*")
-    .eq("is18", true)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    alert("Gagal memuat konten VIP");
-    return;
-  }
-
-  vipData = data;
-  renderVip(vipData);
+function checkGate() {
+  if (sessionStorage.getItem('adultAccess') !== 'true') return goto('index.html');
+  loadAdult();
 }
 
-function renderVip(data) {
-  if (data.length === 0) {
-    list.innerHTML = "<p style='color:#888; text-align:center; grid-column: 1/-1; padding-top:50px;'>Konten tidak ditemukan...</p>";
-    return;
-  }
+async function loadAdult() {
+  const { data } = await sb.from('Movies').select('*').eq('is18', true).order('created_at', { ascending: false });
+  vipData = data || [];
+  render(vipData);
+}
 
-  list.innerHTML = "";
-  data.forEach(m => {
-    list.innerHTML += `
-      <div class="card" onclick="openPlayer('${m.id}')">
-        <div class="badge">18+</div>
-        <img src="${m.thumb}" loading="lazy">
-        <p>${m.title}</p>
-      </div>
-    `;
+function render(data) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (!data.length) { grid.innerHTML = '<p style="color:rgba(255,255,255,0.35);grid-column:1/-1;padding:40px 0">Konten tidak ditemukan.</p>'; return; }
+  data.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = 'card'; card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      <img src="${m.thumb}" loading="lazy" alt="${m.title}">
+      <div class="badge-18">18+</div>
+      <div class="card-overlay">
+        <div class="card-title">${m.title}</div>
+        <button class="card-play">▶ Putar</button>
+      </div>`;
+    card.onclick = () => goto('player.html?id=' + m.id);
+    grid.appendChild(card);
   });
 }
 
-/* 3. FITUR SEARCH VIP */
 function filterVip() {
-    const keyword = document.getElementById('vipSearch').value.toLowerCase();
-    const filtered = vipData.filter(m => m.title.toLowerCase().includes(keyword));
-    renderVip(filtered);
-}
-
-function openPlayer(id) {
-  window.location.href = 'player.html?id=' + id;
+  const kw = document.getElementById('vipSearch').value.toLowerCase();
+  render(vipData.filter(m => m.title.toLowerCase().includes(kw)));
 }
 
 checkGate();
 </script>
-
 </body>
 </html>
