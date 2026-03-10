@@ -3,101 +3,284 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel - Anvi Create</title>
+<title>Admin — Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{ --bg:#060606; --card:#121212; --accent:#ff0513; --blue:#007bff; --text:#fff; }
-body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif; padding-bottom: 50px; opacity:0; transition: 0.5s;}
-header{background:#000;padding:15px 5%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:100}
-button{color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;transition:0.3s}
-.container{padding:20px; max-width: 1000px; margin: auto;}
-.tabs{display:flex; gap:10px; margin-bottom:25px; background:#111; padding:8px; border-radius:12px}
-.tab-btn{background:transparent; flex:1; padding:12px; border-radius:8px; border:none; color:#888; cursor:pointer}
-.tab-btn.active{background:var(--accent); color:#fff; box-shadow: 0 4px 15px rgba(255,5,19,0.3)}
-.form-section{background:var(--card);padding:25px;border-radius:15px;margin-bottom:30px; border: 1px solid #222; display:none}
-.form-section.active{display:block; animation: fadeIn 0.3s;}
-@keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
-.form-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-input, select{width:100%;padding:14px;margin-bottom:15px;border:1px solid #333;border-radius:8px;background:#000;color:#fff;outline:none}
-input:focus{border-color:var(--accent)}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1f1f1f; --surface3: #252525;
+  --red: #e50914; --blue: #4f8ef7; --green: #1db954; --orange: #f5a623;
+  --text: #fff; --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.08); --tmdb: #01b4e4;
+}
+body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; opacity: 0; animation: fadeIn 0.5s ease forwards; padding-bottom: 80px; }
+@keyframes fadeIn { to { opacity: 1; } }
 
-/* SEARCH BAR */
-.search-wrapper { position: relative; margin-top: 40px; margin-bottom: 20px; }
-.search-input { padding: 15px 20px 15px 45px !important; font-size: 16px; border: 2px solid #222 !important; }
-.search-icon { position: absolute; left: 15px; top: 15px; color: #555; }
+header { position: sticky; top: 0; z-index: 900; height: 64px; padding: 0 4%; display: flex; align-items: center; justify-content: space-between; background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border); backdrop-filter: blur(8px); }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--red); text-decoration: none; }
+.admin-label { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.header-actions { display: flex; gap: 8px; }
+.hbtn { background: none; border: 1px solid var(--border); color: var(--text-dim); padding: 7px 16px; border-radius: 4px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+.hbtn:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
 
-/* GRID & CARDS */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
-.card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid #222;}
-/* FITUR EDIT GAMBAR DI TENGAH */
-.card img{width:100%;height:240px;object-fit:cover;object-position:center;} 
-.card-body{padding:12px}
-.card-title{font-size:14px; font-weight:bold; height: 38px; overflow:hidden; margin-bottom:10px}
-.actions{display:flex;gap:8px}
-.edit{background:#ffa500; flex:1; font-size:12px}
-.delete{background:rgba(255,77,77,0.1); color:#ff4d4d; border:1px solid #ff4d4d; flex:1; font-size:12px}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 32px 4%; }
 
-/* LIST EPISODE */
-.ep-list-item { background: #111; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+/* TABS */
+.tabs { display: flex; margin-bottom: 28px; border-bottom: 1px solid var(--border); }
+.tab { padding: 12px 22px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: -1px; transition: all 0.2s; }
+.tab:hover { color: var(--text-dim); }
+.tab.active { color: var(--text); border-bottom-color: var(--red); }
+
+/* FORM PANEL */
+.form-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px; margin-bottom: 32px; display: none; animation: slideDown 0.3s ease; }
+.form-panel.active { display: block; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.form-heading { font-size: 17px; font-weight: 700; margin-bottom: 22px; }
+
+/* TMDB BOX */
+.tmdb-box { background: linear-gradient(135deg, rgba(1,180,228,0.07), rgba(1,180,228,0.02)); border: 1px solid rgba(1,180,228,0.2); border-radius: 8px; padding: 18px; margin-bottom: 24px; }
+.tmdb-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.tmdb-logo { background: var(--tmdb); color: #000; font-size: 10px; font-weight: 900; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; }
+.tmdb-label { font-size: 13px; font-weight: 700; color: var(--tmdb); }
+.tmdb-hint { font-size: 11px; color: var(--text-muted); }
+.tmdb-row { display: flex; gap: 10px; }
+.tmdb-input { flex: 1; padding: 11px 15px; background: var(--surface2); border: 1px solid rgba(1,180,228,0.2); border-radius: 4px; color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; outline: none; transition: all 0.2s; }
+.tmdb-input::placeholder { color: var(--text-muted); }
+.tmdb-input:focus { border-color: var(--tmdb); }
+.btn-tmdb { padding: 11px 18px; background: var(--tmdb); border: none; border-radius: 4px; color: #000; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn-tmdb:hover { filter: brightness(1.1); }
+.btn-tmdb:disabled { opacity: 0.5; cursor: default; }
+
+.tmdb-dropdown { margin-top: 10px; display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 300px; overflow-y: auto; }
+.tmdb-dropdown.open { display: block; animation: fadeIn 0.2s; }
+.tmdb-item { display: flex; align-items: center; gap: 12px; padding: 11px 15px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border); }
+.tmdb-item:last-child { border-bottom: none; }
+.tmdb-item:hover { background: var(--surface3); }
+.tmdb-poster { width: 38px; height: 56px; object-fit: cover; border-radius: 3px; background: var(--surface3); flex-shrink: 0; }
+.tmdb-item-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.tmdb-item-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.type-pill { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 3px; }
+.type-movie { background: rgba(229,9,20,0.2); color: var(--red); }
+.type-tv { background: rgba(79,142,247,0.2); color: var(--blue); }
+
+.tmdb-filled { display: none; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 14px; background: rgba(29,185,84,0.08); border: 1px solid rgba(29,185,84,0.2); border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--green); }
+.tmdb-filled.show { display: flex; }
+.tmdb-filled img { width: 28px; height: 42px; object-fit: cover; border-radius: 2px; }
+.btn-clear { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; transition: color 0.2s; }
+.btn-clear:hover { color: #fff; }
+
+/* API KEY NOTICE */
+.api-notice { display: flex; gap: 12px; background: rgba(245,166,35,0.07); border: 1px solid rgba(245,166,35,0.2); border-radius: 6px; padding: 16px; margin-bottom: 24px; font-size: 13px; line-height: 1.6; }
+.api-notice a { color: var(--orange); font-weight: 600; }
+.api-row { display: flex; gap: 10px; margin-top: 10px; }
+.btn-save-key { padding: 8px 16px; background: var(--orange); border: none; border-radius: 4px; color: #000; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.btn-save-key:hover { filter: brightness(1.1); }
+
+/* FIELDS */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+input, select, textarea { width: 100%; padding: 12px 15px; background: var(--surface2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; outline: none; transition: all 0.2s; }
+textarea { resize: vertical; min-height: 75px; line-height: 1.5; }
+select option { background: #1f1f1f; }
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+input:focus, select:focus, textarea:focus { border-color: rgba(255,255,255,0.3); background: var(--surface3); }
+input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: rgba(1,180,228,0.04); animation: pop 0.35s ease; }
+@keyframes pop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.008)} }
+
+.thumb-row { display: flex; gap: 14px; align-items: flex-start; }
+.thumb-row input { flex: 1; }
+.thumb-preview { width: 60px; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); display: none; flex-shrink: 0; }
+.thumb-preview.show { display: block; }
+
+.genre-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.chip { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface2); font-size: 12px; font-weight: 600; color: var(--text-dim); cursor: pointer; transition: all 0.2s; }
+.chip.on { background: var(--red); border-color: var(--red); color: #fff; }
+
+.btn-save { padding: 13px 28px; border: none; border-radius: 4px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-save.red { background: var(--red); color: #fff; box-shadow: 0 3px 12px rgba(229,9,20,0.25); }
+.btn-save.red:hover { background: #f40612; }
+.btn-save.blue { background: var(--blue); color: #fff; }
+.btn-save.blue:hover { filter: brightness(1.1); }
+
+/* LIST */
+.search-row { display: flex; gap: 12px; margin-bottom: 20px; }
+.search-row input { flex: 1; margin: 0; }
+.list-heading { font-size: 17px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.count-badge { font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--surface2); padding: 3px 10px; border-radius: 20px; }
+.grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; transition: all 0.25s; animation: fadeCard 0.35s ease both; position: relative; }
+@keyframes fadeCard { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+.card img { width: 100%; height: 210px; object-fit: cover; display: block; }
+.card-gtag { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.75); font-size: 10px; font-weight: 700; color: var(--tmdb); padding: 2px 7px; border-radius: 3px; }
+.card-body { padding: 10px 12px; }
+.card-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; min-height: 32px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-genre { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.card-actions { display: flex; gap: 6px; }
+.btn-e { flex: 1; padding: 7px; border: none; border-radius: 3px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-e.edit { background: rgba(79,142,247,0.15); color: var(--blue); border: 1px solid rgba(79,142,247,0.25); }
+.btn-e.edit:hover { background: rgba(79,142,247,0.25); }
+.btn-e.del { background: rgba(229,9,20,0.12); color: #ff6b6b; border: 1px solid rgba(229,9,20,0.2); }
+.btn-e.del:hover { background: rgba(229,9,20,0.22); }
+.ep-item { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; transition: all 0.2s; animation: fadeCard 0.35s ease both; }
+.ep-item:hover { border-color: rgba(255,255,255,0.15); background: var(--surface2); }
+.ep-item-title { font-size: 14px; font-weight: 600; }
+.ep-item-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.ep-item-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: 20px; }
 </style>
 </head>
 <body>
 
 <header>
-  <h2 style="margin:0;">ANVI <span style="color:var(--accent)">ADMIN</span></h2>
-  <button style="background:#222; border:1px solid #444" onclick="logout()">Logout</button>
+  <div style="display:flex;align-items:center;gap:16px">
+    <a href="index.html" class="logo">ANVI</a>
+    <span class="admin-label">Admin Panel</span>
+  </div>
+  <div class="header-actions">
+    <a href="index.html" class="hbtn">← Beranda</a>
+    <button class="hbtn" onclick="logout()">Logout</button>
+  </div>
 </header>
 
-<div class="container">
+<div class="wrap">
+
+  <!-- API KEY NOTICE -->
+  <div class="api-notice" id="apiNotice">
+    <span style="font-size:20px;flex-shrink:0">🔑</span>
+    <div>
+      <strong style="color:var(--orange)">Setup TMDB API Key (sekali saja)</strong><br>
+      Untuk fitur auto-fill, daftar API Key gratis di
+      <a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org → Settings → API</a>,
+      lalu paste di sini. Key disimpan di browser kamu, tidak dikirim ke mana-mana.
+      <div class="api-row">
+        <input type="text" id="apiKeyInput" placeholder="Contoh: a1b2c3d4e5f6...">
+        <button class="btn-save-key" onclick="saveApiKey()">✓ Simpan Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
   <div class="tabs">
-    <button id="btn-Movies" class="tab-btn active" onclick="switchTab('Movies')">Movies</button>
-    <button id="btn-Series" class="tab-btn" onclick="switchTab('Series')">Series</button>
-    <button id="btn-Episodes" class="tab-btn" onclick="switchTab('Episodes')">Episodes</button>
+    <button id="tab-Movies" class="tab active" onclick="switchTab('Movies')">🎬 Movies</button>
+    <button id="tab-Series" class="tab" onclick="switchTab('Series')">📺 Series</button>
+    <button id="tab-Episodes" class="tab" onclick="switchTab('Episodes')">🎞 Episodes</button>
   </div>
 
-  <div id="form-Movies" class="form-section active">
-    <h3 id="m_head">Tambah Movie</h3>
-    <div class="form-group">
-      <input id="m_title" placeholder="Judul Film">
-      <select id="m_is18"><option value="false">Rating: Umum</option><option value="true">Rating: 18+</option></select>
+  <!-- MOVIES FORM -->
+  <div id="form-Movies" class="form-panel active">
+    <div class="form-heading" id="m_head">Tambah Movie</div>
+
+    <div class="tmdb-box">
+      <div class="tmdb-header">
+        <span class="tmdb-logo">TMDB</span>
+        <span class="tmdb-label">Auto-Fill Data Film</span>
+        <span class="tmdb-hint">✨ Ketik judul → pilih → form terisi otomatis</span>
+      </div>
+      <div class="tmdb-row">
+        <input class="tmdb-input" id="tmdb_m_q" placeholder="Cari judul film, contoh: The Dark Knight, Avatar..." oninput="debounce(this.value,'movie')">
+        <button class="btn-tmdb" onclick="doSearch(document.getElementById('tmdb_m_q').value,'movie')">🔍 Cari</button>
+      </div>
+      <div class="tmdb-dropdown" id="tmdb_m_drop"></div>
+      <div class="tmdb-filled" id="tmdb_m_filled">
+        <img id="tmdb_m_fimg" src="" alt="">
+        <span id="tmdb_m_ftitle">—</span>
+        <button class="btn-clear" onclick="clearFill('m')">✕</button>
+      </div>
     </div>
-    <input id="m_thumb" placeholder="URL Thumbnail">
-    <div class="form-group">
-      <input id="m_video" placeholder="Link Video Utama (Server 1)">
-      <input id="m_video2" placeholder="Link Video Cadangan (Server 2)">
+
+    <div class="grid-2">
+      <div class="field"><label>Judul Film</label><input id="m_title" placeholder="Otomatis dari TMDB"></div>
+      <div class="field"><label>Rating Konten</label><select id="m_is18"><option value="false">Umum</option><option value="true">18+</option></select></div>
     </div>
-    <button id="m_btn" onclick="saveData('Movies')" style="background:var(--accent); width:100%">SIMPAN DATA MOVIE</button>
-  </div>
-
-  <div id="form-Series" class="form-section">
-    <h3 id="s_head">Tambah Series</h3>
-    <input id="s_title" placeholder="Judul Series">
-    <input id="s_thumb" placeholder="URL Thumbnail">
-    <select id="s_is18"><option value="false">Rating: Umum</option><option value="true">Rating: 18+</option></select>
-    <button id="s_btn" onclick="saveData('Series')" style="background:var(--accent); width:100%">SIMPAN DATA SERIES</button>
-  </div>
-
-  <div id="form-Episodes" class="form-section">
-    <h3 id="ep_head">Tambah Episode</h3>
-    <select id="ep_series_id"><option value="">Pilih Series...</option></select>
-    <div class="form-group">
-      <input id="ep_num" type="number" placeholder="Eps ke-">
-      <input id="ep_title" placeholder="Judul Episode">
+    <div class="field">
+      <label>Genre</label>
+      <input id="m_genre" placeholder="Otomatis dari TMDB, contoh: Aksi, Petualangan, Drama" oninput="syncChips('m')">
+      <div class="genre-chips" id="m_chips"></div>
+      <div style="margin-top:10px;font-size:11px;color:rgba(255,255,255,0.3)">Atau klik manual:</div>
+      <div id="m_manual_chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
     </div>
-    <div class="form-group">
-      <input id="ep_video" placeholder="Link Video Server 1">
-      <input id="ep_video2" placeholder="Link Video Server 2">
+    <div class="field"><label>Sinopsis</label><textarea id="m_desc" placeholder="Otomatis dari TMDB"></textarea></div>
+    <div class="field">
+      <label>Poster / Thumbnail</label>
+      <div class="thumb-row">
+        <input id="m_thumb" placeholder="Otomatis dari TMDB" oninput="previewImg('m')">
+        <img class="thumb-preview" id="m_prev" src="" alt="Preview">
+      </div>
     </div>
-    <button id="ep_btn" onclick="saveEpisode()" style="background:var(--blue); width:100%">SIMPAN EPISODE</button>
+    <div class="grid-2">
+      <div class="field"><label>Link Video Server 1</label><input id="m_video" placeholder="Paste link video utama..."></div>
+      <div class="field"><label>Link Video Server 2 (Opsional)</label><input id="m_video2" placeholder="Link cadangan..."></div>
+    </div>
+    <button id="m_btn" class="btn-save red" onclick="saveData('Movies')">Simpan Movie</button>
   </div>
 
-  <div class="search-wrapper">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" class="search-input" placeholder="Cari berdasarkan judul..." onkeyup="filterData()">
+  <!-- SERIES FORM -->
+  <div id="form-Series" class="form-panel">
+    <div class="form-heading" id="s_head">Tambah Series</div>
+
+    <div class="tmdb-box">
+      <div class="tmdb-header">
+        <span class="tmdb-logo">TMDB</span>
+        <span class="tmdb-label">Auto-Fill Data Series</span>
+        <span class="tmdb-hint">✨ Ketik judul → pilih → form terisi otomatis</span>
+      </div>
+      <div class="tmdb-row">
+        <input class="tmdb-input" id="tmdb_s_q" placeholder="Cari judul series, contoh: Squid Game, Breaking Bad..." oninput="debounce(this.value,'tv')">
+        <button class="btn-tmdb" onclick="doSearch(document.getElementById('tmdb_s_q').value,'tv')">🔍 Cari</button>
+      </div>
+      <div class="tmdb-dropdown" id="tmdb_s_drop"></div>
+      <div class="tmdb-filled" id="tmdb_s_filled">
+        <img id="tmdb_s_fimg" src="" alt="">
+        <span id="tmdb_s_ftitle">—</span>
+        <button class="btn-clear" onclick="clearFill('s')">✕</button>
+      </div>
+    </div>
+
+    <div class="field"><label>Judul Series</label><input id="s_title" placeholder="Otomatis dari TMDB"></div>
+    <div class="field">
+      <label>Genre</label>
+      <input id="s_genre" placeholder="Otomatis dari TMDB">
+      <div class="genre-chips" id="s_chips"></div>
+    </div>
+    <div class="field"><label>Sinopsis</label><textarea id="s_desc" placeholder="Otomatis dari TMDB"></textarea></div>
+    <div class="field">
+      <label>Poster / Thumbnail</label>
+      <div class="thumb-row">
+        <input id="s_thumb" placeholder="Otomatis dari TMDB" oninput="previewImg('s')">
+        <img class="thumb-preview" id="s_prev" src="" alt="Preview">
+      </div>
+    </div>
+    <div class="field"><label>Rating Konten</label><select id="s_is18"><option value="false">Umum</option><option value="true">18+</option></select></div>
+    <button id="s_btn" class="btn-save red" onclick="saveData('Series')">Simpan Series</button>
   </div>
 
-  <h3 id="listTitle" style="border-left:4px solid var(--accent); padding-left:15px">Daftar Movies</h3>
-  <div id="dataList" class="grid"></div>
+  <!-- EPISODES FORM -->
+  <div id="form-Episodes" class="form-panel">
+    <div class="form-heading" id="ep_head">Tambah Episode</div>
+    <div class="field"><label>Pilih Series</label><select id="ep_series_id"><option value="">— Pilih Series —</option></select></div>
+    <div class="grid-2">
+      <div class="field"><label>Episode ke-</label><input id="ep_num" type="number" placeholder="1"></div>
+      <div class="field"><label>Judul Episode</label><input id="ep_title" placeholder="Opsional"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Link Video Server 1</label><input id="ep_video" placeholder="Link utama..."></div>
+      <div class="field"><label>Link Video Server 2</label><input id="ep_video2" placeholder="Cadangan..."></div>
+    </div>
+    <button id="ep_btn" class="btn-save blue" onclick="saveEpisode()">Simpan Episode</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="🔍  Cari judul, genre..." oninput="filterData()">
+  </div>
+  <div class="list-heading">
+    <span id="listTitle">Daftar Movies</span>
+    <span class="count-badge" id="listCount">—</span>
+  </div>
+  <div id="dataList"></div>
 </div>
 
 <script>
@@ -105,195 +288,346 @@ const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentTable = "Movies";
-let editId = null;
-let allData = []; // Menampung semua data untuk fitur search
+const TMDB_API = 'https://api.themoviedb.org/3';
+const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
+let currentTab = 'Movies', editId = null, allData = [], timer;
 
+/* ── API KEY ── */
+function getKey() { return localStorage.getItem('tmdb_key') || ''; }
+function saveApiKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k) return alert('API Key kosong!');
+  localStorage.setItem('tmdb_key', k);
+  document.getElementById('apiNotice').style.display = 'none';
+  alert('API Key tersimpan ✅');
+}
+function checkKey() {
+  if (getKey()) document.getElementById('apiNotice').style.display = 'none';
+}
+
+/* ── TMDB SEARCH ── */
+function debounce(q, type) {
+  clearTimeout(timer);
+  if (q.length < 2) { closeDrop(type); return; }
+  timer = setTimeout(() => doSearch(q, type), 450);
+}
+
+async function doSearch(q, type) {
+  if (!getKey()) { alert('Simpan TMDB API Key dulu!'); return; }
+  if (!q.trim()) return;
+  const px = type === 'movie' ? 'm' : 's';
+  const drop = document.getElementById('tmdb_' + px + '_drop');
+  drop.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-size:13px">Mencari...</div>';
+  drop.classList.add('open');
+  try {
+    const ep = type === 'movie' ? 'search/movie' : 'search/tv';
+    const r = await fetch(`${TMDB_API}/${ep}?api_key=${getKey()}&query=${encodeURIComponent(q)}&language=id-ID`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.status_message || 'API Error');
+    const items = (d.results || []).slice(0, 8);
+    if (!items.length) { drop.innerHTML = '<div style="padding:14px;color:rgba(255,255,255,0.4);font-size:13px">Tidak ditemukan. Coba judul lain.</div>'; return; }
+    drop.innerHTML = '';
+    items.forEach(item => {
+      const title = item.title || item.name;
+      const year = (item.release_date || item.first_air_date || '').slice(0,4);
+      const poster = item.poster_path ? TMDB_IMG + item.poster_path : '';
+      const score = item.vote_average ? item.vote_average.toFixed(1) : '—';
+      const div = document.createElement('div');
+      div.className = 'tmdb-item';
+      div.innerHTML = `
+        ${poster ? `<img class="tmdb-poster" src="${poster}" loading="lazy">` : '<div class="tmdb-poster" style="background:var(--surface3);display:flex;align-items:center;justify-content:center">🎬</div>'}
+        <div>
+          <div class="tmdb-item-title">${title}</div>
+          <div class="tmdb-item-meta">
+            <span>${year || '—'}</span>
+            <span>⭐ ${score}</span>
+            <span class="type-pill ${type === 'movie' ? 'type-movie' : 'type-tv'}">${type === 'movie' ? 'Film' : 'Series'}</span>
+          </div>
+        </div>`;
+      div.onclick = () => pickItem(item, type);
+      drop.appendChild(div);
+    });
+  } catch(e) {
+    drop.innerHTML = `<div style="padding:14px;color:#ff6b6b;font-size:13px">❌ ${e.message}. Cek API Key kamu.</div>`;
+  }
+}
+
+function closeDrop(type) {
+  const px = type === 'movie' ? 'm' : 's';
+  document.getElementById('tmdb_' + px + '_drop').classList.remove('open');
+}
+
+// ── TMDB Genre ID → Nama Indonesia (konsisten) ──
+const GENRE_MAP = {
+  28:    'Aksi',
+  12:    'Petualangan',
+  16:    'Animasi',
+  35:    'Komedi',
+  80:    'Kejahatan',
+  99:    'Dokumenter',
+  18:    'Drama',
+  10751: 'Keluarga',
+  14:    'Fantasi',
+  36:    'Sejarah',
+  27:    'Horor',
+  10402: 'Musik',
+  9648:  'Misteri',
+  10749: 'Roman',
+  878:   'Fiksi Ilmiah',
+  10770: 'Film TV',
+  53:    'Thriller',
+  10752: 'Perang',
+  37:    'Barat',
+  10759: 'Aksi & Petualangan',
+  10762: 'Keluarga',
+  10763: 'Dokumenter',
+  10764: 'Reality',
+  10765: 'Fiksi Ilmiah',
+  10766: 'Drama',
+  10767: 'Komedi',
+  10768: 'Perang',
+};
+
+async function pickItem(item, type) {
+  const px = type === 'movie' ? 'm' : 's';
+  closeDrop(type);
+  try {
+    const ep = type === 'movie' ? `movie/${item.id}` : `tv/${item.id}`;
+    // Fetch tanpa language agar dapat genre_ids yang akurat
+    const r = await fetch(`${TMDB_API}/${ep}?api_key=${getKey()}`);
+    const d = await r.json();
+
+    // Fetch desc pakai bahasa Indonesia
+    const rID = await fetch(`${TMDB_API}/${ep}?api_key=${getKey()}&language=id-ID`);
+    const dID = await rID.json();
+
+    const title  = dID.title || dID.name || d.title || d.name || '';
+    const desc   = dID.overview || d.overview || '';
+    const poster = d.poster_path ? TMDB_IMG + d.poster_path : '';
+    const year   = (d.release_date || d.first_air_date || '').slice(0,4);
+
+    // Konversi genre_ids → nama Indonesia pakai GENRE_MAP kita
+    const genreIds = (d.genres || []).map(g => g.id);
+    const genreNames = genreIds.map(id => GENRE_MAP[id]).filter(Boolean).join(', ');
+
+    fill(px + '_title', title);
+    fill(px + '_desc', desc);
+    fill(px + '_thumb', poster);
+    fill(px + '_genre', genreNames);
+    buildChips(px, genreNames);
+    previewImg(px);
+
+    const badge = document.getElementById('tmdb_' + px + '_filled');
+    document.getElementById('tmdb_' + px + '_fimg').src = poster;
+    document.getElementById('tmdb_' + px + '_ftitle').innerText = `${title}${year ? ' ('+year+')' : ''} — data diisi otomatis ✅`;
+    badge.classList.add('show');
+    document.getElementById('tmdb_' + px + '_q').value = '';
+  } catch(e) {
+    fill(px + '_title', item.title || item.name);
+    fill(px + '_desc', item.overview || '');
+    if (item.poster_path) fill(px + '_thumb', TMDB_IMG + item.poster_path);
+    previewImg(px);
+  }
+}
+
+function fill(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = val;
+  el.classList.remove('filled');
+  void el.offsetWidth;
+  el.classList.add('filled');
+  setTimeout(() => el.classList.remove('filled'), 1200);
+}
+
+function buildChips(px, genreStr) {
+  const c = document.getElementById(px + '_chips');
+  if (!c) return;
+  c.innerHTML = '';
+  genreStr.split(',').map(g => g.trim()).filter(Boolean).forEach(g => {
+    const chip = document.createElement('span');
+    chip.className = 'chip on'; chip.innerText = g;
+    chip.onclick = () => chip.classList.toggle('on');
+    c.appendChild(chip);
+  });
+}
+
+function clearFill(px) {
+  ['_title','_desc','_thumb','_genre'].forEach(f => { const el = document.getElementById(px+f); if(el) el.value = ''; });
+  const prev = document.getElementById(px + '_prev');
+  if (prev) { prev.src = ''; prev.classList.remove('show'); }
+  const chips = document.getElementById(px + '_chips');
+  if (chips) chips.innerHTML = '';
+  const tmdbPx = px === 'm' ? 'tmdb_m' : 'tmdb_s';
+  document.getElementById(tmdbPx + '_filled').classList.remove('show');
+}
+
+function previewImg(px) {
+  const val = document.getElementById(px + '_thumb').value;
+  const prev = document.getElementById(px + '_prev');
+  if (val) { prev.src = val; prev.classList.add('show'); }
+  else prev.classList.remove('show');
+}
+
+/* ── AUTH ── */
 async function checkAuth() {
   const { data } = await sb.auth.getSession();
-  if (!data.session) {
-    window.location.replace("login.html");
-  } else {
-    document.body.style.opacity = "1";
-    loadData();
-  }
-}
-
-// LOAD DATA
-async function loadData() {
-  const listEl = document.getElementById("dataList");
-  listEl.innerHTML = "<p>Loading...</p>";
-  
-  let query = sb.from(currentTable).select("*");
-  
-  if(currentTable === "Episodes") {
-      query = sb.from("Episodes").select("*, Series(title)").order("series_id", {ascending: true}).order("episode", {ascending: true});
-  } else {
-      query = query.order("created_at", {ascending: false});
-  }
-
-  const { data, error } = await query;
-  if(error) return listEl.innerHTML = "<p>Error: " + error.message + "</p>";
-  
-  allData = data; // Simpan ke variable global untuk search
-  renderList(allData);
-}
-
-// RENDER LIST (DIGUNAKAN OLEH LOAD & SEARCH)
-function renderList(dataToRender) {
-  const listEl = document.getElementById("dataList");
-  listEl.innerHTML = "";
-  
-  dataToRender.forEach(item => {
-    if(currentTable === "Episodes") {
-        listEl.classList.remove("grid");
-        listEl.innerHTML += `
-            <div class="ep-list-item">
-                <div>
-                    <strong>${item.Series?.title || 'Series'}</strong> - Eps ${item.episode} <br>
-                    <small style="color:#666">${item.title || ''}</small>
-                </div>
-                <div class="actions" style="width:150px">
-                    <button class="edit" onclick="prepareEdit('${item.id}')">Edit</button>
-                    <button class="delete" onclick="deleteItem('${item.id}')">Hapus</button>
-                </div>
-            </div>`;
-    } else {
-        listEl.classList.add("grid");
-        listEl.innerHTML += `
-          <div class="card">
-            <img src="${item.thumb}">
-            <div class="card-body">
-              <div class="card-title">${item.title}</div>
-              <div class="actions">
-                <button class="edit" onclick="prepareEdit('${item.id}')">Edit</button>
-                <button class="delete" onclick="deleteItem('${item.id}')">Hapus</button>
-              </div>
-            </div>
-          </div>`;
-    }
-  });
-}
-
-// FUNGSI SEARCH (FILTER DATA)
-function filterData() {
-  const keyword = document.getElementById("searchInput").value.toLowerCase();
-  const filtered = allData.filter(item => {
-    const title = item.title ? item.title.toLowerCase() : "";
-    const seriesTitle = item.Series?.title ? item.Series.title.toLowerCase() : "";
-    return title.includes(keyword) || seriesTitle.includes(keyword);
-  });
-  renderList(filtered);
-}
-
-// SIMPAN DATA
-async function saveData(table) {
-  const px = table === "Movies" ? "m" : "s";
-  const payload = {
-    title: document.getElementById(px + "_title").value,
-    thumb: document.getElementById(px + "_thumb").value,
-    is18: document.getElementById(px + "_is18").value === "true"
-  };
-
-  if(table === "Movies") {
-    payload.video = document.getElementById("m_video").value;
-    payload.video2 = document.getElementById("m_video2").value;
-  }
-
-  let res;
-  if(editId) {
-    res = await sb.from(table).update(payload).eq("id", editId);
-  } else {
-    res = await sb.from(table).insert([payload]);
-  }
-
-  if(res.error) alert("Error: " + res.error.message);
-  else { alert("Berhasil!"); location.reload(); }
-}
-
-async function saveEpisode() {
-  const payload = {
-    series_id: document.getElementById("ep_series_id").value,
-    episode: document.getElementById("ep_num").value,
-    title: document.getElementById("ep_title").value,
-    video: document.getElementById("ep_video").value,
-    video2: document.getElementById("ep_video2").value
-  };
-
-  let res;
-  if(editId) {
-      res = await sb.from("Episodes").update(payload).eq("id", editId);
-  } else {
-      res = await sb.from("Episodes").insert([payload]);
-  }
-
-  if(res.error) alert(res.error.message); 
-  else { alert("Episode Berhasil!"); location.reload(); }
-}
-
-async function prepareEdit(id) {
-  const { data } = await sb.from(currentTable).select("*").eq("id", id).single();
-  editId = id;
-
-  if(currentTable === "Episodes") {
-      document.getElementById("ep_series_id").value = data.series_id;
-      document.getElementById("ep_num").value = data.episode;
-      document.getElementById("ep_title").value = data.title || "";
-      document.getElementById("ep_video").value = data.video;
-      document.getElementById("ep_video2").value = data.video2 || "";
-      document.getElementById("ep_head").innerText = "Edit Episode " + data.episode;
-      document.getElementById("ep_btn").innerText = "UPDATE EPISODE";
-  } else {
-      const px = currentTable === "Movies" ? "m" : "s";
-      document.getElementById(px + "_title").value = data.title;
-      document.getElementById(px + "_thumb").value = data.thumb;
-      document.getElementById(px + "_is18").value = data.is18.toString();
-      
-      if(currentTable === "Movies") {
-        document.getElementById("m_video").value = data.video || "";
-        document.getElementById("m_video2").value = data.video2 || "";
-      }
-      document.getElementById(px + "_head").innerText = "Edit: " + data.title;
-      document.getElementById(px + "_btn").innerText = "UPDATE DATA";
-  }
-  window.scrollTo({top: 0, behavior: 'smooth'});
-}
-
-async function deleteItem(id) {
-  if(confirm("Hapus data ini selamanya?")) { 
-      const { error } = await sb.from(currentTable).delete().eq("id", id);
-      if(error) alert(error.message); else loadData(); 
-  }
-}
-
-function switchTab(tab) {
-  currentTable = tab;
-  editId = null;
-  document.getElementById("searchInput").value = ""; // Reset search saat ganti tab
-  
-  document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  
-  document.getElementById('form-' + tab).classList.add('active');
-  document.getElementById('btn-' + tab).classList.add('active');
-  
-  document.getElementById('listTitle').innerText = "Daftar " + tab;
-  
-  if(tab === 'Episodes') updateSeriesDropdown();
+  if (!data.session) { location.replace('login.html'); return; }
+  document.body.style.opacity = '1';
+  checkKey();
   loadData();
 }
 
-async function updateSeriesDropdown() {
-  const { data } = await sb.from("Series").select("id, title");
-  const sel = document.getElementById("ep_series_id");
-  sel.innerHTML = '<option value="">-- Pilih Series --</option>';
-  data.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
+/* ── LOAD DATA ── */
+async function loadData() {
+  const el = document.getElementById('dataList');
+  el.innerHTML = '<p style="color:rgba(255,255,255,0.35);padding:20px 0">Memuat…</p>';
+  let q;
+  if (currentTab === 'Episodes') q = sb.from('Episodes').select('*, Series(title)').order('series_id').order('episode');
+  else q = sb.from(currentTab).select('*').order('created_at', { ascending: false });
+  const { data, error } = await q;
+  if (error) { el.innerHTML = `<p style="color:#ff6b6b">Error: ${error.message}</p>`; return; }
+  allData = data;
+  renderList(allData);
 }
 
-async function logout() {
-  await sb.auth.signOut();
-  window.location.replace("login.html");
+function renderList(data) {
+  const el = document.getElementById('dataList');
+  document.getElementById('listCount').innerText = data.length + ' item';
+  el.innerHTML = '';
+  if (!data.length) { el.innerHTML = '<p style="color:rgba(255,255,255,0.35);padding:20px 0">Belum ada data.</p>'; return; }
+  if (currentTab === 'Episodes') {
+    data.forEach((item, i) => {
+      const d = document.createElement('div');
+      d.className = 'ep-item'; d.style.animationDelay = (i*0.03)+'s';
+      d.innerHTML = `
+        <div>
+          <div class="ep-item-title">${item.Series?.title||'—'} · Eps ${item.episode}</div>
+          <div class="ep-item-sub">${item.title||'Tanpa judul'}</div>
+        </div>
+        <div class="ep-item-actions">
+          <button class="btn-e edit" onclick="prepareEdit('${item.id}')">Edit</button>
+          <button class="btn-e del" onclick="delItem('${item.id}')">Hapus</button>
+        </div>`;
+      el.appendChild(d);
+    });
+  } else {
+    const grid = document.createElement('div');
+    grid.className = 'grid-cards';
+    data.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'card'; card.style.animationDelay = (i*0.03)+'s';
+      card.innerHTML = `
+        <img src="${item.thumb}" loading="lazy" alt="${item.title}" onerror="this.style.display='none'">
+        ${item.genre ? `<div class="card-gtag">${item.genre.split(',')[0].trim()}</div>` : ''}
+        <div class="card-body">
+          <div class="card-name">${item.title}</div>
+          ${item.genre ? `<div class="card-genre">${item.genre}</div>` : ''}
+          <div class="card-actions">
+            <button class="btn-e edit" onclick="prepareEdit('${item.id}')">Edit</button>
+            <button class="btn-e del" onclick="delItem('${item.id}')">Hapus</button>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    });
+    el.appendChild(grid);
+  }
 }
+
+function filterData() {
+  const kw = document.getElementById('searchInput').value.toLowerCase();
+  renderList(allData.filter(i =>
+    (i.title||'').toLowerCase().includes(kw) ||
+    (i.genre||'').toLowerCase().includes(kw) ||
+    (i.Series?.title||'').toLowerCase().includes(kw)
+  ));
+}
+
+async function saveData(table) {
+  const px = table === 'Movies' ? 'm' : 's';
+  const payload = {
+    title: document.getElementById(px+'_title').value,
+    thumb: document.getElementById(px+'_thumb').value,
+    is18: document.getElementById(px+'_is18').value === 'true',
+    genre: document.getElementById(px+'_genre').value,
+    description: document.getElementById(px+'_desc').value,
+  };
+  if (table === 'Movies') {
+    payload.video  = document.getElementById('m_video').value;
+    payload.video2 = document.getElementById('m_video2').value;
+  }
+  const res = editId ? await sb.from(table).update(payload).eq('id', editId) : await sb.from(table).insert([payload]);
+  if (res.error) {
+    if (res.error.code === '42703') {
+      // genre/description column belum ada — simpan tanpa itu
+      delete payload.genre; delete payload.description;
+      const r2 = editId ? await sb.from(table).update(payload).eq('id', editId) : await sb.from(table).insert([payload]);
+      if (r2.error) { alert('Error: ' + r2.error.message); return; }
+      alert('Berhasil disimpan!\n\n⚠️ Catatan: Kolom "genre" & "description" belum ada di Supabase.\nTambahkan di Supabase → Table Editor → Movies/Series → Add Column\nagar fitur genre filter berfungsi.');
+    } else { alert('Error: ' + res.error.message); return; }
+  } else { alert('Berhasil! ✅'); }
+  location.reload();
+}
+
+async function saveEpisode() {
+  const payload = { series_id: document.getElementById('ep_series_id').value, episode: document.getElementById('ep_num').value, title: document.getElementById('ep_title').value, video: document.getElementById('ep_video').value, video2: document.getElementById('ep_video2').value };
+  const res = editId ? await sb.from('Episodes').update(payload).eq('id', editId) : await sb.from('Episodes').insert([payload]);
+  if (res.error) alert(res.error.message);
+  else { alert('Episode berhasil!'); location.reload(); }
+}
+
+async function prepareEdit(id) {
+  const { data } = await sb.from(currentTab).select('*').eq('id', id).single();
+  editId = id;
+  if (currentTab === 'Episodes') {
+    document.getElementById('ep_series_id').value = data.series_id;
+    document.getElementById('ep_num').value = data.episode;
+    document.getElementById('ep_title').value = data.title || '';
+    document.getElementById('ep_video').value = data.video;
+    document.getElementById('ep_video2').value = data.video2 || '';
+    document.getElementById('ep_head').innerText = 'Edit Episode ' + data.episode;
+    document.getElementById('ep_btn').innerText = 'Update Episode';
+  } else {
+    const px = currentTab === 'Movies' ? 'm' : 's';
+    document.getElementById(px+'_title').value = data.title;
+    document.getElementById(px+'_thumb').value = data.thumb;
+    document.getElementById(px+'_is18').value = String(data.is18);
+    document.getElementById(px+'_genre').value = data.genre || '';
+    document.getElementById(px+'_desc').value = data.description || '';
+    if (data.thumb) { const p = document.getElementById(px+'_prev'); p.src = data.thumb; p.classList.add('show'); }
+    if (currentTab === 'Movies') { document.getElementById('m_video').value = data.video||''; document.getElementById('m_video2').value = data.video2||''; }
+    document.getElementById(px+'_head').innerText = 'Edit: ' + data.title;
+    document.getElementById(px+'_btn').innerText = 'Update';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function delItem(id) {
+  if (!confirm('Hapus permanen?')) return;
+  const { error } = await sb.from(currentTab).delete().eq('id', id);
+  if (error) alert(error.message); else loadData();
+}
+
+function switchTab(tab) {
+  currentTab = tab; editId = null;
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.form-panel').forEach(f => f.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('form-'+tab).classList.add('active');
+  document.getElementById('listTitle').innerText = 'Daftar ' + tab;
+  if (tab === 'Episodes') loadSeriesDrop();
+  loadData();
+}
+
+async function loadSeriesDrop() {
+  const { data } = await sb.from('Series').select('id, title');
+  const sel = document.getElementById('ep_series_id');
+  sel.innerHTML = '<option value="">— Pilih Series —</option>';
+  data?.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
+}
+
+async function logout() { await sb.auth.signOut(); location.replace('login.html'); }
 
 checkAuth();
 </script>
