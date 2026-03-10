@@ -513,7 +513,22 @@ header.scrolled {
       </div>
     </div>
   </div>
+
+  <!-- Year Dropdown -->
+  <div class="genre-dropdown-wrap" id="yearWrap">
+    <div class="genre-selected" id="yearSelected" onclick="toggleYearMenu()">
+      <span class="genre-selected-label" id="yearSelectedLabel">Semua Tahun</span>
+      <svg class="genre-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="genre-menu" id="yearMenu">
+      <div class="genre-menu-inner" id="yearMenuInner">
+        <!-- Diisi dinamis dari data -->
+      </div>
+    </div>
+  </div>
+
   <span class="genre-active-tag" id="genreActiveTag" style="display:none"></span>
+  <span class="genre-active-tag" id="yearActiveTag" style="display:none;margin-left:4px"></span>
 </div>
 
 <!-- CONTENT -->
@@ -570,6 +585,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let movies = [], series = [], bannerItems = [], bIdx = 0, bannerTimer;
 let activeGenre = 'Semua';
+let activeYear  = 'Semua';
 
 // ── HELPERS ──
 function goto(url) {
@@ -602,9 +618,52 @@ async function init() {
 
   buildBanner();
   renderTop10();
+  buildYearDropdown();
   renderRows();
   renderContinue();
   renderLibrary();
+}
+
+// ── YEAR DROPDOWN ──
+function buildYearDropdown() {
+  // Ambil semua tahun unik dari judul film — format "(YYYY)"
+  const allTitles = [...movies, ...series].map(i => i.title || '');
+  const years = [...new Set(
+    allTitles.map(t => { const m = t.match(/\((\d{4})\)/); return m ? m[1] : null; })
+             .filter(Boolean)
+  )].sort((a, b) => b - a); // descending
+
+  const inner = document.getElementById('yearMenuInner');
+  inner.innerHTML = `<button class="genre-option active" onclick="pickYear('Semua')">Semua Tahun</button>`;
+  years.forEach(y => {
+    inner.innerHTML += `<button class="genre-option" onclick="pickYear('${y}')">${y}</button>`;
+  });
+}
+
+function toggleYearMenu() {
+  const menu = document.getElementById('yearMenu');
+  const sel  = document.getElementById('yearSelected');
+  // Tutup genre menu kalau terbuka
+  document.getElementById('genreMenu')?.classList.remove('open');
+  document.getElementById('genreSelected')?.classList.remove('open');
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open', !isOpen);
+  sel.classList.toggle('open', !isOpen);
+}
+
+function pickYear(year) {
+  activeYear = year;
+  document.getElementById('yearSelectedLabel').innerText = year === 'Semua' ? 'Semua Tahun' : year;
+  document.getElementById('yearMenu').classList.remove('open');
+  document.getElementById('yearSelected').classList.remove('open');
+  document.querySelectorAll('#yearMenuInner .genre-option').forEach(o => o.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const tag = document.getElementById('yearActiveTag');
+  if (year === 'Semua') { tag.style.display = 'none'; }
+  else { tag.innerText = year; tag.style.display = 'inline-block'; }
+
+  renderRows();
 }
 
 // ── BANNER ──
@@ -666,6 +725,10 @@ document.addEventListener('click', e => {
     document.getElementById('genreMenu')?.classList.remove('open');
     document.getElementById('genreSelected')?.classList.remove('open');
   }
+  if (!document.getElementById('yearWrap')?.contains(e.target)) {
+    document.getElementById('yearMenu')?.classList.remove('open');
+    document.getElementById('yearSelected')?.classList.remove('open');
+  }
 });
 
 // Tabel sinonim — berbagai terjemahan TMDB dipetakan ke satu nama genre kita
@@ -694,28 +757,35 @@ const GENRE_ALIASES = {
 function matchesGenre(item) {
   if (activeGenre === 'Semua') return true;
   if (!item.genre || item.genre === 'null') return false;
-
-  // Pecah genre film jadi array kata kunci kecil
   const itemGenres = item.genre.split(',').map(g => g.trim().toLowerCase());
-
-  // Ambil daftar sinonim untuk genre yang dipilih
   const aliases = GENRE_ALIASES[activeGenre] || [activeGenre.toLowerCase()];
-
-  // Cocokkan: cukup salah satu genre film mengandung salah satu sinonim
   return itemGenres.some(ig => aliases.some(alias => ig.includes(alias) || alias.includes(ig)));
+}
+
+function matchesYear(item) {
+  if (activeYear === 'Semua') return true;
+  // Cari tahun dari format "(YYYY)" di judul
+  const m = (item.title || '').match(/\((\d{4})\)/);
+  return m ? m[1] === activeYear : false;
 }
 
 // ── ROWS ──
 function renderRows() {
-  const isFiltered = activeGenre !== 'Semua';
-  const genreName  = activeGenre;
+  const genreFiltered = activeGenre !== 'Semua';
+  const yearFiltered  = activeYear  !== 'Semua';
+  const isFiltered    = genreFiltered || yearFiltered;
 
-  // Sembunyikan Top 10 saat filter genre aktif
+  // Sembunyikan Top 10 saat filter aktif
   document.getElementById('top10Row').style.display = isFiltered ? 'none' : 'block';
 
-  // Update judul row sesuai genre
-  document.getElementById('movieRowTitle').innerText  = isFiltered ? `Film: ${genreName}` : 'Film Terbaru';
-  document.getElementById('seriesRowTitle').innerText = isFiltered ? `Series: ${genreName}` : 'Series Unggulan';
+  // Update judul row
+  let label = '';
+  if (genreFiltered && yearFiltered) label = `${activeGenre} · ${activeYear}`;
+  else if (genreFiltered) label = activeGenre;
+  else if (yearFiltered)  label = activeYear;
+
+  document.getElementById('movieRowTitle').innerText  = isFiltered ? `Film: ${label}` : 'Film Terbaru';
+  document.getElementById('seriesRowTitle').innerText = isFiltered ? `Series: ${label}` : 'Series Unggulan';
 
   renderCarousel('movieCarousel', movies, 'movie');
   renderCarousel('seriesCarousel', series, 'series');
@@ -726,10 +796,10 @@ function renderCarousel(containerId, data, type) {
   el.innerHTML = '';
   const wl = getWatchlist();
   const ratings = getRatings();
-  const filtered = data.filter(i => !i.is18 && matchesGenre(i));
+  const filtered = data.filter(i => !i.is18 && matchesGenre(i) && matchesYear(i));
 
   if (!filtered.length) {
-    el.innerHTML = '<p style="color:rgba(255,255,255,0.3);padding:10px 0;font-size:13px">Tidak ada konten untuk genre ini.</p>';
+    el.innerHTML = '<p style="color:rgba(255,255,255,0.3);padding:10px 0;font-size:13px">Tidak ada konten untuk filter ini.</p>';
     return;
   }
 
