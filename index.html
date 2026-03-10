@@ -126,28 +126,74 @@ header.scrolled {
   padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--text-dim);
 }
 
-/* ── GENRE FILTER BAR (Fitur #1) ── */
+/* ── GENRE DROPDOWN ── */
 .genre-bar {
   position: sticky; top: 68px; z-index: 800;
-  padding: 0 4%;
-  background: linear-gradient(to bottom, rgba(10,10,10,0.98), rgba(10,10,10,0.85));
+  padding: 10px 4%;
+  background: rgba(10,10,10,0.97);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px;
-  overflow-x: auto; scrollbar-width: none;
-  animation: rowReveal 0.5s ease both 0.1s;
+  display: flex; align-items: center; gap: 12px;
 }
-.genre-bar::-webkit-scrollbar { display: none; }
-.genre-pill {
-  flex-shrink: 0; padding: 10px 18px;
-  background: transparent; border: none; border-bottom: 2px solid transparent;
-  color: var(--text-muted); font-family: 'Plus Jakarta Sans', sans-serif;
+.genre-dropdown-wrap { position: relative; }
+.genre-selected {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s; white-space: nowrap;
-  margin-bottom: -1px;
+  transition: all 0.2s; user-select: none; white-space: nowrap;
+  min-width: 180px;
 }
-.genre-pill:hover { color: var(--text-dim); }
-.genre-pill.active { color: var(--text); border-bottom-color: var(--red); }
+.genre-selected:hover { border-color: rgba(255,255,255,0.25); }
+.genre-selected.open { border-color: var(--red); }
+.genre-selected-label { flex: 1; }
+.genre-chevron {
+  width: 16px; height: 16px; flex-shrink: 0;
+  transition: transform 0.25s;
+  opacity: 0.5;
+}
+.genre-selected.open .genre-chevron { transform: rotate(180deg); opacity: 1; }
+
+.genre-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 220px; background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  display: none; z-index: 999;
+  animation: dropIn 0.18s cubic-bezier(0.22,1,0.36,1);
+}
+.genre-menu.open { display: block; }
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.genre-menu-inner {
+  display: grid; grid-template-columns: 1fr 1fr;
+  max-height: 360px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.genre-option {
+  padding: 11px 16px; font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 500; color: var(--text-dim);
+  cursor: pointer; transition: all 0.15s; border: none; background: none;
+  text-align: left; white-space: nowrap;
+}
+.genre-option:hover { background: var(--surface2); color: var(--text); }
+.genre-option.active { color: var(--red); font-weight: 700; background: rgba(229,9,20,0.08); }
+
+.genre-active-label {
+  font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.genre-active-tag {
+  background: var(--red); color: #fff;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+  display: none;
+}
+.genre-active-tag.show { display: inline-block; }
 
 /* ── CONTENT ROWS ── */
 .content-area { position: relative; z-index: 2; padding-bottom: 60px; }
@@ -437,26 +483,37 @@ header.scrolled {
 
 <!-- GENRE FILTER BAR -->
 <div class="genre-bar" id="genreBar">
-  <button class="genre-pill active" onclick="filterGenre('Semua', this)">Semua</button>
-  <button class="genre-pill" onclick="filterGenre('Aksi', this)">Aksi</button>
-  <button class="genre-pill" onclick="filterGenre('Petualangan', this)">Petualangan</button>
-  <button class="genre-pill" onclick="filterGenre('Drama', this)">Drama</button>
-  <button class="genre-pill" onclick="filterGenre('Komedi', this)">Komedi</button>
-  <button class="genre-pill" onclick="filterGenre('Horor', this)">Horor</button>
-  <button class="genre-pill" onclick="filterGenre('Thriller', this)">Thriller</button>
-  <button class="genre-pill" onclick="filterGenre('Fiksi Ilmiah', this)">Fiksi Ilmiah</button>
-  <button class="genre-pill" onclick="filterGenre('Fantasi', this)">Fantasi</button>
-  <button class="genre-pill" onclick="filterGenre('Animasi', this)">Animasi</button>
-  <button class="genre-pill" onclick="filterGenre('Roman', this)">Roman</button>
-  <button class="genre-pill" onclick="filterGenre('Kejahatan', this)">Kejahatan</button>
-  <button class="genre-pill" onclick="filterGenre('Misteri', this)">Misteri</button>
-  <button class="genre-pill" onclick="filterGenre('Keluarga', this)">Keluarga</button>
-  <button class="genre-pill" onclick="filterGenre('Dokumenter', this)">Dokumenter</button>
-  <button class="genre-pill" onclick="filterGenre('Sejarah', this)">Sejarah</button>
-  <button class="genre-pill" onclick="filterGenre('Musik', this)">Musik</button>
-  <button class="genre-pill" onclick="filterGenre('Perang', this)">Perang</button>
-  <button class="genre-pill" onclick="filterGenre('Barat', this)">Barat</button>
-  <button class="genre-pill" onclick="filterGenre('Aksi & Petualangan', this)">Aksi & Petualangan</button>
+  <div class="genre-dropdown-wrap" id="genreWrap">
+    <div class="genre-selected" id="genreSelected" onclick="toggleGenreMenu()">
+      <span class="genre-selected-label" id="genreSelectedLabel">🎬 Semua Genre</span>
+      <svg class="genre-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="genre-menu" id="genreMenu">
+      <div class="genre-menu-inner">
+        <button class="genre-option active" onclick="pickGenre('Semua','🎬 Semua Genre')">Semua</button>
+        <button class="genre-option" onclick="pickGenre('Aksi','💥 Aksi')">Aksi</button>
+        <button class="genre-option" onclick="pickGenre('Petualangan','🗺 Petualangan')">Petualangan</button>
+        <button class="genre-option" onclick="pickGenre('Drama','🎭 Drama')">Drama</button>
+        <button class="genre-option" onclick="pickGenre('Komedi','😂 Komedi')">Komedi</button>
+        <button class="genre-option" onclick="pickGenre('Horor','👻 Horor')">Horor</button>
+        <button class="genre-option" onclick="pickGenre('Thriller','😰 Thriller')">Thriller</button>
+        <button class="genre-option" onclick="pickGenre('Fiksi Ilmiah','🚀 Fiksi Ilmiah')">Fiksi Ilmiah</button>
+        <button class="genre-option" onclick="pickGenre('Fantasi','🧙 Fantasi')">Fantasi</button>
+        <button class="genre-option" onclick="pickGenre('Animasi','🎨 Animasi')">Animasi</button>
+        <button class="genre-option" onclick="pickGenre('Roman','❤️ Roman')">Roman</button>
+        <button class="genre-option" onclick="pickGenre('Kejahatan','🔫 Kejahatan')">Kejahatan</button>
+        <button class="genre-option" onclick="pickGenre('Misteri','🔍 Misteri')">Misteri</button>
+        <button class="genre-option" onclick="pickGenre('Keluarga','👨‍👩‍👧 Keluarga')">Keluarga</button>
+        <button class="genre-option" onclick="pickGenre('Dokumenter','📽 Dokumenter')">Dokumenter</button>
+        <button class="genre-option" onclick="pickGenre('Sejarah','📜 Sejarah')">Sejarah</button>
+        <button class="genre-option" onclick="pickGenre('Musik','🎵 Musik')">Musik</button>
+        <button class="genre-option" onclick="pickGenre('Perang','⚔️ Perang')">Perang</button>
+        <button class="genre-option" onclick="pickGenre('Barat','🤠 Barat')">Barat</button>
+        <button class="genre-option" onclick="pickGenre('Aksi & Petualangan','🎬 Aksi & Petualangan')">Aksi & Petualangan</button>
+      </div>
+    </div>
+  </div>
+  <span class="genre-active-tag" id="genreActiveTag" style="display:none"></span>
 </div>
 
 <!-- CONTENT -->
@@ -580,12 +637,36 @@ function openBanner() {
 }
 
 // ── GENRE FILTER (Fitur #1) ──
-function filterGenre(genre, btn) {
+// ── GENRE DROPDOWN ──
+function toggleGenreMenu() {
+  const menu = document.getElementById('genreMenu');
+  const sel  = document.getElementById('genreSelected');
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open', !isOpen);
+  sel.classList.toggle('open', !isOpen);
+}
+function pickGenre(genre, label) {
   activeGenre = genre;
-  document.querySelectorAll('.genre-pill').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
+  document.getElementById('genreSelectedLabel').innerText = label;
+  document.getElementById('genreMenu').classList.remove('open');
+  document.getElementById('genreSelected').classList.remove('open');
+  document.querySelectorAll('.genre-option').forEach(o => o.classList.remove('active'));
+  event.target.classList.add('active');
+
+  // Badge di samping dropdown
+  const tag = document.getElementById('genreActiveTag');
+  if (genre === 'Semua') { tag.style.display = 'none'; }
+  else { tag.innerText = label; tag.style.display = 'inline-block'; }
+
   renderRows();
 }
+// Tutup dropdown kalau klik di luar
+document.addEventListener('click', e => {
+  if (!document.getElementById('genreWrap')?.contains(e.target)) {
+    document.getElementById('genreMenu')?.classList.remove('open');
+    document.getElementById('genreSelected')?.classList.remove('open');
+  }
+});
 
 // Tabel sinonim — berbagai terjemahan TMDB dipetakan ke satu nama genre kita
 const GENRE_ALIASES = {
