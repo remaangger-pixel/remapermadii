@@ -485,12 +485,13 @@ async function pickItem(item, type) {
     const desc   = dID.overview || d.overview || '';
     const poster = d.poster_path ? TMDB_IMG + d.poster_path : '';
     const year   = (d.release_date || d.first_air_date || '').slice(0,4);
+    const titleWithYear = year ? `${title} (${year})` : title;
 
     // Konversi genre_ids → nama Indonesia pakai GENRE_MAP kita
     const genreIds = (d.genres || []).map(g => g.id);
     const genreNames = genreIds.map(id => GENRE_MAP[id]).filter(Boolean).join(', ');
 
-    fill(px + '_title', title);
+    fill(px + '_title', titleWithYear);
     fill(px + '_desc', desc);
     fill(px + '_thumb', poster);
     fill(px + '_genre', genreNames);
