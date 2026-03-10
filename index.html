@@ -546,7 +546,7 @@ header.scrolled {
   <!-- Movies -->
   <div class="row">
     <div class="row-header">
-      <div class="row-title">Film Terbaru</div>
+      <div class="row-title" id="movieRowTitle">Film Terbaru</div>
       <div class="row-see-all">Lihat Semua</div>
     </div>
     <div class="carousel" id="movieCarousel"></div>
@@ -555,7 +555,7 @@ header.scrolled {
   <!-- Series -->
   <div class="row">
     <div class="row-header">
-      <div class="row-title">Series Unggulan</div>
+      <div class="row-title" id="seriesRowTitle">Series Unggulan</div>
       <div class="row-see-all">Lihat Semua</div>
     </div>
     <div class="carousel" id="seriesCarousel"></div>
@@ -707,6 +707,16 @@ function matchesGenre(item) {
 
 // ── ROWS ──
 function renderRows() {
+  const isFiltered = activeGenre !== 'Semua';
+  const genreName  = activeGenre;
+
+  // Sembunyikan Top 10 saat filter genre aktif
+  document.getElementById('top10Row').style.display = isFiltered ? 'none' : 'block';
+
+  // Update judul row sesuai genre
+  document.getElementById('movieRowTitle').innerText  = isFiltered ? `🎬 Film: ${genreName}` : 'Film Terbaru';
+  document.getElementById('seriesRowTitle').innerText = isFiltered ? `📺 Series: ${genreName}` : 'Series Unggulan';
+
   renderCarousel('movieCarousel', movies, 'movie');
   renderCarousel('seriesCarousel', series, 'series');
 }
