@@ -3,143 +3,334 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Playing - Anvi Create</title>
+<title>Menonton — Anvi Create</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root { --bg: #060606; --card: #121212; --accent: #ff0513; --text: #ffffff; --muted: #888888; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow-x: hidden; }
-header { padding: 12px 5%; background: rgba(0,0,0,0.9); display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #111; }
-.back-btn { background: var(--accent); border: none; color: #fff; padding: 8px 18px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 13px; text-decoration: none; }
-.player-wrapper { width: 100%; max-width: 1100px; margin: 20px auto; padding: 0 15px; }
-.video-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 12px; overflow: hidden; }
-.video-container iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
-.server-box { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
-.srv-btn { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-size: 13px; }
-.srv-btn.active { background: var(--accent); border-color: var(--accent); }
-.video-info { padding: 0 5%; margin-bottom: 40px; }
-.video-info h1 { font-size: clamp(20px, 4vw, 28px); margin: 20px 0 10px; }
-.tag { background: #1a1a1a; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--muted); margin-right: 8px; }
-.rec-section { padding: 0 5% 50px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
-.card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; }
-.card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-.loader { position: absolute; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 10; transition: 0.5s; }
-.spinner { width: 40px; height: 40px; border: 4px solid #222; border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
-@keyframes s { to { transform: rotate(360deg); } }
-@media(max-width: 768px) { .player-wrapper { padding: 0; margin: 0; } .video-container { border-radius: 0; } }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1f1f1f;
+  --red: #e50914; --text: #fff;
+  --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.08);
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  opacity: 0; animation: fadeIn 0.5s ease forwards;
+  overflow-x: hidden;
+}
+@keyframes fadeIn { to { opacity: 1; } }
+
+/* HEADER */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 64px; padding: 0 4%;
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(10,10,10,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: 2px;
+  color: var(--red); cursor: pointer;
+  text-decoration: none;
+}
+.sep { color: var(--text-muted); font-size: 18px; }
+#navTitle {
+  font-size: 14px; font-weight: 500; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.close-btn {
+  margin-left: auto;
+  background: none; border: 1px solid var(--border);
+  color: var(--text-dim); padding: 7px 18px; border-radius: 4px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px;
+  cursor: pointer; transition: all 0.2s; text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.close-btn:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
+
+/* MAIN */
+.main { padding-top: 64px; }
+
+.player-wrap {
+  width: 100%; background: #000;
+  position: relative;
+}
+.video-box {
+  width: 100%; max-width: 1280px;
+  margin: 0 auto; padding: 0 4%;
+  padding-top: 24px;
+}
+.video-frame {
+  position: relative; width: 100%; padding-top: 56.25%;
+  background: #000; border-radius: 6px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+.video-frame iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+}
+.loader {
+  position: absolute; inset: 0; background: #000; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.5s;
+}
+.spin {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--red);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* INFO */
+.info-wrap {
+  max-width: 1280px; margin: 0 auto;
+  padding: 32px 4%;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 40px; align-items: start;
+  animation: slideUp 0.5s ease both 0.2s;
+  opacity: 0;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.info-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: 1px; margin-bottom: 10px;
+}
+.info-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tag {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 2px; letter-spacing: 0.5px;
+}
+.tag-type { background: var(--red); color: #fff; }
+.tag-quality { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+
+.server-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+}
+.servers { display: flex; gap: 8px; flex-wrap: wrap; }
+.srv {
+  padding: 8px 20px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-dim); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.srv:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
+.srv.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+/* RECS */
+.rec-wrap {
+  max-width: 1280px; margin: 0 auto;
+  padding: 0 4% 80px;
+  animation: slideUp 0.5s ease both 0.35s;
+  opacity: 0;
+}
+.rec-title {
+  font-size: 18px; font-weight: 700;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.rec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 8px;
+}
+.rec-card {
+  cursor: pointer; border-radius: 4px; overflow: hidden;
+  transition: transform 0.25s;
+}
+.rec-card:hover { transform: scale(1.04); }
+.rec-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+.rec-card-name {
+  background: var(--surface); padding: 8px 10px;
+  font-size: 12px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.fade-out { animation: fadeOut 0.35s ease forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+
+@media(max-width: 768px) {
+  .video-box { padding: 0; }
+  .video-frame { border-radius: 0; }
+  .info-wrap { grid-template-columns: 1fr; gap: 24px; }
+}
 </style>
 </head>
 <body>
 
 <header>
-  <a href="index.html" class="back-btn">✕ Close</a>
-  <span id="navTitle" style="color:var(--muted); font-size:13px;">Loading...</span>
+  <a href="index.html" class="logo">ANVI</a>
+  <span class="sep">/</span>
+  <span id="navTitle">Memuat…</span>
+  <a href="index.html" class="close-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    Tutup
+  </a>
 </header>
 
-<div class="player-wrapper">
-  <div class="video-container">
-    <div id="loader" class="loader"><div class="spinner"></div></div>
-    <div id="playerFrame"></div>
+<div class="main">
+  <div class="player-wrap">
+    <div class="video-box">
+      <div class="video-frame">
+        <div class="loader" id="loader"><div class="spin"></div></div>
+        <div id="playerFrame"></div>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="video-info">
-  <div class="meta">
-    <span class="tag" id="vType">Video</span>
-    <span class="tag">Ultra HD</span>
+  <div class="info-wrap">
+    <div>
+      <div class="info-title" id="vTitle">Memuat…</div>
+      <div class="info-tags">
+        <span class="tag tag-type" id="vType">Video</span>
+        <span class="tag tag-quality">HD</span>
+      </div>
+      <div class="server-label">Pilih Server</div>
+      <div class="servers" id="srvList"></div>
+    </div>
   </div>
-  <h1 id="vTitle">Memuat...</h1>
-  <div class="server-box" id="srvList"></div>
-  <p id="vDesc" style="color:#aaa; font-size:14px;">Selamat menonton di Anvi Create!</p>
-</div>
 
-<div class="rec-section">
-  <h3 style="border-left:3px solid var(--accent); padding-left:10px;">Mungkin Kamu Suka</h3>
-  <div class="grid" id="recList"></div>
+  <div class="rec-wrap">
+    <div class="rec-title">Mungkin Kamu Suka</div>
+    <div class="rec-grid" id="recGrid"></div>
+  </div>
 </div>
 
 <script>
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const params = new URLSearchParams(location.search);
-const movieId = params.get("id");
-const episodeId = params.get("episode");
+
+function goto(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(() => location.href = url, 320);
+}
 
 async function init() {
-  let videoData = null;
-  let finalTitle = "";
+  let data = null, title = '';
+  const movieId = params.get('id');
+  const episodeId = params.get('episode');
 
   if (movieId) {
-    const { data } = await sb.from("Movies").select("*").eq("id", movieId).single();
-    if (data) { videoData = data; finalTitle = data.title; document.getElementById("vType").innerText = "Movie"; }
+    const r = await sb.from('Movies').select('*').eq('id', movieId).single();
+    if (r.data) { data = r.data; title = r.data.title; document.getElementById('vType').innerText = 'Film'; }
   } else if (episodeId) {
-    const { data } = await sb.from("Episodes").select("*, Series(title)").eq("id", episodeId).single();
-    if (data) { videoData = data; finalTitle = `${data.Series.title} - Eps ${data.episode}`; document.getElementById("vType").innerText = "Series"; }
+    const r = await sb.from('Episodes').select('*, Series(title)').eq('id', episodeId).single();
+    if (r.data) { data = r.data; title = `${r.data.Series.title} — Eps ${r.data.episode}`; document.getElementById('vType').innerText = 'Series'; }
   }
 
-  if (videoData) {
-    document.getElementById("navTitle").innerText = "Watching: " + finalTitle;
-    document.getElementById("vTitle").innerText = finalTitle;
-    
-    const srvList = document.getElementById("srvList");
-    // Masukkan server utama
-    const servers = [{n: "Server 1", u: videoData.video}];
-    // Jika ada server backup
-    if(videoData.video2) servers.push({n: "Server 2", u: videoData.video2});
-
-    servers.forEach((s, i) => {
-      const b = document.createElement("button");
-      b.className = "srv-btn" + (i === 0 ? " active" : "");
-      b.innerText = s.n;
-      b.onclick = () => { play(s.u); document.querySelectorAll('.srv-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); };
-      srvList.appendChild(b);
-    });
-    play(videoData.video);
-    loadRecs();
-  } else {
-    document.getElementById("vTitle").innerText = "Video tidak ditemukan.";
-    setTimeout(() => { location.href = "index.html" }, 2000);
+  if (!data) {
+    document.getElementById('vTitle').innerText = 'Video tidak ditemukan.';
+    setTimeout(() => goto('index.html'), 2000);
+    return;
   }
+
+  document.title = title + ' — Anvi';
+  document.getElementById('navTitle').innerText = title;
+  document.getElementById('vTitle').innerText = title;
+
+  const servers = [{ n: 'Server 1', u: data.video }];
+  if (data.video2) servers.push({ n: 'Server 2', u: data.video2 });
+
+  servers.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'srv' + (i === 0 ? ' active' : '');
+    b.innerText = s.n;
+    b.onclick = () => {
+      play(s.u);
+      document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    };
+    document.getElementById('srvList').appendChild(b);
+  });
+
+  play(data.video);
+  loadRecs();
+
+  // ── Track for "Continue Watching" ──
+  const cwType = movieId ? 'movie' : 'series';
+  let cw = JSON.parse(localStorage.getItem('anvi_continue') || '[]').filter(i => i.id !== (movieId || episodeId));
+  cw.unshift({ id: movieId || episodeId, title, thumb: data.thumb, type: cwType, progress: 5 });
+  cw = cw.slice(0, 8);
+  localStorage.setItem('anvi_continue', JSON.stringify(cw));
+
+  // Simulate progress increase while on page
+  let prog = 5;
+  const progTimer = setInterval(() => {
+    prog = Math.min(prog + 1, 95);
+    let stored = JSON.parse(localStorage.getItem('anvi_continue') || '[]');
+    const idx = stored.findIndex(i => i.id === (movieId || episodeId));
+    if (idx > -1) { stored[idx].progress = prog; localStorage.setItem('anvi_continue', JSON.stringify(stored)); }
+  }, 15000); // update every 15s
 }
 
 function play(url) {
-  const loader = document.getElementById("loader");
-  if(loader) { loader.style.display = "flex"; loader.style.opacity = "1"; }
-  
-  let finalUrl = url.trim();
-  let useReferrerPolicy = false;
+  const loader = document.getElementById('loader');
+  loader.style.opacity = '1'; loader.style.display = 'flex';
 
-  // LOGIKA SMART SWITCH
-  if (finalUrl.includes("gdriveplayer.to")) {
-      // Jika link sudah berupa GdrivePlayer, kita gunakan policy no-referrer
-      useReferrerPolicy = true;
-  } else if (finalUrl.includes("drive.google.com")) {
-      // Jika link Drive asli, kita bersihkan linknya (PAKAI IFRAME STANDAR GOOGLE)
-      finalUrl = finalUrl.replace("/view", "/preview");
+  let u = url.trim();
+  let extra = '';
+
+  // Streamtape: /v/ atau /watch/ → /e/
+  if (u.includes('streamtape.com')) {
+    u = u.replace('/v/', '/e/').replace('/watch/', '/e/');
+  }
+  // Filemoon: /d/ atau /f/ → /e/
+  else if (u.includes('filemoon.sx') || u.includes('filemoon.in')) {
+    u = u.replace('/d/', '/e/').replace('/f/', '/e/');
+  }
+  // Doodstream: /d/ atau /f/ → /e/
+  else if (u.match(/dood\.(to|la|sh|watch|pm|re|yt|stream)/)) {
+    u = u.replace(/\/(d|f|watch)\//, '/e/');
+  }
+  // Streamwish: /f/ → /e/
+  else if (u.includes('streamwish.com') || u.includes('strwish.com')) {
+    u = u.replace('/f/', '/e/').replace('/d/', '/e/');
+  }
+  // Pixeldrain: /u/ID → /api/file/ID
+  else if (u.includes('pixeldrain.com')) {
+    const id = u.split('/u/')[1]?.split('?')[0];
+    if (id) u = `https://pixeldrain.com/api/file/${id}?download`;
+  }
+  // Google Drive: /view → /preview
+  else if (u.includes('drive.google.com')) {
+    u = u.replace('/view', '/preview').replace('/edit', '/preview');
+  }
+  // GDrivePlayer: no-referrer
+  else if (u.includes('gdriveplayer')) {
+    extra = 'referrerpolicy="no-referrer"';
   }
 
-  // Render Player Standar (Lebih aman untuk Google Drive)
-  document.getElementById("playerFrame").innerHTML = `
-    <iframe 
-      src="${finalUrl}" 
-      allowfullscreen 
-      allow="autoplay"
-      ${useReferrerPolicy ? 'referrerpolicy="no-referrer"' : ''}
-    ></iframe>
-  `;
-  
-  setTimeout(() => { if(loader) { loader.style.opacity = "0"; setTimeout(() => loader.style.display = "none", 500); } }, 1500);
+  document.getElementById('playerFrame').innerHTML =
+    `<iframe src="${u}" allowfullscreen allow="autoplay; fullscreen" ${extra}></iframe>`;
+
+  setTimeout(() => {
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 500);
+  }, 1800);
 }
 
 async function loadRecs() {
-  const { data } = await sb.from("Movies").select("*").eq("is18", false).limit(6);
-  const grid = document.getElementById("recList");
+  const { data } = await sb.from('Movies').select('*').eq('is18', false).limit(8);
+  const grid = document.getElementById('recGrid');
   data?.forEach(r => {
-    grid.innerHTML += `<div class="card" onclick="location.href='player.html?id=${r.id}'"><img src="${r.thumb}"><div style="padding:8px;font-size:12px;text-align:center">${r.title}</div></div>`;
+    grid.innerHTML += `
+      <div class="rec-card" onclick="goto('player.html?id=${r.id}')">
+        <img src="${r.thumb}" loading="lazy" alt="${r.title}">
+        <div class="rec-card-name">${r.title}</div>
+      </div>`;
   });
 }
+
 init();
 </script>
 </body>
