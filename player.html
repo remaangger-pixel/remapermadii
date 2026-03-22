@@ -229,7 +229,7 @@ async function init() {
     const r = await sb.from('Movies').select('*').eq('id', movieId).single();
     if (r.data) { data = r.data; title = r.data.title; document.getElementById('vType').innerText = 'Film'; }
   } else if (episodeId) {
-    const r = await sb.from('Episodes').select('*, Series(title)').eq('id', episodeId).single();
+    const r = await sb.from('Episodes').select('*, Series(id, title, thumb)').eq('id', episodeId).single();
     if (r.data) { data = r.data; title = `${r.data.Series.title} — Eps ${r.data.episode}`; document.getElementById('vType').innerText = 'Series'; }
   }
 
@@ -262,20 +262,29 @@ async function init() {
   loadRecs();
 
   // ── Track for "Continue Watching" ──
-  const cwType = movieId ? 'movie' : 'series';
-  let cw = JSON.parse(localStorage.getItem('anvi_continue') || '[]').filter(i => i.id !== (movieId || episodeId));
-  cw.unshift({ id: movieId || episodeId, title, thumb: data.thumb, type: cwType, progress: 5 });
+  const cwType = movieId ? 'movie' : 'episode';
+  // Untuk episode: pakai series_id sebagai ID navigasi, thumb dari Series
+  const cwId    = movieId ? movieId : data.series_id;
+  const cwThumb = movieId ? data.thumb : (data.Series?.thumb || '');
+  const cwTitle = movieId ? title : data.Series?.title || title;
+  // URL untuk lanjutkan: movie → player, episode → series page
+  const cwUrl   = movieId
+    ? `player.html?id=${movieId}`
+    : `series.html?id=${data.series_id}`;
+
+  let cw = JSON.parse(localStorage.getItem('anvi_continue') || '[]').filter(i => i.id !== cwId);
+  cw.unshift({ id: cwId, title: cwTitle, thumb: cwThumb, type: cwType, url: cwUrl, progress: 5 });
   cw = cw.slice(0, 8);
   localStorage.setItem('anvi_continue', JSON.stringify(cw));
 
-  // Simulate progress increase while on page
+  // Update progress setiap 15 detik
   let prog = 5;
   const progTimer = setInterval(() => {
     prog = Math.min(prog + 1, 95);
     let stored = JSON.parse(localStorage.getItem('anvi_continue') || '[]');
-    const idx = stored.findIndex(i => i.id === (movieId || episodeId));
+    const idx = stored.findIndex(i => i.id === cwId);
     if (idx > -1) { stored[idx].progress = prog; localStorage.setItem('anvi_continue', JSON.stringify(stored)); }
-  }, 15000); // update every 15s
+  }, 15000);
 }
 
 function play(url) {
