@@ -881,7 +881,11 @@ function renderContinue() {
         <div class="cw-title">${item.title}</div>
         <div class="cw-sub">${pct}% selesai</div>
       </div>`;
-    card.onclick = () => goto((item.type === 'movie' ? 'player.html?id=' : 'series.html?id=') + item.id);
+    card.onclick = () => {
+      // Pakai url yang sudah disimpan kalau ada, fallback ke logika lama
+      const dest = item.url || (item.type === 'movie' ? 'player.html?id=' : 'series.html?id=') + item.id;
+      goto(dest);
+    };
     carousel.appendChild(card);
   });
 }
