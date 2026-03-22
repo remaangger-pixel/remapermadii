@@ -261,30 +261,30 @@ async function init() {
   play(data.video);
   loadRecs();
 
-  // ── Track for "Continue Watching" ──
-  const cwType = movieId ? 'movie' : 'episode';
-  // Untuk episode: pakai series_id sebagai ID navigasi, thumb dari Series
-  const cwId    = movieId ? movieId : data.series_id;
-  const cwThumb = movieId ? data.thumb : (data.Series?.thumb || '');
-  const cwTitle = movieId ? title : data.Series?.title || title;
-  // URL untuk lanjutkan: movie → player, episode → series page
-  const cwUrl   = movieId
-    ? `player.html?id=${movieId}`
-    : `series.html?id=${data.series_id}`;
+  // ── Track for "Continue Watching" — skip konten 18+ ──
+  if (!data.is18) {
+    const cwType = movieId ? 'movie' : 'episode';
+    const cwId    = movieId ? movieId : data.series_id;
+    const cwThumb = movieId ? data.thumb : (data.Series?.thumb || '');
+    const cwTitle = movieId ? title : data.Series?.title || title;
+    const cwUrl   = movieId
+      ? `player.html?id=${movieId}`
+      : `series.html?id=${data.series_id}`;
 
-  let cw = JSON.parse(localStorage.getItem('anvi_continue') || '[]').filter(i => i.id !== cwId);
-  cw.unshift({ id: cwId, title: cwTitle, thumb: cwThumb, type: cwType, url: cwUrl, progress: 5 });
-  cw = cw.slice(0, 8);
-  localStorage.setItem('anvi_continue', JSON.stringify(cw));
+    let cw = JSON.parse(localStorage.getItem('anvi_continue') || '[]').filter(i => i.id !== cwId);
+    cw.unshift({ id: cwId, title: cwTitle, thumb: cwThumb, type: cwType, url: cwUrl, progress: 5 });
+    cw = cw.slice(0, 8);
+    localStorage.setItem('anvi_continue', JSON.stringify(cw));
 
-  // Update progress setiap 15 detik
-  let prog = 5;
-  const progTimer = setInterval(() => {
-    prog = Math.min(prog + 1, 95);
-    let stored = JSON.parse(localStorage.getItem('anvi_continue') || '[]');
-    const idx = stored.findIndex(i => i.id === cwId);
-    if (idx > -1) { stored[idx].progress = prog; localStorage.setItem('anvi_continue', JSON.stringify(stored)); }
-  }, 15000);
+    // Update progress setiap 15 detik
+    let prog = 5;
+    const progTimer = setInterval(() => {
+      prog = Math.min(prog + 1, 95);
+      let stored = JSON.parse(localStorage.getItem('anvi_continue') || '[]');
+      const idx = stored.findIndex(i => i.id === cwId);
+      if (idx > -1) { stored[idx].progress = prog; localStorage.setItem('anvi_continue', JSON.stringify(stored)); }
+    }, 15000);
+  }
 }
 
 function play(url) {
