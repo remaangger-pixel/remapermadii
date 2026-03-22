@@ -314,9 +314,13 @@ function play(url) {
   else if (u.includes('gdriveplayer')) {
     extra = 'referrerpolicy="no-referrer"';
   }
+  // Abyss.to / short.icu — butuh allow-same-origin untuk fullscreen
+  else if (u.includes('short.icu') || u.includes('abyss.to')) {
+    extra = 'sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups allow-top-navigation" referrerpolicy="no-referrer"';
+  }
 
   document.getElementById('playerFrame').innerHTML =
-    `<iframe src="${u}" frameborder="0" scrolling="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" ${extra}></iframe>`;
+    `<iframe src="${u}" frameborder="0" scrolling="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; xr-spatial-tracking" ${extra}></iframe>`;
 
   setTimeout(() => {
     loader.style.opacity = '0';
