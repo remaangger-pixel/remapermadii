@@ -263,9 +263,9 @@ async function init() {
 
   // ── Increment view_count via RPC (bypass RLS) ──
   if (movieId) {
-    sb.rpc('increment_view_count', { table_name: 'Movies', row_id: parseInt(movieId) });
+    sb.rpc('increment_view_count', { table_name: 'Movies', row_id: Number(movieId) });
   } else if (episodeId && data.series_id) {
-    sb.rpc('increment_view_count', { table_name: 'Series', row_id: parseInt(data.series_id) });
+    sb.rpc('increment_view_count', { table_name: 'Series', row_id: Number(data.series_id) });
   }
 
   // ── Track for "Continue Watching" — skip konten 18+ ──
