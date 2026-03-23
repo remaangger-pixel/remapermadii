@@ -834,11 +834,22 @@ function renderCarousel(containerId, data, type) {
 }
 
 // ── TOP 10 (Fitur #2) ──
-function renderTop10() {
-  // Simulate trending — use first 10 items, in real app track view counts in Supabase
-  const trending = [...movies, ...series].filter(i => !i.is18).slice(0, 10);
+async function renderTop10() {
+  // Ambil top 5 movies + top 5 series berdasarkan view_count
+  const [mRes, sRes] = await Promise.all([
+    sb.from('Movies').select('*').eq('is18', false).order('view_count', { ascending: false }).limit(5),
+    sb.from('Series').select('*').eq('is18', false).order('view_count', { ascending: false }).limit(5)
+  ]);
+
+  // Gabung dan urutkan ulang berdasarkan view_count
+  const trending = [...(mRes.data || []), ...(sRes.data || [])]
+    .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+    .slice(0, 10);
+
   const carousel = document.getElementById('top10Carousel');
   carousel.innerHTML = '';
+  if (!trending.length) return;
+
   trending.forEach((item, i) => {
     const div = document.createElement('div');
     div.className = 'top10-item';
@@ -852,7 +863,7 @@ function renderTop10() {
     div.onclick = () => goto(type === 'movie' ? 'player.html?id=' + item.id : 'series.html?id=' + item.id);
     carousel.appendChild(div);
   });
-  if (trending.length) document.getElementById('top10Row').style.opacity = '1';
+  document.getElementById('top10Row').style.opacity = '1';
 }
 
 // ── CONTINUE WATCHING (Fitur #3) ──
