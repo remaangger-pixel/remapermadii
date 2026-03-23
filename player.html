@@ -129,6 +129,14 @@ header {
 }
 .srv:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
 .srv.active { background: var(--red); border-color: var(--red); color: #fff; }
+.srv.trailer {
+  border-color: rgba(255,200,0,0.3); color: #ffc800;
+  display: none; align-items: center; gap: 7px;
+}
+.srv.trailer.show { display: flex; }
+.srv.trailer:hover { border-color: #ffc800; background: rgba(255,200,0,0.08); }
+.srv.trailer.active { background: #ffc800; border-color: #ffc800; color: #000; }
+.srv.trailer svg { width: 13px; height: 13px; fill: currentColor; }
 
 /* RECS */
 .rec-wrap {
@@ -199,7 +207,12 @@ header {
         <span class="tag tag-quality">HD</span>
       </div>
       <div class="server-label">Pilih Server</div>
-      <div class="servers" id="srvList"></div>
+      <div class="servers" id="srvList">
+        <button class="srv trailer" id="trailerBtn" onclick="playTrailer()">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          Trailer
+        </button>
+      </div>
     </div>
   </div>
 
@@ -213,6 +226,9 @@ header {
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TMDB_KEY = '7bb2587bb70323fa478264264f16fcc7';
+const TMDB_API = 'https://api.themoviedb.org/3';
+let trailerKey = null; // YouTube video key dari TMDB
 const params = new URLSearchParams(location.search);
 
 function goto(url) {
@@ -254,12 +270,14 @@ async function init() {
       play(s.u);
       document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
+      document.getElementById('trailerBtn').classList.remove('active');
     };
     document.getElementById('srvList').appendChild(b);
   });
 
   play(data.video);
   loadRecs();
+  loadTrailer(title, !!movieId);
 
   // ── Increment view_count via RPC (bypass RLS) ──
   if (movieId) {
@@ -356,6 +374,55 @@ async function loadRecs() {
         <div class="rec-card-name">${r.title}</div>
       </div>`;
   });
+}
+
+async function loadTrailer(title, isMovie) {
+  try {
+    // Bersihkan judul — hapus "(TAHUN)" dari belakang
+    const cleanTitle = title.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    const year = (title.match(/\((\d{4})\)/) || [])[1] || '';
+
+    // Search di TMDB
+    const type = isMovie ? 'movie' : 'tv';
+    const searchUrl = `${TMDB_API}/search/${type}?api_key=${TMDB_KEY}&query=${encodeURIComponent(cleanTitle)}${year ? '&year=' + year : ''}`;
+    const sRes = await fetch(searchUrl);
+    const sData = await sRes.json();
+    const first = sData.results?.[0];
+    if (!first) return;
+
+    // Ambil video/trailer
+    const vRes = await fetch(`${TMDB_API}/${type}/${first.id}/videos?api_key=${TMDB_KEY}&language=id-ID`);
+    const vData = await vRes.json();
+    let videos = vData.results || [];
+
+    // Kalau tidak ada trailer bahasa Indonesia, coba bahasa Inggris
+    if (!videos.length) {
+      const vResEn = await fetch(`${TMDB_API}/${type}/${first.id}/videos?api_key=${TMDB_KEY}`);
+      const vDataEn = await vResEn.json();
+      videos = vDataEn.results || [];
+    }
+
+    // Cari trailer YouTube
+    const trailer = videos.find(v => v.site === 'YouTube' && v.type === 'Trailer')
+                 || videos.find(v => v.site === 'YouTube' && v.type === 'Teaser')
+                 || videos.find(v => v.site === 'YouTube');
+
+    if (trailer) {
+      trailerKey = trailer.key;
+      const btn = document.getElementById('trailerBtn');
+      btn.classList.add('show');
+    }
+  } catch(e) {
+    console.log('Trailer tidak ditemukan:', e.message);
+  }
+}
+
+function playTrailer() {
+  if (!trailerKey) return;
+  document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
+  document.getElementById('trailerBtn').classList.add('active');
+  document.getElementById('playerFrame').innerHTML =
+    `<iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1" frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>`;
 }
 
 init();
