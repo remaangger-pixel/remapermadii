@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Anvi Create</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1f1f1f; --surface3: #252525;
+  --red: #e50914; --blue: #4f8ef7; --green: #1db954; --gold: #f5c518; --purple: #9b59b6;
+  --text: #fff; --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.08);
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; opacity: 0; animation: fadeIn 0.5s ease 0.1s forwards; padding-bottom: 80px; }
+@keyframes fadeIn { to { opacity: 1; } }
+
+/* HEADER */
+header {
+  position: sticky; top: 0; z-index: 900;
+  height: 64px; padding: 0 4%;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--red); text-decoration: none; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.hbtn { background: none; border: 1px solid var(--border); color: var(--text-dim); padding: 7px 16px; border-radius: 4px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+.hbtn:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
+.last-updated { font-size: 12px; color: var(--text-muted); }
+
+/* WRAP */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 32px 4%; }
+
+/* PAGE TITLE */
+.page-header { margin-bottom: 32px; }
+.page-title { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 2px; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--text-muted); }
+
+/* STAT CARDS */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 32px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 22px;
+  transition: transform 0.2s, border-color 0.2s;
+  animation: cardIn 0.4s ease both;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.10s; }
+.stat-card:nth-child(3) { animation-delay: 0.15s; }
+.stat-card:nth-child(4) { animation-delay: 0.20s; }
+.stat-card:nth-child(5) { animation-delay: 0.25s; }
+.stat-card:nth-child(6) { animation-delay: 0.30s; }
+.stat-icon { font-size: 24px; margin-bottom: 12px; }
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.stat-card.red .stat-value { color: var(--red); }
+.stat-card.blue .stat-value { color: var(--blue); }
+.stat-card.green .stat-value { color: var(--green); }
+.stat-card.gold .stat-value { color: var(--gold); }
+.stat-card.purple .stat-value { color: var(--purple); }
+
+/* SECTION */
+.section { margin-bottom: 32px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 16px; font-weight: 700; }
+.section-sub { font-size: 12px; color: var(--text-muted); }
+
+/* CHART */
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 24px;
+  animation: cardIn 0.4s ease both 0.3s;
+}
+.chart-wrap { position: relative; height: 280px; }
+
+/* TWO COL */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+/* TOP LIST */
+.top-list { display: flex; flex-direction: column; gap: 8px; }
+.top-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; background: var(--surface2);
+  border-radius: 8px; border: 1px solid var(--border);
+  transition: border-color 0.2s;
+  animation: cardIn 0.35s ease both;
+}
+.top-item:hover { border-color: rgba(255,255,255,0.15); }
+.top-rank { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--text-muted); min-width: 28px; }
+.top-rank.gold { color: var(--gold); }
+.top-rank.silver { color: #aaa; }
+.top-rank.bronze { color: #cd7f32; }
+.top-thumb { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--surface3); }
+.top-info { flex: 1; min-width: 0; }
+.top-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.top-meta { font-size: 11px; color: var(--text-muted); }
+.top-views { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--text-dim); flex-shrink: 0; }
+.top-bar-wrap { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.top-bar { height: 100%; background: var(--red); border-radius: 2px; transition: width 0.8s ease; }
+
+/* GENRE CHART */
+.genre-list { display: flex; flex-direction: column; gap: 10px; }
+.genre-row { display: flex; flex-direction: column; gap: 5px; }
+.genre-row-top { display: flex; justify-content: space-between; font-size: 13px; }
+.genre-name { font-weight: 600; }
+.genre-count { color: var(--text-muted); font-size: 12px; }
+.genre-bar-bg { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.genre-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease 0.2s; }
+
+/* RECENT */
+.recent-list { display: flex; flex-direction: column; gap: 8px; }
+.recent-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: var(--surface2);
+  border-radius: 8px; border: 1px solid var(--border);
+  animation: cardIn 0.35s ease both;
+}
+.recent-thumb { width: 36px; height: 54px; object-fit: cover; border-radius: 3px; flex-shrink: 0; background: var(--surface3); }
+.recent-info { flex: 1; min-width: 0; }
+.recent-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.recent-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; flex-shrink: 0; }
+.badge-movie { background: rgba(229,9,20,0.15); color: var(--red); border: 1px solid rgba(229,9,20,0.3); }
+.badge-series { background: rgba(79,142,247,0.15); color: var(--blue); border: 1px solid rgba(79,142,247,0.3); }
+
+/* LOADING */
+.loading-shimmer {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px; height: 20px;
+}
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+.empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">ANVI</a>
+  <div class="header-right">
+    <span class="last-updated" id="lastUpdated">Memuat...</span>
+    <a href="admin.html" class="hbtn">← Admin</a>
+    <a href="index.html" class="hbtn">Beranda</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-header">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">Statistik konten Anvi Create</div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stat-grid">
+    <div class="stat-card red">
+      <div class="stat-icon">🎬</div>
+      <div class="stat-value" id="statMovies">—</div>
+      <div class="stat-label">Total Film</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-icon">📺</div>
+      <div class="stat-value" id="statSeries">—</div>
+      <div class="stat-label">Total Series</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-icon">🎞</div>
+      <div class="stat-value" id="statEpisodes">—</div>
+      <div class="stat-label">Total Episode</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-icon">👁</div>
+      <div class="stat-value" id="statViews">—</div>
+      <div class="stat-label">Total Views</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="statTopViews">—</div>
+      <div class="stat-label">Views Terbanyak</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📅</div>
+      <div class="stat-value" id="statThisMonth">—</div>
+      <div class="stat-label">Upload Bulan Ini</div>
+    </div>
+  </div>
+
+  <!-- TOP VIEWS CHART -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">📊 Grafik Top 10 Ditonton</div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-wrap"><canvas id="viewsChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TWO COL: TOP MOVIES + GENRE -->
+  <div class="two-col section">
+    <!-- Top Film -->
+    <div class="chart-card">
+      <div class="section-header">
+        <div class="section-title">🏆 Film Terpopuler</div>
+        <div class="section-sub">by view count</div>
+      </div>
+      <div class="top-list" id="topMoviesList">
+        <div class="empty-state">Memuat...</div>
+      </div>
+    </div>
+
+    <!-- Genre Distribution -->
+    <div class="chart-card">
+      <div class="section-header">
+        <div class="section-title">🎭 Distribusi Genre</div>
+        <div class="section-sub">jumlah film per genre</div>
+      </div>
+      <div class="genre-list" id="genreList">
+        <div class="empty-state">Memuat...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TWO COL: RECENT UPLOADS -->
+  <div class="two-col section">
+    <div class="chart-card">
+      <div class="section-header">
+        <div class="section-title">🆕 Film Terbaru Diupload</div>
+      </div>
+      <div class="recent-list" id="recentMovies">
+        <div class="empty-state">Memuat...</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="section-header">
+        <div class="section-title">🆕 Series Terbaru Diupload</div>
+      </div>
+      <div class="recent-list" id="recentSeries">
+        <div class="empty-state">Memuat...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const COLORS = ['#e50914','#4f8ef7','#1db954','#f5c518','#9b59b6','#e67e22','#1abc9c','#e91e63','#00bcd4','#ff5722'];
+
+async function init() {
+  // Auth check
+  const { data: session } = await sb.auth.getSession();
+  if (!session.session) { location.replace('login.html'); return; }
+
+  // Fetch all data
+  const [mRes, sRes, epRes] = await Promise.all([
+    sb.from('Movies').select('*').order('created_at', { ascending: false }),
+    sb.from('Series').select('*').order('created_at', { ascending: false }),
+    sb.from('Episodes').select('id, series_id')
+  ]);
+
+  const movies   = mRes.data || [];
+  const series   = sRes.data || [];
+  const episodes = epRes.data || [];
+
+  // Update last updated
+  document.getElementById('lastUpdated').innerText = 'Update: ' + new Date().toLocaleTimeString('id-ID');
+
+  // ── STAT CARDS ──
+  const totalViews = movies.reduce((s, m) => s + (m.view_count||0), 0)
+                   + series.reduce((s, v) => s + (v.view_count||0), 0);
+  const topViews = Math.max(...movies.map(m => m.view_count||0), ...series.map(s => s.view_count||0));
+  const now = new Date();
+  const thisMonth = [...movies, ...series].filter(i => {
+    const d = new Date(i.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  animateNumber('statMovies', movies.length);
+  animateNumber('statSeries', series.length);
+  animateNumber('statEpisodes', episodes.length);
+  animateNumber('statViews', totalViews);
+  animateNumber('statTopViews', topViews);
+  animateNumber('statThisMonth', thisMonth);
+
+  // ── TOP 10 CHART ──
+  const allContent = [
+    ...movies.map(m => ({ title: m.title, views: m.view_count||0, type: 'Film' })),
+    ...series.map(s => ({ title: s.title, views: s.view_count||0, type: 'Series' }))
+  ].sort((a, b) => b.views - a.views).slice(0, 10);
+
+  if (allContent.length) {
+    const ctx = document.getElementById('viewsChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: allContent.map(i => i.title.length > 20 ? i.title.slice(0,20)+'…' : i.title),
+        datasets: [{
+          data: allContent.map(i => i.views),
+          backgroundColor: allContent.map((_, i) => COLORS[i % COLORS.length] + 'cc'),
+          borderColor: allContent.map((_, i) => COLORS[i % COLORS.length]),
+          borderWidth: 1, borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+
+  // ── TOP MOVIES LIST ──
+  const topMovies = [...movies].sort((a, b) => (b.view_count||0) - (a.view_count||0)).slice(0, 7);
+  const maxViews = topMovies[0]?.view_count || 1;
+  const topList = document.getElementById('topMoviesList');
+  topList.innerHTML = '';
+  if (!topMovies.length) { topList.innerHTML = '<div class="empty-state">Belum ada data</div>'; }
+  topMovies.forEach((m, i) => {
+    const pct = ((m.view_count||0) / maxViews * 100).toFixed(0);
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    topList.innerHTML += `
+      <div class="top-item" style="animation-delay:${i*0.05}s">
+        <div class="top-rank ${rankClass}">${i+1}</div>
+        <img class="top-thumb" src="${m.thumb}" loading="lazy" alt="${m.title}" onerror="this.style.opacity=0.3">
+        <div class="top-info">
+          <div class="top-title">${m.title}</div>
+          <div class="top-bar-wrap"><div class="top-bar" style="width:${pct}%"></div></div>
+        </div>
+        <div class="top-views">${m.view_count||0}</div>
+      </div>`;
+  });
+
+  // ── GENRE DISTRIBUTION ──
+  const genreCount = {};
+  movies.forEach(m => {
+    if (!m.genre) return;
+    m.genre.split(',').forEach(g => {
+      const name = g.trim();
+      if (name) genreCount[name] = (genreCount[name] || 0) + 1;
+    });
+  });
+  const sortedGenres = Object.entries(genreCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxGenre = sortedGenres[0]?.[1] || 1;
+  const genreList = document.getElementById('genreList');
+  genreList.innerHTML = '';
+  if (!sortedGenres.length) { genreList.innerHTML = '<div class="empty-state">Belum ada data genre</div>'; }
+  sortedGenres.forEach(([name, count], i) => {
+    const pct = (count / maxGenre * 100).toFixed(0);
+    genreList.innerHTML += `
+      <div class="genre-row" style="animation-delay:${i*0.05}s">
+        <div class="genre-row-top">
+          <span class="genre-name">${name}</span>
+          <span class="genre-count">${count} film</span>
+        </div>
+        <div class="genre-bar-bg">
+          <div class="genre-bar-fill" style="width:${pct}%;background:${COLORS[i%COLORS.length]}"></div>
+        </div>
+      </div>`;
+  });
+
+  // ── RECENT MOVIES ──
+  const recentMoviesEl = document.getElementById('recentMovies');
+  recentMoviesEl.innerHTML = '';
+  movies.slice(0, 6).forEach((m, i) => {
+    const date = new Date(m.created_at).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+    recentMoviesEl.innerHTML += `
+      <div class="recent-item" style="animation-delay:${i*0.05}s" onclick="location.href='player.html?id=${m.id}'" style="cursor:pointer">
+        <img class="recent-thumb" src="${m.thumb}" loading="lazy" alt="${m.title}" onerror="this.style.opacity=0.3">
+        <div class="recent-info">
+          <div class="recent-title">${m.title}</div>
+          <div class="recent-meta">${date} · ${m.view_count||0} views</div>
+        </div>
+        <span class="recent-badge badge-movie">Film</span>
+      </div>`;
+  });
+
+  // ── RECENT SERIES ──
+  const recentSeriesEl = document.getElementById('recentSeries');
+  recentSeriesEl.innerHTML = '';
+  if (!series.length) { recentSeriesEl.innerHTML = '<div class="empty-state">Belum ada series</div>'; }
+  series.slice(0, 6).forEach((s, i) => {
+    const date = new Date(s.created_at).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+    const epCount = episodes.filter(e => e.series_id === s.id).length;
+    recentSeriesEl.innerHTML += `
+      <div class="recent-item" style="animation-delay:${i*0.05}s" onclick="location.href='series.html?id=${s.id}'" style="cursor:pointer">
+        <img class="recent-thumb" src="${s.thumb}" loading="lazy" alt="${s.title}" onerror="this.style.opacity=0.3">
+        <div class="recent-info">
+          <div class="recent-title">${s.title}</div>
+          <div class="recent-meta">${date} · ${epCount} episode · ${s.view_count||0} views</div>
+        </div>
+        <span class="recent-badge badge-series">Series</span>
+      </div>`;
+  });
+}
+
+// Animate number counter
+function animateNumber(id, target) {
+  const el = document.getElementById(id);
+  const duration = 1000;
+  const start = performance.now();
+  function update(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.innerText = Math.floor(ease * target).toLocaleString('id-ID');
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+init();
+</script>
+</body>
+</html>
