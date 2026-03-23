@@ -261,13 +261,11 @@ async function init() {
   play(data.video);
   loadRecs();
 
-  // ── Increment view_count ──
+  // ── Increment view_count via RPC (bypass RLS) ──
   if (movieId) {
-    sb.from('Movies').update({ view_count: (data.view_count || 0) + 1 }).eq('id', movieId);
+    sb.rpc('increment_view_count', { table_name: 'Movies', row_id: parseInt(movieId) });
   } else if (episodeId && data.series_id) {
-    sb.from('Series').select('view_count').eq('id', data.series_id).single().then(r => {
-      if (r.data) sb.from('Series').update({ view_count: (r.data.view_count || 0) + 1 }).eq('id', data.series_id);
-    });
+    sb.rpc('increment_view_count', { table_name: 'Series', row_id: parseInt(data.series_id) });
   }
 
   // ── Track for "Continue Watching" — skip konten 18+ ──
