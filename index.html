@@ -562,7 +562,7 @@ header.scrolled {
   <div class="row">
     <div class="row-header">
       <div class="row-title" id="movieRowTitle">Film Terbaru</div>
-      <div class="row-see-all">Lihat Semua</div>
+      <div class="row-see-all" onclick="goto('movies.html')">Lihat Semua</div>
     </div>
     <div class="carousel" id="movieCarousel"></div>
   </div>
@@ -835,13 +835,13 @@ function renderCarousel(containerId, data, type) {
 
 // ── TOP 10 (Fitur #2) ──
 async function renderTop10() {
-  // Ambil top 5 movies + top 5 series berdasarkan view_count
+  // Ambil lebih banyak dari masing-masing agar setelah digabung tetap 10
   const [mRes, sRes] = await Promise.all([
-    sb.from('Movies').select('*').eq('is18', false).order('view_count', { ascending: false }).limit(5),
-    sb.from('Series').select('*').eq('is18', false).order('view_count', { ascending: false }).limit(5)
+    sb.from('Movies').select('*').eq('is18', false).order('view_count', { ascending: false }).limit(10),
+    sb.from('Series').select('*').eq('is18', false).order('view_count', { ascending: false }).limit(10)
   ]);
 
-  // Gabung dan urutkan ulang berdasarkan view_count
+  // Gabung dan urutkan berdasarkan view_count, ambil 10 teratas
   const trending = [...(mRes.data || []), ...(sRes.data || [])]
     .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
     .slice(0, 10);
