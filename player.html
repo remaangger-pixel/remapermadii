@@ -138,6 +138,60 @@ header {
 .srv.trailer.active { background: #ffc800; border-color: #ffc800; color: #000; }
 .srv.trailer svg { width: 13px; height: 13px; fill: currentColor; }
 
+/* DETAIL */
+.detail-wrap {
+  max-width: 1280px; margin: 0 auto;
+  padding: 0 4% 32px;
+  animation: slideUp 0.5s ease both 0.28s;
+  opacity: 0; border-bottom: 1px solid var(--border);
+}
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+@media(max-width: 768px) { .detail-grid { grid-template-columns: 1fr; gap: 24px; } }
+.detail-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;
+}
+.detail-desc { font-size: 14px; line-height: 1.8; color: var(--text-dim); }
+.detail-desc.collapsed { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.btn-expand {
+  background: none; border: none; color: var(--red);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px;
+  font-weight: 600; cursor: pointer; padding: 8px 0 0; transition: opacity 0.2s;
+}
+.btn-expand:hover { opacity: 0.8; }
+.detail-meta { display: flex; flex-direction: column; gap: 12px; }
+.meta-row { display: flex; gap: 10px; align-items: baseline; }
+.meta-label { font-size: 12px; font-weight: 700; color: var(--text-muted); min-width: 70px; }
+.meta-value { font-size: 13px; color: var(--text-dim); }
+.genre-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.genre-tag { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface2); font-size: 11px; font-weight: 600; color: var(--text-dim); }
+.share-wrap { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.btn-share {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-dim);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-share:hover { border-color: rgba(255,255,255,0.25); color: var(--text); }
+.btn-share.wa { border-color: rgba(37,211,102,0.3); color: #25d366; }
+.btn-share.wa:hover { background: rgba(37,211,102,0.08); }
+
+/* CAST */
+.cast-wrap {
+  max-width: 1280px; margin: 0 auto;
+  padding: 28px 4% 32px;
+  animation: slideUp 0.5s ease both 0.32s;
+  opacity: 0; border-bottom: 1px solid var(--border);
+}
+.cast-scroll { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.cast-scroll::-webkit-scrollbar { display: none; }
+.cast-card { flex: 0 0 90px; text-align: center; }
+.cast-photo { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; margin: 0 auto 8px; border: 2px solid var(--border); display: block; background: var(--surface2); }
+.cast-placeholder { width: 72px; height: 72px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-size: 22px; }
+.cast-name { font-size: 11px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cast-char { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* RECS */
 .rec-wrap {
   max-width: 1280px; margin: 0 auto;
@@ -214,6 +268,32 @@ header {
         </button>
       </div>
     </div>
+  </div>
+
+  <div class="detail-wrap" id="detailWrap" style="display:none">
+    <div class="detail-grid">
+      <div>
+        <div class="detail-section-title">Sinopsis</div>
+        <div class="detail-desc collapsed" id="detailDesc">—</div>
+        <button class="btn-expand" id="btnExpand" onclick="toggleDesc()">Selengkapnya ▾</button>
+        <div class="share-wrap">
+          <button class="btn-share wa" onclick="shareWA()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.096.541 4.064 1.487 5.785L.057 23.176a.75.75 0 0 0 .92.92l5.442-1.425A11.934 11.934 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.686-.516-5.214-1.415l-.372-.219-3.862 1.013 1.036-3.77-.239-.386A9.953 9.953 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+            WhatsApp
+          </button>
+          <button class="btn-share" onclick="copyLink()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Salin Link
+          </button>
+        </div>
+      </div>
+      <div class="detail-meta" id="detailMeta"></div>
+    </div>
+  </div>
+
+  <div class="cast-wrap" id="castWrap" style="display:none">
+    <div class="detail-section-title">Pemeran</div>
+    <div class="cast-scroll" id="castList"></div>
   </div>
 
   <div class="rec-wrap">
@@ -378,43 +458,103 @@ async function loadRecs() {
 
 async function loadTrailer(title, isMovie) {
   try {
-    // Bersihkan judul — hapus "(TAHUN)" dari belakang
     const cleanTitle = title.replace(/\s*\(\d{4}\)\s*$/, '').trim();
     const year = (title.match(/\((\d{4})\)/) || [])[1] || '';
-
-    // Search di TMDB
     const type = isMovie ? 'movie' : 'tv';
-    const searchUrl = `${TMDB_API}/search/${type}?api_key=${TMDB_KEY}&query=${encodeURIComponent(cleanTitle)}${year ? '&year=' + year : ''}`;
-    const sRes = await fetch(searchUrl);
+
+    // Search TMDB
+    const sRes = await fetch(`${TMDB_API}/search/${type}?api_key=${TMDB_KEY}&query=${encodeURIComponent(cleanTitle)}${year ? '&year='+year : ''}`);
     const sData = await sRes.json();
     const first = sData.results?.[0];
     if (!first) return;
 
-    // Ambil video/trailer
-    const vRes = await fetch(`${TMDB_API}/${type}/${first.id}/videos?api_key=${TMDB_KEY}&language=id-ID`);
-    const vData = await vRes.json();
-    let videos = vData.results || [];
+    // Fetch detail + credits + videos sekaligus
+    const [detailRes, creditsRes, videosRes] = await Promise.all([
+      fetch(`${TMDB_API}/${type}/${first.id}?api_key=${TMDB_KEY}&language=id-ID`),
+      fetch(`${TMDB_API}/${type}/${first.id}/credits?api_key=${TMDB_KEY}&language=id-ID`),
+      fetch(`${TMDB_API}/${type}/${first.id}/videos?api_key=${TMDB_KEY}`)
+    ]);
+    const detail  = await detailRes.json();
+    const credits = await creditsRes.json();
+    const videos  = await videosRes.json();
 
-    // Kalau tidak ada trailer bahasa Indonesia, coba bahasa Inggris
-    if (!videos.length) {
-      const vResEn = await fetch(`${TMDB_API}/${type}/${first.id}/videos?api_key=${TMDB_KEY}`);
-      const vDataEn = await vResEn.json();
-      videos = vDataEn.results || [];
-    }
-
-    // Cari trailer YouTube
-    const trailer = videos.find(v => v.site === 'YouTube' && v.type === 'Trailer')
-                 || videos.find(v => v.site === 'YouTube' && v.type === 'Teaser')
-                 || videos.find(v => v.site === 'YouTube');
-
+    // ── Trailer ──
+    const trailer = (videos.results||[]).find(v => v.site==='YouTube' && v.type==='Trailer')
+                 || (videos.results||[]).find(v => v.site==='YouTube' && v.type==='Teaser')
+                 || (videos.results||[]).find(v => v.site==='YouTube');
     if (trailer) {
       trailerKey = trailer.key;
-      const btn = document.getElementById('trailerBtn');
-      btn.classList.add('show');
+      document.getElementById('trailerBtn').classList.add('show');
     }
+
+    // ── Detail Info ──
+    const desc    = detail.overview || '';
+    const genres  = (detail.genres||[]).map(g => g.name).join(', ');
+    const releaseY = (detail.release_date || detail.first_air_date || '').slice(0,4);
+    const runtime = detail.runtime ? `${detail.runtime} menit` : (detail.episode_run_time?.[0] ? `${detail.episode_run_time[0]} menit/eps` : '—');
+    const rating  = detail.vote_average ? detail.vote_average.toFixed(1) + ' / 10' : '—';
+    const director = (credits.crew||[]).find(c => c.job === 'Director')?.name || '—';
+
+    if (desc) {
+      document.getElementById('detailDesc').innerText = desc;
+      document.getElementById('detailWrap').style.display = 'block';
+
+      // Meta info
+      const meta = document.getElementById('detailMeta');
+      meta.innerHTML = `
+        ${releaseY ? `<div class="meta-row"><span class="meta-label">Tahun</span><span class="meta-value">${releaseY}</span></div>` : ''}
+        ${genres ? `<div class="meta-row"><span class="meta-label">Genre</span><div class="genre-tags">${genres.split(', ').map(g=>`<span class="genre-tag">${g}</span>`).join('')}</div></div>` : ''}
+        <div class="meta-row"><span class="meta-label">Durasi</span><span class="meta-value">${runtime}</span></div>
+        <div class="meta-row"><span class="meta-label">Rating</span><span class="meta-value">⭐ ${rating}</span></div>
+        ${director !== '—' ? `<div class="meta-row"><span class="meta-label">Sutradara</span><span class="meta-value">${director}</span></div>` : ''}
+      `;
+    }
+
+    // ── Cast ──
+    const cast = (credits.cast||[]).slice(0, 15);
+    if (cast.length) {
+      const castList = document.getElementById('castList');
+      cast.forEach((c, i) => {
+        const photo = c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : '';
+        castList.innerHTML += `
+          <div class="cast-card" style="animation-delay:${i*0.04}s">
+            ${photo
+              ? `<img class="cast-photo" src="${photo}" loading="lazy" alt="${c.name}">`
+              : `<div class="cast-placeholder">👤</div>`}
+            <div class="cast-name">${c.name}</div>
+            <div class="cast-char">${c.character || ''}</div>
+          </div>`;
+      });
+      document.getElementById('castWrap').style.display = 'block';
+    }
+
   } catch(e) {
-    console.log('Trailer tidak ditemukan:', e.message);
+    console.log('TMDB error:', e.message);
   }
+}
+
+// ── DESC EXPAND ──
+let descExpanded = false;
+function toggleDesc() {
+  descExpanded = !descExpanded;
+  const el = document.getElementById('detailDesc');
+  const btn = document.getElementById('btnExpand');
+  el.classList.toggle('collapsed', !descExpanded);
+  btn.innerText = descExpanded ? 'Lebih Sedikit ▴' : 'Selengkapnya ▾';
+}
+
+// ── SHARE ──
+function shareWA() {
+  const text = `Tonton "${document.getElementById('vTitle').innerText}" di Anvi Create: ${location.href}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+function copyLink() {
+  navigator.clipboard.writeText(location.href).then(() => {
+    const btn = event.target.closest('.btn-share');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Tersalin!';
+    setTimeout(() => btn.innerHTML = orig, 2000);
+  });
 }
 
 function playTrailer() {
