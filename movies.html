@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semua Film — Anvi Create</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a; --surface: #141414; --surface2: #1f1f1f; --surface3: #252525;
+  --red: #e50914; --gold: #f5c518;
+  --text: #fff; --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
+  --border: rgba(255,255,255,0.08);
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; opacity: 0; animation: fadeIn 0.5s ease 0.1s forwards; }
+@keyframes fadeIn { to { opacity: 1; } }
+
+/* ── HEADER ── */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 68px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4%; background: rgba(10,10,10,0.97);
+  border-bottom: 1px solid var(--border); backdrop-filter: blur(8px);
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; color: var(--red); text-decoration: none; text-shadow: 0 0 30px rgba(229,9,20,0.4); }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.hbtn { background: none; border: 1px solid var(--border); color: var(--text-dim); padding: 7px 16px; border-radius: 4px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+.hbtn:hover { border-color: rgba(255,255,255,0.3); color: var(--text); }
+
+/* ── PAGE HERO ── */
+.page-hero {
+  padding: 110px 4% 40px;
+  background: linear-gradient(to bottom, rgba(229,9,20,0.06), transparent);
+  border-bottom: 1px solid var(--border);
+}
+.page-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 6vw, 64px); letter-spacing: 2px; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: var(--text-muted); }
+.page-count { color: var(--red); font-weight: 700; }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  position: sticky; top: 68px; z-index: 800;
+  padding: 14px 4%; background: rgba(10,10,10,0.97);
+  border-bottom: 1px solid var(--border); backdrop-filter: blur(10px);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.search-input {
+  flex: 1; min-width: 200px; padding: 10px 16px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
+  outline: none; transition: all 0.2s;
+}
+.search-input::placeholder { color: var(--text-muted); }
+.search-input:focus { border-color: rgba(255,255,255,0.25); background: var(--surface3); }
+
+/* Dropdown */
+.dd-wrap { position: relative; }
+.dd-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text-dim); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  white-space: nowrap; user-select: none;
+}
+.dd-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+.dd-btn.open { border-color: var(--red); color: var(--text); }
+.dd-chevron { width: 14px; height: 14px; transition: transform 0.2s; opacity: 0.5; }
+.dd-btn.open .dd-chevron { transform: rotate(180deg); opacity: 1; }
+.dd-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 200px; background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+  overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  display: none; z-index: 999;
+  animation: dropIn 0.18s cubic-bezier(0.22,1,0.36,1);
+}
+.dd-menu.open { display: block; }
+@keyframes dropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.dd-menu-inner { display: grid; grid-template-columns: 1fr 1fr; max-height: 300px; overflow-y: auto; }
+.dd-menu.single .dd-menu-inner { grid-template-columns: 1fr; }
+.dd-opt {
+  padding: 10px 16px; font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 500; color: var(--text-dim);
+  cursor: pointer; transition: all 0.15s; border: none; background: none;
+  text-align: left; white-space: nowrap;
+}
+.dd-opt:hover { background: var(--surface2); color: var(--text); }
+.dd-opt.active { color: var(--red); font-weight: 700; background: rgba(229,9,20,0.08); }
+
+.filter-reset {
+  padding: 10px 16px; background: none;
+  border: 1px solid rgba(229,9,20,0.3); border-radius: 6px;
+  color: var(--red); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  display: none;
+}
+.filter-reset.show { display: block; }
+.filter-reset:hover { background: rgba(229,9,20,0.08); }
+
+/* ── GRID ── */
+.content-wrap { max-width: 1400px; margin: 0 auto; padding: 32px 4% 80px; }
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+@media(max-width: 480px) { .movies-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; } }
+
+.movie-card {
+  position: relative; border-radius: 6px; overflow: hidden;
+  cursor: pointer; transition: transform 0.25s, box-shadow 0.25s;
+  background: var(--surface);
+  animation: cardIn 0.4s ease both;
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.movie-card:hover { transform: scale(1.04); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+.movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+.movie-card-info { padding: 10px; }
+.movie-card-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 32px; }
+.movie-card-genre { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.movie-card-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+  font-size: 10px; font-weight: 700; color: var(--red);
+  padding: 2px 7px; border-radius: 3px;
+}
+.movie-card-views {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+  font-size: 10px; font-weight: 600; color: var(--text-dim);
+  padding: 2px 7px; border-radius: 3px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* EMPTY & LOADING */
+.state-box { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+.state-box .icon { font-size: 48px; margin-bottom: 16px; }
+.state-box p { font-size: 15px; }
+
+/* LOAD MORE */
+.load-more-wrap { text-align: center; margin-top: 40px; }
+.btn-load-more {
+  padding: 13px 40px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text-dim); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-load-more:hover { border-color: rgba(255,255,255,0.3); color: var(--text); background: var(--surface3); }
+
+.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">ANVI</a>
+  <div class="header-right">
+    <a href="index.html" class="hbtn">← Beranda</a>
+  </div>
+</header>
+
+<div class="page-hero">
+  <div class="page-title">Semua Film</div>
+  <div class="page-sub">Menampilkan <span class="page-count" id="countLabel">—</span> film</div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <input class="search-input" id="searchInput" placeholder="🔍  Cari judul film..." oninput="applyFilter()">
+
+  <!-- Genre -->
+  <div class="dd-wrap" id="genreWrap">
+    <div class="dd-btn" id="genreBtn" onclick="toggleDD('genre')">
+      <span id="genreBtnLabel">Semua Genre</span>
+      <svg class="dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="dd-menu" id="genreMenu">
+      <div class="dd-menu-inner">
+        <button class="dd-opt active" onclick="pickGenre('Semua','Semua Genre')">Semua</button>
+        <button class="dd-opt" onclick="pickGenre('Aksi','Aksi')">Aksi</button>
+        <button class="dd-opt" onclick="pickGenre('Petualangan','Petualangan')">Petualangan</button>
+        <button class="dd-opt" onclick="pickGenre('Drama','Drama')">Drama</button>
+        <button class="dd-opt" onclick="pickGenre('Komedi','Komedi')">Komedi</button>
+        <button class="dd-opt" onclick="pickGenre('Horor','Horor')">Horor</button>
+        <button class="dd-opt" onclick="pickGenre('Thriller','Thriller')">Thriller</button>
+        <button class="dd-opt" onclick="pickGenre('Fiksi Ilmiah','Fiksi Ilmiah')">Fiksi Ilmiah</button>
+        <button class="dd-opt" onclick="pickGenre('Fantasi','Fantasi')">Fantasi</button>
+        <button class="dd-opt" onclick="pickGenre('Animasi','Animasi')">Animasi</button>
+        <button class="dd-opt" onclick="pickGenre('Roman','Roman')">Roman</button>
+        <button class="dd-opt" onclick="pickGenre('Kejahatan','Kejahatan')">Kejahatan</button>
+        <button class="dd-opt" onclick="pickGenre('Misteri','Misteri')">Misteri</button>
+        <button class="dd-opt" onclick="pickGenre('Keluarga','Keluarga')">Keluarga</button>
+        <button class="dd-opt" onclick="pickGenre('Dokumenter','Dokumenter')">Dokumenter</button>
+        <button class="dd-opt" onclick="pickGenre('Sejarah','Sejarah')">Sejarah</button>
+        <button class="dd-opt" onclick="pickGenre('Musik','Musik')">Musik</button>
+        <button class="dd-opt" onclick="pickGenre('Perang','Perang')">Perang</button>
+        <button class="dd-opt" onclick="pickGenre('Barat','Barat')">Barat</button>
+        <button class="dd-opt" onclick="pickGenre('Aksi & Petualangan','Aksi & Petualangan')">Aksi & Petualangan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tahun -->
+  <div class="dd-wrap" id="yearWrap">
+    <div class="dd-btn" id="yearBtn" onclick="toggleDD('year')">
+      <span id="yearBtnLabel">Semua Tahun</span>
+      <svg class="dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="dd-menu single" id="yearMenu">
+      <div class="dd-menu-inner" id="yearMenuInner"></div>
+    </div>
+  </div>
+
+  <!-- Urutan -->
+  <div class="dd-wrap" id="sortWrap">
+    <div class="dd-btn" id="sortBtn" onclick="toggleDD('sort')">
+      <span id="sortBtnLabel">Terbaru</span>
+      <svg class="dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="dd-menu single" id="sortMenu">
+      <div class="dd-menu-inner">
+        <button class="dd-opt active" onclick="pickSort('newest','Terbaru')">Terbaru</button>
+        <button class="dd-opt" onclick="pickSort('oldest','Terlama')">Terlama</button>
+        <button class="dd-opt" onclick="pickSort('views','Terpopuler')">Terpopuler</button>
+        <button class="dd-opt" onclick="pickSort('az','A — Z')">A — Z</button>
+        <button class="dd-opt" onclick="pickSort('za','Z — A')">Z — A</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="filter-reset" id="resetBtn" onclick="resetFilter()">✕ Reset</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+  <div class="movies-grid" id="moviesGrid"></div>
+  <div class="state-box" id="stateBox" style="display:none">
+    <div class="icon">🎬</div>
+    <p id="stateMsg">Tidak ada film ditemukan.</p>
+  </div>
+  <div class="load-more-wrap" id="loadMoreWrap" style="display:none">
+    <button class="btn-load-more" onclick="loadMore()">Muat Lebih Banyak</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const GENRE_ALIASES = {
+  'Aksi': ['aksi','action','laga'], 'Petualangan': ['petualangan','adventure'],
+  'Animasi': ['animasi','animation'], 'Komedi': ['komedi','comedy','humor'],
+  'Kejahatan': ['kejahatan','crime','kriminal'], 'Dokumenter': ['dokumenter','documentary'],
+  'Drama': ['drama'], 'Keluarga': ['keluarga','family'], 'Fantasi': ['fantasi','fantasy'],
+  'Sejarah': ['sejarah','history'], 'Horor': ['horor','horror','seram'],
+  'Musik': ['musik','music'], 'Misteri': ['misteri','mystery'],
+  'Roman': ['roman','romance','romantis'], 'Fiksi Ilmiah': ['fiksi ilmiah','sci-fi','cerita fiksi'],
+  'Thriller': ['thriller','cerita seru','seru','tegang'], 'Perang': ['perang','war'],
+  'Barat': ['barat','western'], 'Aksi & Petualangan': ['aksi & petualangan'],
+};
+
+let allMovies = [], filtered = [], activeGenre = 'Semua', activeYear = 'Semua', activeSort = 'newest';
+const PAGE_SIZE = 24;
+let currentPage = 1;
+
+function goto(url) { document.body.classList.add('fade-out'); setTimeout(() => location.href = url, 300); }
+
+async function init() {
+  const { data } = await sb.from('Movies').select('*').eq('is18', false).order('created_at', { ascending: false });
+  allMovies = data || [];
+  buildYearMenu();
+  applyFilter();
+}
+
+function buildYearMenu() {
+  const years = [...new Set(
+    allMovies.map(m => { const match = (m.title||'').match(/\((\d{4})\)/); return match ? match[1] : null; }).filter(Boolean)
+  )].sort((a, b) => b - a);
+  const inner = document.getElementById('yearMenuInner');
+  inner.innerHTML = `<button class="dd-opt active" onclick="pickYear('Semua','Semua Tahun')">Semua Tahun</button>`;
+  years.forEach(y => inner.innerHTML += `<button class="dd-opt" onclick="pickYear('${y}','${y}')">${y}</button>`);
+}
+
+function applyFilter() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  filtered = allMovies.filter(m => {
+    // Search
+    if (q && !(m.title||'').toLowerCase().includes(q)) return false;
+    // Genre
+    if (activeGenre !== 'Semua') {
+      if (!m.genre) return false;
+      const mg = m.genre.split(',').map(g => g.trim().toLowerCase());
+      const aliases = GENRE_ALIASES[activeGenre] || [activeGenre.toLowerCase()];
+      if (!mg.some(g => aliases.some(a => g.includes(a) || a.includes(g)))) return false;
+    }
+    // Tahun
+    if (activeYear !== 'Semua') {
+      const match = (m.title||'').match(/\((\d{4})\)/);
+      if (!match || match[1] !== activeYear) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (activeSort === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+    if (activeSort === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+    if (activeSort === 'views') return (b.view_count||0) - (a.view_count||0);
+    if (activeSort === 'az') return (a.title||'').localeCompare(b.title||'');
+    if (activeSort === 'za') return (b.title||'').localeCompare(a.title||'');
+  });
+
+  currentPage = 1;
+  document.getElementById('countLabel').innerText = filtered.length;
+  document.getElementById('resetBtn').classList.toggle('show', activeGenre !== 'Semua' || activeYear !== 'Semua' || q);
+  renderGrid();
+}
+
+function renderGrid(append = false) {
+  const grid = document.getElementById('moviesGrid');
+  const stateBox = document.getElementById('stateBox');
+  const loadMoreWrap = document.getElementById('loadMoreWrap');
+
+  if (!append) grid.innerHTML = '';
+
+  if (!filtered.length) {
+    stateBox.style.display = 'block';
+    document.getElementById('stateMsg').innerText = 'Tidak ada film ditemukan.';
+    loadMoreWrap.style.display = 'none';
+    return;
+  }
+  stateBox.style.display = 'none';
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = currentPage * PAGE_SIZE;
+  const pageItems = filtered.slice(start, end);
+
+  pageItems.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = 'movie-card';
+    card.style.animationDelay = (i * 0.03) + 's';
+    card.innerHTML = `
+      <img src="${m.thumb}" loading="lazy" alt="${m.title}" onerror="this.style.opacity='0.3'">
+      ${m.genre ? `<div class="movie-card-badge">${m.genre.split(',')[0].trim()}</div>` : ''}
+      ${m.view_count ? `<div class="movie-card-views">▶ ${m.view_count}</div>` : ''}
+      <div class="movie-card-info">
+        <div class="movie-card-title">${m.title}</div>
+        ${m.genre ? `<div class="movie-card-genre">${m.genre}</div>` : ''}
+      </div>`;
+    card.onclick = () => goto('player.html?id=' + m.id);
+    grid.appendChild(card);
+  });
+
+  loadMoreWrap.style.display = end < filtered.length ? 'block' : 'none';
+}
+
+function loadMore() {
+  currentPage++;
+  renderGrid(true);
+}
+
+// ── DROPDOWNS ──
+function toggleDD(name) {
+  ['genre','year','sort'].forEach(n => {
+    if (n !== name) {
+      document.getElementById(n+'Menu').classList.remove('open');
+      document.getElementById(n+'Btn').classList.remove('open');
+    }
+  });
+  document.getElementById(name+'Menu').classList.toggle('open');
+  document.getElementById(name+'Btn').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  ['genre','year','sort'].forEach(n => {
+    if (!document.getElementById(n+'Wrap')?.contains(e.target)) {
+      document.getElementById(n+'Menu')?.classList.remove('open');
+      document.getElementById(n+'Btn')?.classList.remove('open');
+    }
+  });
+});
+
+function pickGenre(val, label) {
+  activeGenre = val;
+  document.getElementById('genreBtnLabel').innerText = label;
+  document.getElementById('genreMenu').classList.remove('open');
+  document.getElementById('genreBtn').classList.remove('open');
+  document.querySelectorAll('#genreMenu .dd-opt').forEach(o => o.classList.remove('active'));
+  event.target.classList.add('active');
+  applyFilter();
+}
+function pickYear(val, label) {
+  activeYear = val;
+  document.getElementById('yearBtnLabel').innerText = label;
+  document.getElementById('yearMenu').classList.remove('open');
+  document.getElementById('yearBtn').classList.remove('open');
+  document.querySelectorAll('#yearMenuInner .dd-opt').forEach(o => o.classList.remove('active'));
+  event.target.classList.add('active');
+  applyFilter();
+}
+function pickSort(val, label) {
+  activeSort = val;
+  document.getElementById('sortBtnLabel').innerText = label;
+  document.getElementById('sortMenu').classList.remove('open');
+  document.getElementById('sortBtn').classList.remove('open');
+  document.querySelectorAll('#sortMenu .dd-opt').forEach(o => o.classList.remove('active'));
+  event.target.classList.add('active');
+  applyFilter();
+}
+function resetFilter() {
+  activeGenre = 'Semua'; activeYear = 'Semua';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('genreBtnLabel').innerText = 'Semua Genre';
+  document.getElementById('yearBtnLabel').innerText = 'Semua Tahun';
+  document.querySelectorAll('.dd-opt').forEach(o => o.classList.remove('active'));
+  document.querySelector('#genreMenu .dd-opt').classList.add('active');
+  document.querySelector('#yearMenuInner .dd-opt')?.classList.add('active');
+  applyFilter();
+}
+
+init();
+</script>
+</body>
+</html>
