@@ -113,17 +113,39 @@ header {
 @media(max-width: 480px) { .movies-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; } }
 
 .movie-card {
-  position: relative; border-radius: 6px; overflow: hidden;
-  cursor: pointer; transition: transform 0.25s, box-shadow 0.25s;
-  background: var(--surface);
+  position: relative; border-radius: 6px; overflow: visible;
+  cursor: pointer; transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s 0.15s;
+  background: var(--surface); z-index: 1;
   animation: cardIn 0.4s ease both;
 }
 @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.movie-card:hover { transform: scale(1.04); box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
-.movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
-.movie-card-info { padding: 10px; }
-.movie-card-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 32px; }
-.movie-card-genre { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.movie-card:hover {
+  transform: scale(1.08); z-index: 50;
+  transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s;
+}
+.movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; border-radius: 6px 6px 0 0; }
+.movie-card:hover img { border-radius: 6px 6px 0 0; }
+
+/* Hover panel */
+.movie-card-panel {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-radius: 0 0 6px 6px;
+  padding: 10px; opacity: 0;
+  transition: opacity 0.25s 0.1s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+.movie-card:hover .movie-card-panel { opacity: 1; pointer-events: all; }
+.panel-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.panel-play-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #fff; border: none; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.panel-play-btn:hover { background: rgba(255,255,255,0.85); transform: scale(1.1); }
+.panel-play-btn svg { width: 12px; height: 12px; fill: #000; margin-left: 2px; }
+.panel-card-title { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel-card-genre { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .movie-card-badge {
   position: absolute; top: 8px; left: 8px;
   background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
@@ -351,9 +373,14 @@ function renderGrid(append = false) {
       <img src="${m.thumb}" loading="lazy" alt="${m.title}" onerror="this.style.opacity='0.3'">
       ${m.genre ? `<div class="movie-card-badge">${m.genre.split(',')[0].trim()}</div>` : ''}
       ${m.view_count ? `<div class="movie-card-views">▶ ${m.view_count}</div>` : ''}
-      <div class="movie-card-info">
-        <div class="movie-card-title">${m.title}</div>
-        ${m.genre ? `<div class="movie-card-genre">${m.genre}</div>` : ''}
+      <div class="movie-card-panel">
+        <div class="panel-top">
+          <button class="panel-play-btn" onclick="event.stopPropagation(); goto('player.html?id=${m.id}')">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <div class="panel-card-title">${m.title}</div>
+        </div>
+        ${m.genre ? `<div class="panel-card-genre">${m.genre}</div>` : ''}
       </div>`;
     card.onclick = () => goto('player.html?id=' + m.id);
     grid.appendChild(card);
