@@ -262,12 +262,11 @@ async function init() {
   loadRecs();
 
   // ── Increment view_count via RPC (bypass RLS) ──
-if (movieId) {
-  console.log('Memanggil RPC untuk movieId:', movieId, typeof movieId);
-  sb.rpc('increment_view_count', { table_name: 'Movies', row_id: Number(movieId) }).then(r => console.log('RPC result:', r));
-} else if (episodeId && data.series_id) {
-  sb.rpc('increment_view_count', { table_name: 'Series', row_id: Number(data.series_id) });
-}
+  if (movieId) {
+    sb.rpc('increment_view_count', { table_name: 'Movies', row_id: Number(movieId) }).then();
+  } else if (episodeId && data.series_id) {
+    sb.rpc('increment_view_count', { table_name: 'Series', row_id: Number(data.series_id) }).then();
+  }
 
   // ── Track for "Continue Watching" — skip konten 18+ ──
   if (!data.is18) {
