@@ -123,10 +123,29 @@ header {
   transform: scale(1.08); z-index: 50;
   transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), z-index 0s;
 }
-.movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; border-radius: 6px 6px 0 0; }
-.movie-card:hover img { border-radius: 6px 6px 0 0; }
+.movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; border-radius: 6px; }
 
-/* Hover panel */
+/* Gradient overlay — judul selalu tampil */
+.movie-card-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 55%, transparent 100%);
+  padding: 32px 9px 9px;
+  pointer-events: none; transition: opacity 0.2s;
+}
+.movie-card:hover .movie-card-overlay { opacity: 0; }
+.movie-card-overlay-title {
+  font-size: 11px; font-weight: 700; color: #fff; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+}
+.movie-card-overlay-genre {
+  font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Hover panel — untuk desktop */
 .movie-card-panel {
   position: absolute; bottom: 0; left: 0; right: 0;
   background: var(--surface); border-radius: 0 0 6px 6px;
@@ -373,6 +392,10 @@ function renderGrid(append = false) {
       <img src="${m.thumb}" loading="lazy" alt="${m.title}" onerror="this.style.opacity='0.3'">
       ${m.genre ? `<div class="movie-card-badge">${m.genre.split(',')[0].trim()}</div>` : ''}
       ${m.view_count ? `<div class="movie-card-views">▶ ${m.view_count}</div>` : ''}
+      <div class="movie-card-overlay">
+        <div class="movie-card-overlay-title">${m.title}</div>
+        ${m.genre ? `<div class="movie-card-overlay-genre">${m.genre.split(',')[0].trim()}</div>` : ''}
+      </div>
       <div class="movie-card-panel">
         <div class="panel-top">
           <button class="panel-play-btn" onclick="event.stopPropagation(); goto('player.html?id=${m.id}')">
