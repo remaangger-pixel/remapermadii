@@ -267,8 +267,13 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
         <img class="thumb-preview" id="m_prev" src="" alt="Preview">
       </div>
     </div>
+    <div class="field">
+      <label>IMDB ID</label>
+      <input id="m_imdb" placeholder="Contoh: tt16431404" oninput="autoFillMovieServer()">
+      <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.3)">✨ Server 1 akan otomatis terisi saat IMDB ID diinput</div>
+    </div>
     <div class="grid-2">
-      <div class="field"><label>Link Video Server 1</label><input id="m_video" placeholder="Paste link video utama..."></div>
+      <div class="field"><label>Link Video Server 1</label><input id="m_video" placeholder="Otomatis dari IMDB ID..."></div>
       <div class="field"><label>Link Video Server 2 (Opsional)</label><input id="m_video2" placeholder="Link cadangan..."></div>
     </div>
     <button id="m_btn" class="btn-save red" onclick="saveData('Movies')">Simpan Movie</button>
@@ -298,6 +303,11 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
 
     <div class="field"><label>Judul Series</label><input id="s_title" placeholder="Otomatis dari TMDB"></div>
     <div class="field">
+      <label>IMDB ID Series</label>
+      <input id="s_imdb" placeholder="Contoh: tt1190634">
+      <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.3)">⚠️ Wajib diisi agar link episode otomatis terbentuk</div>
+    </div>
+    <div class="field">
       <label>Genre</label>
       <input id="s_genre" placeholder="Otomatis dari TMDB">
       <div class="genre-chips" id="s_chips"></div>
@@ -317,13 +327,37 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
   <!-- EPISODES FORM -->
   <div id="form-Episodes" class="form-panel">
     <div class="form-heading" id="ep_head">Tambah Episode</div>
-    <div class="field"><label>Pilih Series</label><select id="ep_series_id"><option value="">— Pilih Series —</option></select></div>
-    <div class="grid-2">
-      <div class="field"><label>Episode ke-</label><input id="ep_num" type="number" placeholder="1"></div>
-      <div class="field"><label>Judul Episode</label><input id="ep_title" placeholder="Opsional"></div>
+
+    <div class="field">
+      <label>Pilih Series</label>
+      <select id="ep_series_id" onchange="onSeriesChange()">
+        <option value="">— Pilih Series —</option>
+      </select>
     </div>
+
+    <!-- IMDB ID info (readonly, otomatis dari series) -->
+    <div class="field" id="ep_imdb_wrap" style="display:none">
+      <label>IMDB ID Series (Otomatis)</label>
+      <input id="ep_imdb_display" readonly style="opacity:0.5;cursor:default;background:var(--surface3)">
+    </div>
+
     <div class="grid-2">
-      <div class="field"><label>Link Video Server 1</label><input id="ep_video" placeholder="Link utama..."></div>
+      <div class="field">
+        <label>Season ke-</label>
+        <input id="ep_season" type="number" placeholder="1" min="1" value="1" oninput="autoFillEpisodeServer()">
+      </div>
+      <div class="field">
+        <label>Episode ke-</label>
+        <input id="ep_num" type="number" placeholder="1" min="1" oninput="autoFillEpisodeServer()">
+      </div>
+    </div>
+    <div class="field"><label>Judul Episode</label><input id="ep_title" placeholder="Opsional"></div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Link Video Server 1</label>
+        <input id="ep_video" placeholder="Otomatis dari IMDB ID + Season + Episode...">
+        <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.3)">✨ Otomatis terisi saat series dipilih & season/episode diinput</div>
+      </div>
       <div class="field"><label>Link Video Server 2</label><input id="ep_video2" placeholder="Cadangan..."></div>
     </div>
     <button id="ep_btn" class="btn-save blue" onclick="saveEpisode()">Simpan Episode</button>
@@ -492,6 +526,18 @@ async function pickItem(item, type) {
     const genreIds = (d.genres || []).map(g => g.id);
     const genreNames = genreIds.map(id => GENRE_MAP[id]).filter(Boolean).join(', ');
 
+    // Fetch IMDB ID dari TMDB external IDs
+    try {
+      const epExt = type === 'movie' ? `movie/${item.id}/external_ids` : `tv/${item.id}/external_ids`;
+      const rExt = await fetch(`${TMDB_API}/${epExt}?api_key=${getKey()}`);
+      const dExt = await rExt.json();
+      const imdbId = dExt.imdb_id || '';
+      if (imdbId) {
+        fill(px + '_imdb', imdbId);
+        if (type === 'movie') autoFillMovieServer();
+      }
+    } catch(e) { /* IMDB ID tidak tersedia, lewati */ }
+
     fill(px + '_title', titleWithYear);
     fill(px + '_desc', desc);
     fill(px + '_thumb', poster);
@@ -509,6 +555,85 @@ async function pickItem(item, type) {
     fill(px + '_desc', item.overview || '');
     if (item.poster_path) fill(px + '_thumb', TMDB_IMG + item.poster_path);
     previewImg(px);
+  }
+}
+
+/* ── AUTO-FILL SERVER LINKS ── */
+function autoFillMovieServer() {
+  const imdb = document.getElementById('m_imdb').value.trim();
+  const videoField = document.getElementById('m_video');
+  if (imdb) {
+    const link = `https://streamimdb.ru/embed/movie/${imdb}`;
+    videoField.value = link;
+    videoField.classList.remove('filled');
+    void videoField.offsetWidth;
+    videoField.classList.add('filled');
+    setTimeout(() => videoField.classList.remove('filled'), 1200);
+  } else {
+    videoField.value = '';
+  }
+}
+
+// Menyimpan mapping series_id → imdb_id & tmdb_id saat dropdown dimuat
+const seriesImdbMap = {};
+const seriesTmdbMap = {};
+
+function onSeriesChange() {
+  const sel = document.getElementById('ep_series_id');
+  const seriesId = sel.value;
+  const imdb = seriesImdbMap[seriesId] || '';
+  const wrap = document.getElementById('ep_imdb_wrap');
+  const display = document.getElementById('ep_imdb_display');
+  if (imdb) {
+    display.value = imdb;
+    wrap.style.display = 'block';
+  } else {
+    display.value = '';
+    wrap.style.display = 'none';
+  }
+  autoFillEpisodeServer();
+}
+
+let epTitleTimer;
+async function autoFillEpisodeServer() {
+  const sel = document.getElementById('ep_series_id');
+  const seriesId = sel.value;
+  const imdb = seriesImdbMap[seriesId] || '';
+  const tmdbId = seriesTmdbMap[seriesId] || '';
+  const season = document.getElementById('ep_season').value.trim();
+  const episode = document.getElementById('ep_num').value.trim();
+  const videoField = document.getElementById('ep_video');
+
+  // Auto-fill Server 1
+  if (imdb && season && episode) {
+    const iframe = `<iframe src="https://vidsrcme.ru/embed/tv?imdb=${imdb}&season=${season}&episode=${episode}" style="width: 100%; height: 100%;" frameborder="0" referrerpolicy="origin" allowfullscreen></iframe>`;
+    videoField.value = iframe;
+    videoField.classList.remove('filled');
+    void videoField.offsetWidth;
+    videoField.classList.add('filled');
+    setTimeout(() => videoField.classList.remove('filled'), 1200);
+  } else {
+    videoField.value = '';
+  }
+
+  // Auto-fill judul episode dari TMDB (debounce 600ms)
+  clearTimeout(epTitleTimer);
+  if (tmdbId && season && episode && getKey()) {
+    epTitleTimer = setTimeout(async () => {
+      try {
+        const [rID, rEN] = await Promise.all([
+          fetch(`${TMDB_API}/tv/${tmdbId}/season/${season}/episode/${episode}?api_key=${getKey()}&language=id-ID`),
+          fetch(`${TMDB_API}/tv/${tmdbId}/season/${season}/episode/${episode}?api_key=${getKey()}&language=en-US`)
+        ]);
+        const [dID, dEN] = await Promise.all([rID.json(), rEN.json()]);
+        // Pakai judul Indonesia kalau ada & bukan placeholder "Episode N", fallback ke Inggris
+        const idTitle = dID.name || '';
+        const enTitle = dEN.name || '';
+        const isPlaceholder = /^Episode\s+\d+$/i.test(idTitle);
+        const finalTitle = (!isPlaceholder && idTitle) ? idTitle : enTitle;
+        if (finalTitle) fill('ep_title', finalTitle);
+      } catch(e) { /* gagal fetch, biarkan kosong */ }
+    }, 600);
   }
 }
 
@@ -535,13 +660,14 @@ function buildChips(px, genreStr) {
 }
 
 function clearFill(px) {
-  ['_title','_desc','_thumb','_genre'].forEach(f => { const el = document.getElementById(px+f); if(el) el.value = ''; });
+  ['_title','_desc','_thumb','_genre','_imdb'].forEach(f => { const el = document.getElementById(px+f); if(el) el.value = ''; });
   const prev = document.getElementById(px + '_prev');
   if (prev) { prev.src = ''; prev.classList.remove('show'); }
   const chips = document.getElementById(px + '_chips');
   if (chips) chips.innerHTML = '';
   const tmdbPx = px === 'm' ? 'tmdb_m' : 'tmdb_s';
   document.getElementById(tmdbPx + '_filled').classList.remove('show');
+  if (px === 'm') { document.getElementById('m_video').value = ''; }
 }
 
 function previewImg(px) {
@@ -633,6 +759,7 @@ async function saveData(table) {
     is18: document.getElementById(px+'_is18').value === 'true',
     genre: document.getElementById(px+'_genre').value,
     description: document.getElementById(px+'_desc').value,
+    imdb_id: document.getElementById(px+'_imdb').value.trim(),
   };
   if (table === 'Movies') {
     payload.video  = document.getElementById('m_video').value;
@@ -641,21 +768,28 @@ async function saveData(table) {
   const res = editId ? await sb.from(table).update(payload).eq('id', editId) : await sb.from(table).insert([payload]);
   if (res.error) {
     if (res.error.code === '42703') {
-      // genre/description column belum ada — simpan tanpa itu
       delete payload.genre; delete payload.description;
       const r2 = editId ? await sb.from(table).update(payload).eq('id', editId) : await sb.from(table).insert([payload]);
       if (r2.error) { toast('error', 'Gagal Menyimpan', r2.error.message); return; }
       toast('warning', 'Berhasil Disimpan', 'Kolom genre & description belum ada di Supabase. Tambahkan via Table Editor agar filter genre berfungsi.', 7000);
-    } else { toast('error', 'Gagal Menyimpan', res.error.message); return; }
-  } else { toast('success', 'Berhasil Disimpan', 'Data berhasil ditambahkan.'); }
-  location.reload();
+    } else { toast('success', 'Berhasil Disimpan', 'Data berhasil ditambahkan.'); }
+  }
+  if (!res.error || res.error.code === '42703') { editId = null; resetForm(table); loadData(); }
 }
 
 async function saveEpisode() {
-  const payload = { series_id: document.getElementById('ep_series_id').value, episode: document.getElementById('ep_num').value, title: document.getElementById('ep_title').value, video: document.getElementById('ep_video').value, video2: document.getElementById('ep_video2').value };
+  const payload = {
+    series_id: document.getElementById('ep_series_id').value,
+    season: parseInt(document.getElementById('ep_season').value) || 1,
+    episode: document.getElementById('ep_num').value,
+    title: document.getElementById('ep_title').value,
+    video: document.getElementById('ep_video').value,
+    video2: document.getElementById('ep_video2').value
+  };
   const res = editId ? await sb.from('Episodes').update(payload).eq('id', editId) : await sb.from('Episodes').insert([payload]);
-  if (res.error) { toast('error', 'Gagal Menyimpan', res.error.message); }
-  else { toast('success', 'Episode Berhasil', 'Episode berhasil disimpan.'); setTimeout(() => location.reload(), 1200); }
+  if (res.error) { toast('error', 'Gagal Menyimpan', res.error.message); return; }
+  toast('success', 'Episode Berhasil', 'Episode berhasil disimpan.');
+  editId = null; resetForm('Episodes'); loadData();
 }
 
 async function prepareEdit(id) {
@@ -663,6 +797,8 @@ async function prepareEdit(id) {
   editId = id;
   if (currentTab === 'Episodes') {
     document.getElementById('ep_series_id').value = data.series_id;
+    await onSeriesChange();
+    document.getElementById('ep_season').value = data.season || 1;
     document.getElementById('ep_num').value = data.episode;
     document.getElementById('ep_title').value = data.title || '';
     document.getElementById('ep_video').value = data.video;
@@ -676,18 +812,59 @@ async function prepareEdit(id) {
     document.getElementById(px+'_is18').value = String(data.is18);
     document.getElementById(px+'_genre').value = data.genre || '';
     document.getElementById(px+'_desc').value = data.description || '';
+    document.getElementById(px+'_imdb').value = data.imdb_id || '';
     if (data.thumb) { const p = document.getElementById(px+'_prev'); p.src = data.thumb; p.classList.add('show'); }
-    if (currentTab === 'Movies') { document.getElementById('m_video').value = data.video||''; document.getElementById('m_video2').value = data.video2||''; }
+    if (currentTab === 'Movies') {
+      document.getElementById('m_video').value = data.video||'';
+      document.getElementById('m_video2').value = data.video2||'';
+    }
     document.getElementById(px+'_head').innerText = 'Edit: ' + data.title;
     document.getElementById(px+'_btn').innerText = 'Update';
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function resetForm(table) {
+  if (table === 'Movies') {
+    ['m_title','m_genre','m_desc','m_thumb','m_imdb','m_video','m_video2'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('m_is18').value = 'false';
+    const prev = document.getElementById('m_prev'); if(prev){ prev.src=''; prev.classList.remove('show'); }
+    const chips = document.getElementById('m_chips'); if(chips) chips.innerHTML='';
+    document.getElementById('tmdb_m_filled').classList.remove('show');
+    document.getElementById('m_head').innerText = 'Tambah Movie';
+    document.getElementById('m_btn').innerText = 'Simpan Movie';
+  } else if (table === 'Series') {
+    ['s_title','s_genre','s_desc','s_thumb','s_imdb'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('s_is18').value = 'false';
+    const prev = document.getElementById('s_prev'); if(prev){ prev.src=''; prev.classList.remove('show'); }
+    const chips = document.getElementById('s_chips'); if(chips) chips.innerHTML='';
+    document.getElementById('tmdb_s_filled').classList.remove('show');
+    document.getElementById('s_head').innerText = 'Tambah Series';
+    document.getElementById('s_btn').innerText = 'Simpan Series';
+  } else if (table === 'Episodes') {
+    document.getElementById('ep_series_id').value = '';
+    document.getElementById('ep_imdb_wrap').style.display = 'none';
+    document.getElementById('ep_imdb_display').value = '';
+    document.getElementById('ep_season').value = '1';
+    ['ep_num','ep_title','ep_video','ep_video2'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('ep_head').innerText = 'Tambah Episode';
+    document.getElementById('ep_btn').innerText = 'Simpan Episode';
+  }
+}
+
 async function delItem(id) {
-  if (!confirm('Hapus permanen?')) return;
+  const label = currentTab === 'Series' ? 'series beserta semua episode-nya' : 'item ini';
+  if (!confirm(`Hapus ${label} secara permanen?`)) return;
+
+  // Jika hapus Series → hapus semua Episodes terkait dulu (cascade manual)
+  if (currentTab === 'Series') {
+    const { error: epErr } = await sb.from('Episodes').delete().eq('series_id', id);
+    if (epErr) { toast('error', 'Gagal Menghapus Episodes', epErr.message); return; }
+  }
+
   const { error } = await sb.from(currentTab).delete().eq('id', id);
-  if (error) { toast('error', 'Gagal Menghapus', error.message); } else { toast('success', 'Berhasil Dihapus', 'Data telah dihapus.'); loadData(); }
+  if (error) { toast('error', 'Gagal Menghapus', error.message); }
+  else { toast('success', 'Berhasil Dihapus', currentTab === 'Series' ? 'Series & semua episode-nya telah dihapus.' : 'Data telah dihapus.'); loadData(); }
 }
 
 function switchTab(tab) {
@@ -703,10 +880,29 @@ function switchTab(tab) {
 }
 
 async function loadSeriesDrop() {
-  const { data } = await sb.from('Series').select('id, title');
+  const { data } = await sb.from('Series').select('id, title, imdb_id');
   const sel = document.getElementById('ep_series_id');
   sel.innerHTML = '<option value="">— Pilih Series —</option>';
-  data?.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.title}</option>`);
+  if (!data) return;
+
+  // Isi dropdown & simpan imdb_id
+  data.forEach(s => {
+    sel.innerHTML += `<option value="${s.id}">${s.title}</option>`;
+    if (s.imdb_id) seriesImdbMap[s.id] = s.imdb_id;
+  });
+
+  // Fetch TMDB ID dari IMDB ID (untuk auto-fill judul episode)
+  if (getKey()) {
+    await Promise.all(data.map(async s => {
+      if (!s.imdb_id) return;
+      try {
+        const r = await fetch(`${TMDB_API}/find/${s.imdb_id}?api_key=${getKey()}&external_source=imdb_id`);
+        const d = await r.json();
+        const tv = d.tv_results?.[0];
+        if (tv) seriesTmdbMap[s.id] = tv.id;
+      } catch(e) { /* lewati */ }
+    }));
+  }
 }
 
 async function logout() { await sb.auth.signOut(); location.replace('login.html'); }
