@@ -31,6 +31,11 @@ header { position: sticky; top: 0; z-index: 900; height: 64px; padding: 0 4%; di
 .tab { padding: 12px 22px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: -1px; transition: all 0.2s; }
 .tab:hover { color: var(--text-dim); }
 .tab.active { color: var(--text); border-bottom-color: var(--red); }
+.tab.vip { color: var(--gold); }
+.tab.vip.active { border-bottom-color: var(--gold); color: var(--gold); }
+.vip-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; margin-left: 4px; }
+.vip-movie { background: rgba(229,9,20,0.2); color: var(--red); }
+.vip-series { background: rgba(79,142,247,0.2); color: var(--blue); }
 
 /* FORM PANEL */
 .form-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px; margin-bottom: 32px; display: none; animation: slideDown 0.3s ease; }
@@ -224,6 +229,7 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
     <button id="tab-Movies" class="tab active" onclick="switchTab('Movies')">🎬 Movies</button>
     <button id="tab-Series" class="tab" onclick="switchTab('Series')">📺 Series</button>
     <button id="tab-Episodes" class="tab" onclick="switchTab('Episodes')">🎞 Episodes</button>
+    <button id="tab-VIP" class="tab vip" onclick="switchTab('VIP')">✦ VIP</button>
   </div>
 
   <!-- MOVIES FORM -->
@@ -361,6 +367,62 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
       <div class="field"><label>Link Video Server 2</label><input id="ep_video2" placeholder="Cadangan..."></div>
     </div>
     <button id="ep_btn" class="btn-save blue" onclick="saveEpisode()">Simpan Episode</button>
+  </div>
+
+  <!-- VIP FORM -->
+  <div id="form-VIP" class="form-panel">
+    <div class="form-heading" id="v_head">✦ Tambah Konten VIP</div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Tipe Konten</label>
+      <select id="v_type" onchange="onVipTypeChange()">
+        <option value="Movies">🎬 Film</option>
+        <option value="Series">📺 Series</option>
+      </select>
+    </div>
+
+    <div class="tmdb-box">
+      <div class="tmdb-header">
+        <span class="tmdb-logo">TMDB</span>
+        <span class="tmdb-label" style="color:var(--gold)">Auto-Fill Data VIP</span>
+        <span class="tmdb-hint">✨ Ketik judul → pilih → form terisi otomatis</span>
+      </div>
+      <div class="tmdb-row">
+        <input class="tmdb-input" id="tmdb_v_q" placeholder="Cari judul..." oninput="debounceVip(this.value)">
+        <button class="btn-tmdb" style="background:var(--gold);color:#000" onclick="doVipSearch(document.getElementById('tmdb_v_q').value)">🔍 Cari</button>
+      </div>
+      <div class="tmdb-dropdown" id="tmdb_v_drop"></div>
+      <div class="tmdb-filled" id="tmdb_v_filled">
+        <img id="tmdb_v_fimg" src="" alt="">
+        <span id="tmdb_v_ftitle">—</span>
+        <button class="btn-clear" onclick="clearVipFill()">✕</button>
+      </div>
+    </div>
+
+    <div class="field"><label>Judul</label><input id="v_title" placeholder="Otomatis dari TMDB"></div>
+    <div class="field">
+      <label>Genre</label>
+      <input id="v_genre" placeholder="Otomatis dari TMDB">
+      <div class="genre-chips" id="v_chips"></div>
+    </div>
+    <div class="field"><label>Sinopsis</label><textarea id="v_desc" placeholder="Otomatis dari TMDB"></textarea></div>
+    <div class="field">
+      <label>Poster / Thumbnail</label>
+      <div class="thumb-row">
+        <input id="v_thumb" placeholder="Otomatis dari TMDB" oninput="previewImg('v')">
+        <img class="thumb-preview" id="v_prev" src="" alt="Preview">
+      </div>
+    </div>
+    <div class="field">
+      <label>IMDB ID</label>
+      <input id="v_imdb" placeholder="Contoh: tt1234567" oninput="autoFillVipServer()">
+      <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.3)">✨ Server 1 otomatis terisi dari IMDB ID (khusus Film)</div>
+    </div>
+    <div id="v_movie_fields" class="grid-2">
+      <div class="field"><label>Link Video Server 1</label><input id="v_video" placeholder="Otomatis dari IMDB ID..."></div>
+      <div class="field"><label>Link Video Server 2 (Opsional)</label><input id="v_video2" placeholder="Link cadangan..."></div>
+    </div>
+    <button id="v_btn" class="btn-save red" style="background:var(--gold);color:#000;box-shadow:0 3px 12px rgba(245,197,24,0.25)" onclick="saveVipData()">✦ Simpan Konten VIP</button>
   </div>
 
   <!-- LIST -->
@@ -690,9 +752,21 @@ async function checkAuth() {
 async function loadData() {
   const el = document.getElementById('dataList');
   el.innerHTML = '<p style="color:rgba(255,255,255,0.35);padding:20px 0">Memuat…</p>';
+  if (currentTab === 'VIP') {
+    const [mRes, sRes] = await Promise.all([
+      sb.from('Movies').select('*').eq('is18', true).order('created_at', { ascending: false }),
+      sb.from('Series').select('*').eq('is18', true).order('created_at', { ascending: false })
+    ]);
+    allData = [
+      ...(mRes.data || []).map(i => ({ ...i, _table: 'Movies' })),
+      ...(sRes.data || []).map(i => ({ ...i, _table: 'Series' }))
+    ];
+    renderList(allData);
+    return;
+  }
   let q;
   if (currentTab === 'Episodes') q = sb.from('Episodes').select('*, Series(title)').order('series_id').order('episode');
-  else q = sb.from(currentTab).select('*').order('created_at', { ascending: false });
+  else q = sb.from(currentTab).select('*').eq('is18', false).order('created_at', { ascending: false });
   const { data, error } = await q;
   if (error) { el.innerHTML = `<p style="color:#ff6b6b">Error: ${error.message}</p>`; return; }
   allData = data;
@@ -725,16 +799,23 @@ function renderList(data) {
     data.forEach((item, i) => {
       const card = document.createElement('div');
       card.className = 'card'; card.style.animationDelay = (i*0.03)+'s';
+      const isVip = currentTab === 'VIP';
+      const typeBadge = isVip
+        ? `<span class="vip-badge ${item._table === 'Movies' ? 'vip-movie' : 'vip-series'}">${item._table === 'Movies' ? '🎬 Film' : '📺 Series'}</span>`
+        : (item.genre ? `<div class="card-gtag">${item.genre.split(',')[0].trim()}</div>` : '');
+      const editBtn = isVip
+        ? `<button class="btn-e edit" onclick="prepareVipEdit('${item.id}','${item._table}')">Edit</button>`
+        : `<button class="btn-e edit" onclick="prepareEdit('${item.id}')">Edit</button>`;
+      const delBtn = isVip
+        ? `<button class="btn-e del" onclick="delItem('${item.id}','${item._table}')">Hapus</button>`
+        : `<button class="btn-e del" onclick="delItem('${item.id}')">Hapus</button>`;
       card.innerHTML = `
         <img src="${item.thumb}" loading="lazy" alt="${item.title}" onerror="this.style.display='none'">
-        ${item.genre ? `<div class="card-gtag">${item.genre.split(',')[0].trim()}</div>` : ''}
+        ${typeBadge}
         <div class="card-body">
           <div class="card-name">${item.title}</div>
           ${item.genre ? `<div class="card-genre">${item.genre}</div>` : ''}
-          <div class="card-actions">
-            <button class="btn-e edit" onclick="prepareEdit('${item.id}')">Edit</button>
-            <button class="btn-e del" onclick="delItem('${item.id}')">Hapus</button>
-          </div>
+          <div class="card-actions">${editBtn}${delBtn}</div>
         </div>`;
       grid.appendChild(card);
     });
@@ -772,7 +853,9 @@ async function saveData(table) {
       const r2 = editId ? await sb.from(table).update(payload).eq('id', editId) : await sb.from(table).insert([payload]);
       if (r2.error) { toast('error', 'Gagal Menyimpan', r2.error.message); return; }
       toast('warning', 'Berhasil Disimpan', 'Kolom genre & description belum ada di Supabase. Tambahkan via Table Editor agar filter genre berfungsi.', 7000);
-    } else { toast('success', 'Berhasil Disimpan', 'Data berhasil ditambahkan.'); }
+    } else { toast('error', 'Gagal Menyimpan', res.error.message); return; }
+  } else {
+    toast('success', 'Berhasil Disimpan', 'Data berhasil ditambahkan.');
   }
   if (!res.error || res.error.code === '42703') { editId = null; resetForm(table); loadData(); }
 }
@@ -852,29 +935,30 @@ function resetForm(table) {
   }
 }
 
-async function delItem(id) {
-  const label = currentTab === 'Series' ? 'series beserta semua episode-nya' : 'item ini';
+async function delItem(id, tableOverride) {
+  const table = tableOverride || currentTab;
+  const label = table === 'Series' ? 'series beserta semua episode-nya' : 'item ini';
   if (!confirm(`Hapus ${label} secara permanen?`)) return;
 
-  // Jika hapus Series → hapus semua Episodes terkait dulu (cascade manual)
-  if (currentTab === 'Series') {
+  if (table === 'Series') {
     const { error: epErr } = await sb.from('Episodes').delete().eq('series_id', id);
     if (epErr) { toast('error', 'Gagal Menghapus Episodes', epErr.message); return; }
   }
 
-  const { error } = await sb.from(currentTab).delete().eq('id', id);
+  const { error } = await sb.from(table).delete().eq('id', id);
   if (error) { toast('error', 'Gagal Menghapus', error.message); }
-  else { toast('success', 'Berhasil Dihapus', currentTab === 'Series' ? 'Series & semua episode-nya telah dihapus.' : 'Data telah dihapus.'); loadData(); }
+  else { toast('success', 'Berhasil Dihapus', table === 'Series' ? 'Series & semua episode-nya telah dihapus.' : 'Data telah dihapus.'); loadData(); }
 }
 
 function switchTab(tab) {
+  if (tab === 'VIP' && !checkVipPin()) return;
   currentTab = tab; editId = null;
   document.getElementById('searchInput').value = '';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.form-panel').forEach(f => f.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('form-'+tab).classList.add('active');
-  document.getElementById('listTitle').innerText = 'Daftar ' + tab;
+  document.getElementById('listTitle').innerText = tab === 'VIP' ? 'Konten VIP ✦' : 'Daftar ' + tab;
   if (tab === 'Episodes') loadSeriesDrop();
   loadData();
 }
@@ -906,6 +990,187 @@ async function loadSeriesDrop() {
 }
 
 async function logout() { await sb.auth.signOut(); location.replace('login.html'); }
+
+// ── VIP ──
+const VIP_PIN = '1818';
+let vipUnlocked = false;
+let vipTimer;
+let editVipTable = null;
+
+function checkVipPin() {
+  if (vipUnlocked) return true;
+  const pin = prompt('Masukkan PIN VIP:');
+  if (pin === VIP_PIN) { vipUnlocked = true; return true; }
+  if (pin !== null) alert('PIN salah!');
+  return false;
+}
+
+function onVipTypeChange() {
+  const type = document.getElementById('v_type').value;
+  document.getElementById('v_movie_fields').style.display = type === 'Movies' ? 'grid' : 'none';
+  if (type !== 'Movies') { document.getElementById('v_video').value = ''; document.getElementById('v_video2').value = ''; }
+  autoFillVipServer();
+}
+
+function debounceVip(q) {
+  clearTimeout(vipTimer);
+  if (q.length < 2) { document.getElementById('tmdb_v_drop').classList.remove('open'); return; }
+  vipTimer = setTimeout(() => doVipSearch(q), 450);
+}
+
+async function doVipSearch(q) {
+  if (!getKey()) { toast('warning', 'API Key Belum Ada', 'Simpan TMDB API Key terlebih dahulu.'); return; }
+  if (!q.trim()) return;
+  const type = document.getElementById('v_type').value === 'Movies' ? 'movie' : 'tv';
+  const drop = document.getElementById('tmdb_v_drop');
+  drop.innerHTML = '<div style="padding:14px;text-align:center;color:rgba(255,255,255,0.4);font-size:13px">Mencari...</div>';
+  drop.classList.add('open');
+  try {
+    const ep = type === 'movie' ? 'search/movie' : 'search/tv';
+    const r = await fetch(`${TMDB_API}/${ep}?api_key=${getKey()}&query=${encodeURIComponent(q)}&language=id-ID`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.status_message || 'API Error');
+    const items = (d.results || []).slice(0, 8);
+    if (!items.length) { drop.innerHTML = '<div style="padding:14px;color:rgba(255,255,255,0.4);font-size:13px">Tidak ditemukan.</div>'; return; }
+    drop.innerHTML = '';
+    items.forEach(item => {
+      const title = item.title || item.name;
+      const year = (item.release_date || item.first_air_date || '').slice(0, 4);
+      const poster = item.poster_path ? TMDB_IMG + item.poster_path : '';
+      const score = item.vote_average ? item.vote_average.toFixed(1) : '—';
+      const div = document.createElement('div');
+      div.className = 'tmdb-item';
+      div.innerHTML = `
+        ${poster ? `<img class="tmdb-poster" src="${poster}" loading="lazy">` : '<div class="tmdb-poster" style="background:var(--surface3);display:flex;align-items:center;justify-content:center">🎬</div>'}
+        <div>
+          <div class="tmdb-item-title">${title}</div>
+          <div class="tmdb-item-meta"><span>${year || '—'}</span><span>⭐ ${score}</span></div>
+        </div>`;
+      div.onclick = () => pickVipItem(item, type);
+      drop.appendChild(div);
+    });
+  } catch(e) {
+    drop.innerHTML = `<div style="padding:14px;color:#ff6b6b;font-size:13px">❌ ${e.message}</div>`;
+  }
+}
+
+async function pickVipItem(item, type) {
+  document.getElementById('tmdb_v_drop').classList.remove('open');
+  try {
+    const ep = type === 'movie' ? `movie/${item.id}` : `tv/${item.id}`;
+    const [r, rID] = await Promise.all([
+      fetch(`${TMDB_API}/${ep}?api_key=${getKey()}`),
+      fetch(`${TMDB_API}/${ep}?api_key=${getKey()}&language=id-ID`)
+    ]);
+    const [d, dID] = await Promise.all([r.json(), rID.json()]);
+    const title = dID.title || dID.name || d.title || d.name || '';
+    const desc = dID.overview || d.overview || '';
+    const poster = d.poster_path ? TMDB_IMG + d.poster_path : '';
+    const year = (d.release_date || d.first_air_date || '').slice(0, 4);
+    const genreNames = (d.genres || []).map(g => GENRE_MAP[g.id]).filter(Boolean).join(', ');
+    try {
+      const epExt = type === 'movie' ? `movie/${item.id}/external_ids` : `tv/${item.id}/external_ids`;
+      const rExt = await fetch(`${TMDB_API}/${epExt}?api_key=${getKey()}`);
+      const dExt = await rExt.json();
+      if (dExt.imdb_id) { fill('v_imdb', dExt.imdb_id); autoFillVipServer(); }
+    } catch(e) {}
+    fill('v_title', year ? `${title} (${year})` : title);
+    fill('v_desc', desc);
+    fill('v_thumb', poster);
+    fill('v_genre', genreNames);
+    buildChips('v', genreNames);
+    previewImg('v');
+    document.getElementById('tmdb_v_fimg').src = poster;
+    document.getElementById('tmdb_v_ftitle').innerText = `${title}${year ? ' (' + year + ')' : ''} — data diisi otomatis ✅`;
+    document.getElementById('tmdb_v_filled').classList.add('show');
+    document.getElementById('tmdb_v_q').value = '';
+  } catch(e) {
+    fill('v_title', item.title || item.name);
+    fill('v_desc', item.overview || '');
+    if (item.poster_path) fill('v_thumb', TMDB_IMG + item.poster_path);
+    previewImg('v');
+  }
+}
+
+function autoFillVipServer() {
+  const imdb = document.getElementById('v_imdb').value.trim();
+  const type = document.getElementById('v_type').value;
+  if (type !== 'Movies') return;
+  const videoField = document.getElementById('v_video');
+  if (imdb) {
+    videoField.value = `https://streamimdb.ru/embed/movie/${imdb}`;
+    videoField.classList.remove('filled');
+    void videoField.offsetWidth;
+    videoField.classList.add('filled');
+    setTimeout(() => videoField.classList.remove('filled'), 1200);
+  } else {
+    videoField.value = '';
+  }
+}
+
+function clearVipFill() {
+  ['v_title','v_desc','v_thumb','v_genre','v_imdb','v_video','v_video2'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const prev = document.getElementById('v_prev');
+  if (prev) { prev.src = ''; prev.classList.remove('show'); }
+  const chips = document.getElementById('v_chips');
+  if (chips) chips.innerHTML = '';
+  document.getElementById('tmdb_v_filled').classList.remove('show');
+}
+
+async function saveVipData() {
+  const type = editId ? editVipTable : document.getElementById('v_type').value;
+  const payload = {
+    title: document.getElementById('v_title').value.trim(),
+    thumb: document.getElementById('v_thumb').value.trim(),
+    is18: true,
+    genre: document.getElementById('v_genre').value,
+    description: document.getElementById('v_desc').value,
+    imdb_id: document.getElementById('v_imdb').value.trim(),
+  };
+  if (!payload.title) { toast('warning', 'Judul Wajib Diisi', 'Masukkan judul konten VIP.'); return; }
+  if (type === 'Movies') {
+    payload.video = document.getElementById('v_video').value;
+    payload.video2 = document.getElementById('v_video2').value;
+  }
+  const res = editId
+    ? await sb.from(type).update(payload).eq('id', editId)
+    : await sb.from(type).insert([payload]);
+  if (res.error) { toast('error', 'Gagal Menyimpan', res.error.message); return; }
+  toast('success', '✦ Konten VIP Tersimpan', `${type === 'Movies' ? 'Film' : 'Series'} berhasil ${editId ? 'diupdate' : 'ditambahkan'}.`);
+  editId = null; editVipTable = null;
+  resetVipForm();
+  loadData();
+}
+
+function resetVipForm() {
+  clearVipFill();
+  document.getElementById('v_type').value = 'Movies';
+  document.getElementById('v_movie_fields').style.display = 'grid';
+  document.getElementById('v_head').innerText = '✦ Tambah Konten VIP';
+  document.getElementById('v_btn').innerText = '✦ Simpan Konten VIP';
+}
+
+async function prepareVipEdit(id, table) {
+  const { data } = await sb.from(table).select('*').eq('id', id).single();
+  editId = id; editVipTable = table;
+  document.getElementById('v_type').value = table;
+  onVipTypeChange();
+  document.getElementById('v_title').value = data.title || '';
+  document.getElementById('v_thumb').value = data.thumb || '';
+  document.getElementById('v_genre').value = data.genre || '';
+  document.getElementById('v_desc').value = data.description || '';
+  document.getElementById('v_imdb').value = data.imdb_id || '';
+  if (data.thumb) { const p = document.getElementById('v_prev'); p.src = data.thumb; p.classList.add('show'); }
+  if (table === 'Movies') {
+    document.getElementById('v_video').value = data.video || '';
+    document.getElementById('v_video2').value = data.video2 || '';
+  }
+  document.getElementById('v_head').innerText = 'Edit VIP: ' + data.title;
+  document.getElementById('v_btn').innerText = '✦ Update Konten VIP';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 checkAuth();
 </script>
