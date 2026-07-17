@@ -602,6 +602,13 @@ const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const VIP_PIN_HASH = '8ffe8459134b46975acd31df13a50c51dbeacf1c19a764bf1602ba7c73ffc8fb';
+const VIP_SESSION_MS = 2 * 60 * 60 * 1000;
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 let movies = [], series = [], bannerItems = [], bIdx = 0, bannerTimer;
 let activeGenre = 'Semua';
 let activeYear  = 'Semua';
@@ -1020,10 +1027,17 @@ function handleSearch(q) {
 }
 
 // ── VIP ──
-function openVIP() {
+async function openVIP() {
   const pin = prompt("Masukkan PIN VIP:");
-  if (pin === "1818") { sessionStorage.setItem("adultAccess", "true"); goto("adult.html"); }
-  else if (pin !== null) alert("PIN salah!");
+  if (pin === null) return;
+  if (await sha256Hex(pin) === VIP_PIN_HASH) {
+    const exp = Date.now() + VIP_SESSION_MS;
+    const tok = await sha256Hex(VIP_PIN_HASH + ':' + exp);
+    sessionStorage.setItem("adultAccess", JSON.stringify({ exp, tok }));
+    goto("adult.html");
+  } else {
+    alert("PIN salah!");
+  }
 }
 
 init();

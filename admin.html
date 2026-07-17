@@ -445,6 +445,11 @@ const TMDB_API = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
 let currentTab = 'Movies', editId = null, allData = [], timer;
 
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ── TOAST ──
 function toast(type, title, msg = '', duration = 4000) {
   const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
@@ -950,8 +955,8 @@ async function delItem(id, tableOverride) {
   else { toast('success', 'Berhasil Dihapus', table === 'Series' ? 'Series & semua episode-nya telah dihapus.' : 'Data telah dihapus.'); loadData(); }
 }
 
-function switchTab(tab) {
-  if (tab === 'VIP' && !checkVipPin()) return;
+async function switchTab(tab) {
+  if (tab === 'VIP' && !(await checkVipPin())) return;
   currentTab = tab; editId = null;
   document.getElementById('searchInput').value = '';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -992,16 +997,17 @@ async function loadSeriesDrop() {
 async function logout() { await sb.auth.signOut(); location.replace('login.html'); }
 
 // ── VIP ──
-const VIP_PIN = '1818';
+const VIP_PIN_HASH = '8ffe8459134b46975acd31df13a50c51dbeacf1c19a764bf1602ba7c73ffc8fb';
 let vipUnlocked = false;
 let vipTimer;
 let editVipTable = null;
 
-function checkVipPin() {
+async function checkVipPin() {
   if (vipUnlocked) return true;
   const pin = prompt('Masukkan PIN VIP:');
-  if (pin === VIP_PIN) { vipUnlocked = true; return true; }
-  if (pin !== null) alert('PIN salah!');
+  if (pin === null) return false;
+  if (await sha256Hex(pin) === VIP_PIN_HASH) { vipUnlocked = true; return true; }
+  alert('PIN salah!');
   return false;
 }
 

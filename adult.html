@@ -174,13 +174,25 @@ header {
 const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const VIP_PIN_HASH = '8ffe8459134b46975acd31df13a50c51dbeacf1c19a764bf1602ba7c73ffc8fb';
 let vipData = [];
 
 function goto(url) { document.body.classList.add('fade-out'); setTimeout(() => location.href = url, 320); }
 
-function checkGate() {
-  if (sessionStorage.getItem('adultAccess') !== 'true') return goto('index.html');
-  loadAdult();
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkGate() {
+  try {
+    const session = JSON.parse(sessionStorage.getItem('adultAccess') || 'null');
+    if (session && session.exp > Date.now()) {
+      const expected = await sha256Hex(VIP_PIN_HASH + ':' + session.exp);
+      if (expected === session.tok) return loadAdult();
+    }
+  } catch (e) {}
+  goto('index.html');
 }
 
 async function loadAdult() {
