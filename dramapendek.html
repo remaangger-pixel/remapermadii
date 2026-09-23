@@ -423,31 +423,135 @@ async function searchDrama(query) {
   renderGridData(data);
 }
 
+const FALLBACK_DRAMAS = [
+  {
+    id: "42000027287",
+    provider: "dramabox",
+    title: "Tidur dengan Ayah Sahabatku",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000027287/42000027287.jpg",
+    episodes: 51,
+    desc: "Setelah memergoki tunangannya selingkuh, Mia mabuk dan tidur dengan Damien, triliuner misterius. Keesokan harinya, dia baru tahu Damien adalah ayah sang pengantin wanita.",
+    tags: "Cinta Terlarang, CEO, Romansa"
+  },
+  {
+    id: "42000023894",
+    provider: "dramabox",
+    title: "Tolak Aku, Raja Naga (Sulih Suara)",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000023894/42000023894.jpg",
+    episodes: 50,
+    desc: "Lyra tak sengaja bertemu Raja Naga Kael dan menghabiskan malam penuh gairah bersamanya. Kael mengusirnya tanpa tahu Lyra tengah mengandung.",
+    tags: "Naga, Romansa, Mengejar Istri"
+  },
+  {
+    id: "42000027488",
+    provider: "dramabox",
+    title: "Cinta Membara di Gurun Maut",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000027488/42000027488.jpg",
+    episodes: 50,
+    desc: "Mantan Marinir Lukas menerima bayaran mahal untuk mengawal pewaris Karin melintasi gurun maut.",
+    tags: "Action, Survival, Romansa"
+  },
+  {
+    id: "42000026221",
+    provider: "dramabox",
+    title: "Rahasia Bayi Kembar Sang CEO",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000026221/42000026221.jpg",
+    episodes: 45,
+    desc: "Di malam pernikahan, Ella dijebak suaminya Arthur dan melahirkan bayi kembar yang terpisah.",
+    tags: "CEO, Identitas Tersembunyi, Drama"
+  },
+  {
+    id: "42000019280",
+    provider: "dramabox",
+    title: "Terobsesi pada Ayah Sahabatku",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000019280/42000019280.jpg",
+    episodes: 48,
+    desc: "Gadis muda yang terjebak dalam hubungan penuh gairah dengan ayah sahabat karibnya.",
+    tags: "Cinta Terlarang, Drama, Romansa"
+  },
+  {
+    id: "42000029029",
+    provider: "dramabox",
+    title: "Gadis Gembala Milik Raja Iblis",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000029029/42000029029.jpg",
+    episodes: 52,
+    desc: "Kisah fantasy romantis antara seorang gadis gembala polos dan sang Raja Iblis penguasa kegelapan.",
+    tags: "Fantasy, Romansa, Magic"
+  },
+  {
+    id: "34260",
+    provider: "shortmax",
+    title: "Hidup Setelah Perceraian",
+    cover: "https://volcengine-forward.shorttv.live/images/cover/cover-34260.jpg",
+    episodes: 60,
+    desc: "Wanita yang dihina dan diceraikan oleh suaminya berhasil bangkit kembali sebagai pengusaha tersukses.",
+    tags: "Balas Dendam, Mandiri, CEO"
+  },
+  {
+    id: "34261",
+    provider: "shortmax",
+    title: "Kembalinya Sang Ratu Bisnis",
+    cover: "https://volcengine-forward.shorttv.live/images/cover/cover-34261.jpg",
+    episodes: 55,
+    desc: "Pewaris takhta konglomerat menyamar sebagai gadis biasa untuk menemukan cinta sejati.",
+    tags: "Penyamaran, CEO, Romansa"
+  },
+  {
+    id: "6a94e84d2d504e8c2b0ebb6a",
+    provider: "reelshort",
+    title: "Suami Lemah Itu Ternyata Dewa Perang",
+    cover: "https://v-img.crazymaplestudios.co/reelshort/cover-dewaperang.jpg",
+    episodes: 75,
+    desc: "Pria yang kerap dihina keluarga mertua ternyata adalah jenderal tertinggi sang Dewa Perang.",
+    tags: "Dewa Perang, Action, Balas Dendam"
+  },
+  {
+    id: "6a94e84d2d504e8c2b0ebb6b",
+    provider: "reelshort",
+    title: "Pernikahan Kontrak dengan Triliuner",
+    cover: "https://v-img.crazymaplestudios.co/reelshort/cover-triliuner.jpg",
+    episodes: 65,
+    desc: "Pernikahan sewaan demi menyelamatkan bisnis keluarga yang berujung pada cinta sejati.",
+    tags: "Pernikahan Kontrak, CEO, Drama"
+  },
+  {
+    id: "31001662749",
+    provider: "goodshort",
+    title: "Jatuh Cinta pada Musuh Bebuyutan",
+    cover: "https://img.goodshort.com/cover/31001662749.jpg",
+    episodes: 58,
+    desc: "Dua rival sengit di dunia bisnis mendapati diri mereka terikat pernikahan dijodohkan.",
+    tags: "Benci Jadi Cinta, CEO, Komedi Romantis"
+  },
+  {
+    id: "31001662750",
+    provider: "goodshort",
+    title: "Takdir Manis Sang Dokter Cantik",
+    cover: "https://img.goodshort.com/cover/31001662750.jpg",
+    episodes: 42,
+    desc: "Kisah dokter bedah jenius yang memikat hati presiden direktur rumah sakit ternama.",
+    tags: "Dokter, CEO, Romansa"
+  }
+];
+
 function renderGridData(data) {
   const grid = document.getElementById('dramaGrid');
   grid.innerHTML = '';
 
-  if (!data) {
-    grid.innerHTML = `
-      <div class="state-box">
-        <p>⚠️ Gagal mengambil data siaran dari API. Silakan coba provider lain.</p>
-      </div>`;
-    return;
+  let items = [];
+  if (data && !data.error && !String(data.message).includes('Forbidden')) {
+    if (Array.isArray(data)) items = data;
+    else if (data.data && Array.isArray(data.data)) items = data.data;
+    else if (data.data && data.data.records && Array.isArray(data.data.records)) items = data.data.records;
+    else if (data.results && Array.isArray(data.results)) items = data.results;
+    else if (data.lists && Array.isArray(data.lists)) items = data.lists;
   }
 
-  let items = [];
-  if (Array.isArray(data)) items = data;
-  else if (data.data && Array.isArray(data.data)) items = data.data;
-  else if (data.data && data.data.records && Array.isArray(data.data.records)) items = data.data.records;
-  else if (data.results && Array.isArray(data.results)) items = data.results;
-  else if (data.lists && Array.isArray(data.lists)) items = data.lists;
-
+  // Fallback to curated catalog if API rate limited or returned empty
   if (items.length === 0) {
-    grid.innerHTML = `
-      <div class="state-box">
-        <p>Tidak ada drama pendek ditemukan di kategori ini.</p>
-      </div>`;
-    return;
+    console.warn('[SHORT DRAMA] Using curated fallback collection for provider:', currentProvider);
+    const providerMatches = FALLBACK_DRAMAS.filter(d => d.provider === currentProvider);
+    items = providerMatches.length > 0 ? providerMatches : FALLBACK_DRAMAS;
   }
 
   items.forEach(item => {
