@@ -816,11 +816,21 @@ function hexToBase64Url(hex) {
 }
 
 /**
- * Construct Backend Proxy URL forwarding metadata (User-Agent, Referer, Origin)
+ * Construct Playable Stream URL (Direct CDN or Backend Proxy)
  */
-function getPlayableUrl(ch) {
-  const rawUrl = ch.stream_url.trim();
-  if (rawUrl.startsWith('<iframe')) return rawUrl;
+function getPlayableUrl(ch, forceDirect = false) {
+  const rawUrl = (ch.stream_url || '').trim();
+  if (rawUrl.startsWith('<iframe') || forceDirect) return rawUrl;
+
+  const hasCustomHeaders = !!((ch.user_agent || '').trim() || (ch.referer || '').trim() || (ch.origin || '').trim());
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
+  const customProxyBase = (localStorage.getItem('proxy_base_url') || window.PROXY_BASE_URL || '').trim();
+
+  // If channel has NO custom headers AND no custom proxy base URL is configured AND not local, play direct stream URL
+  if (!hasCustomHeaders && !customProxyBase && !isLocal) {
+    console.log('[PLAYBACK] Using direct CDN stream URL (no proxy required):', rawUrl);
+    return rawUrl;
+  }
 
   const q = new URLSearchParams();
   q.set('url', rawUrl);
@@ -835,7 +845,8 @@ function getPlayableUrl(ch) {
     q.set('clearkey', '1');
   }
 
-  return location.origin + '/api/dash-proxy?' + q.toString();
+  const proxyBase = customProxyBase || (isLocal ? location.origin : location.origin);
+  return proxyBase + '/api/dash-proxy?' + q.toString();
 }
 
 let currentDrmState = 'INITIALIZING';
@@ -880,8 +891,18 @@ function hidePlayOverlay() {
 /**
  * Main Playback Engine (DASH + ClearKey & HLS + Detailed Diagnostics)
  */
-function playChannel(ch) {
+let currentPlayableUrl = '';
+let isFallbackAttempt = false;
+
+function playChannel(ch, forceDirect = false) {
   activeChannel = ch;
+
+  if (forceDirect) {
+    isFallbackAttempt = true;
+    console.log('[PLAYBACK FALLBACK] Forcing direct stream URL playback:', ch.stream_url);
+  } else {
+    isFallbackAttempt = false;
+  }
 
   console.log('[CHANNEL OBJECT]', JSON.stringify(ch));
 
@@ -928,7 +949,8 @@ function playChannel(ch) {
   let oldIframe = wrapper.querySelector('iframe');
   if (oldIframe) oldIframe.remove();
 
-  const playableUrl = getPlayableUrl(ch);
+  currentPlayableUrl = getPlayableUrl(ch, forceDirect);
+  const playableUrl = currentPlayableUrl;
 
   // DASH Pemutaran (.mpd)
   if (rawUrl.includes('.mpd') || ch.stream_type === 'dash') {
@@ -1235,7 +1257,16 @@ function parseIsoBmffPssh(initData) {
 function handlePlayerError(type, err) {
   console.warn(`[${type} Player Error]`, err);
 
-  if (currentDrmState === 'FUBO_WIDEVINE_LICENSE_REQUIRED' || currentDrmState === 'WIDEVINE_REQUIRED') {
+  if (currentDrmState === 'FUBO_WIDEVINE_LICENSE_REQUIRED' || currentDrmState === 'WIDEVINE_REQUIRED' || currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
+    return;
+  }
+
+  // Automatic Direct Stream Fallback if proxy endpoint returned 404 or network error
+  if (!isFallbackAttempt && activeChannel && activeChannel.stream_url && currentPlayableUrl !== activeChannel.stream_url.trim()) {
+    console.warn('⚠️ [PROXY FALLBACK] Proxy server returned error. Retrying playback with direct CDN URL...');
+    showToast('🔄 Server proxy tidak ditemukan/Error, mengalihkan ke pemutaran langsung (Direct CDN)...');
+    destroyPlayers();
+    playChannel(activeChannel, true);
     return;
   }
 
@@ -1259,6 +1290,16 @@ function handlePlayerError(type, err) {
  */
 function handleHlsFatalError(data) {
   console.warn('[HLS Fatal Error]', data);
+
+  // Automatic Direct Stream Fallback if proxy endpoint returned 404 or network error
+  if (!isFallbackAttempt && activeChannel && activeChannel.stream_url && currentPlayableUrl !== activeChannel.stream_url.trim()) {
+    console.warn('⚠️ [PROXY FALLBACK] HLS Proxy failed. Retrying playback with direct CDN URL...');
+    showToast('🔄 Server proxy gagal, mengalihkan ke pemutaran langsung (Direct CDN)...');
+    destroyPlayers();
+    playChannel(activeChannel, true);
+    return;
+  }
+
   switch (data.type) {
     case Hls.ErrorTypes.NETWORK_ERROR:
       if (data.response && data.response.code === 403) {
