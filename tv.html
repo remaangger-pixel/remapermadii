@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live TV Streaming — Anvi Create</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/dashjs@latest/dist/dash.all.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1f1f1f;
+  --surface3: #282828;
+  --red: #e50914;
+  --red-hover: #f40612;
+  --red-glow: rgba(229,9,20,0.35);
+  --gold: #f5c518;
+  --text: #ffffff;
+  --text-dim: rgba(255,255,255,0.7);
+  --text-muted: rgba(255,255,255,0.4);
+  --border: rgba(255,255,255,0.1);
+  --glass-bg: rgba(20,20,20,0.85);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden; opacity: 0;
+  animation: bodyIn 0.5s ease 0.1s forwards;
+  min-height: 100vh; display: flex; flex-direction: column;
+}
+@keyframes bodyIn { to { opacity: 1; } }
+
+/* ── HEADER ── */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 68px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4%; background: rgba(10,10,10,0.95);
+  border-bottom: 1px solid var(--border); backdrop-filter: blur(12px);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; letter-spacing: 2px; color: var(--red);
+  text-decoration: none; text-shadow: 0 0 30px rgba(229,9,20,0.4);
+}
+.header-nav { display: flex; align-items: center; gap: 8px; }
+.nav-btn {
+  background: transparent; border: none;
+  color: var(--text-dim); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 500;
+  padding: 8px 16px; border-radius: 6px;
+  cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;
+}
+.nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.nav-btn.active { color: var(--text); background: rgba(229,9,20,0.18); border: 1px solid rgba(229,9,20,0.4); font-weight: 700; }
+
+/* ── MAIN LAYOUT ── */
+.main-layout {
+  margin-top: 68px;
+  padding: 24px 4% 60px;
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 24px;
+  max-width: 1680px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  flex: 1;
+}
+
+@media(max-width: 1100px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── PLAYER SECTION ── */
+.player-container {
+  display: flex; flex-direction: column; gap: 16px; min-width: 0;
+}
+
+.video-wrapper {
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  background: #000; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+  transition: all 0.3s ease;
+}
+
+/* Fullscreen Styling Fixes */
+.video-wrapper:fullscreen,
+.video-wrapper:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.video-element, .iframe-element {
+  width: 100%; height: 100%; object-fit: contain; border: none; display: block;
+}
+
+.player-overlay-badge {
+  position: absolute; top: 16px; left: 16px; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(10,10,10,0.85); backdrop-filter: blur(10px);
+  padding: 7px 16px; border-radius: 30px;
+  border: 1px solid rgba(255,255,255,0.15);
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.live-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 12px var(--red);
+  animation: pulse 1.4s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } }
+
+.live-text {
+  font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #fff;
+}
+
+/* Exit Fullscreen Overlay Button inside Fullscreen */
+.fullscreen-exit-btn {
+  position: absolute; top: 16px; right: 16px; z-index: 20;
+  display: none; align-items: center; gap: 8px;
+  background: rgba(229,9,20,0.95); color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 10px 20px; border-radius: 30px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.8);
+  transition: all 0.2s; backdrop-filter: blur(10px);
+}
+.fullscreen-exit-btn:hover { background: var(--red-hover); transform: scale(1.05); }
+
+.video-wrapper:fullscreen .fullscreen-exit-btn,
+.video-wrapper:-webkit-full-screen .fullscreen-exit-btn {
+  display: flex !important;
+}
+
+/* Play Overlay for Autoplay Blocked */
+.play-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 20; cursor: pointer; border-radius: 12px;
+  transition: opacity 0.2s ease;
+}
+.btn-play-overlay {
+  background: var(--red); border: none; color: #fff;
+  padding: 14px 28px; border-radius: 30px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 28px rgba(229,9,20,0.5); transition: all 0.2s;
+}
+.btn-play-overlay:hover {
+  transform: scale(1.06); background: #f6121d;
+}
+
+.player-info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+.channel-meta {
+  display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1;
+}
+
+.channel-logo-large {
+  width: 58px; height: 58px; border-radius: 12px;
+  object-fit: cover; background: var(--surface2);
+  border: 1px solid var(--border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 700; color: var(--red);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.channel-details { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.channel-title-large { font-size: 22px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.channel-group-tag {
+  font-size: 11px; font-weight: 700; color: var(--text-dim);
+  background: rgba(255,255,255,0.07); padding: 4px 12px; border-radius: 6px;
+  display: inline-block; width: fit-content; border: 1px solid var(--border);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+}
+
+.player-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-action {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-dim); padding: 10px 18px; border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+}
+.btn-action:hover { color: var(--text); border-color: rgba(255,255,255,0.25); background: var(--surface3); transform: translateY(-1px); }
+.btn-action.active-fs { background: rgba(229,9,20,0.25); border-color: var(--red); color: #fff; }
+
+/* ── SIDEBAR SECTION ── */
+.sidebar-container {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  max-height: calc(100vh - 116px);
+  position: sticky; top: 90px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  min-width: 0; width: 100%;
+}
+
+@media(max-width: 1100px) {
+  .sidebar-container {
+    position: static; max-height: none;
+  }
+}
+
+.sidebar-header {
+  display: flex; align-items: center; justify-content: space-between; min-width: 0;
+}
+.sidebar-title { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.channel-count-badge { font-size: 11px; font-weight: 800; color: var(--text-dim); background: var(--surface2); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+
+/* Search Box */
+.search-wrapper {
+  position: relative; width: 100%; min-width: 0;
+}
+.search-channel-input {
+  width: 100%; padding: 11px 38px 11px 16px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px;
+  outline: none; transition: all 0.2s;
+}
+.search-channel-input::placeholder { color: var(--text-muted); }
+.search-channel-input:focus { border-color: rgba(255,255,255,0.3); background: var(--surface3); }
+
+.search-clear-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--text-muted);
+  font-size: 14px; cursor: pointer; padding: 4px; display: none;
+}
+.search-clear-btn:hover { color: #fff; }
+
+/* ── CUSTOM DROPDOWN CONTAINER (Overflow Safe) ── */
+.custom-cat-container {
+  position: relative; width: 100%; min-width: 0;
+}
+
+.cat-dropdown-trigger {
+  width: 100%; padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; transition: all 0.2s; user-select: none;
+}
+.cat-dropdown-trigger:hover { border-color: rgba(255,255,255,0.3); background: var(--surface3); }
+.cat-dropdown-trigger.open { border-color: var(--red); background: var(--surface3); }
+
+.cat-trigger-text {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: left;
+}
+
+.cat-trigger-badge {
+  font-size: 10px; font-weight: 800; background: var(--red); color: #fff;
+  padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
+}
+
+.cat-chevron {
+  width: 16px; height: 16px; flex-shrink: 0; transition: transform 0.25s; opacity: 0.7;
+}
+.cat-dropdown-trigger.open .cat-chevron { transform: rotate(180deg); opacity: 1; }
+
+/* Custom Popup Dropdown Menu */
+.cat-dropdown-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 500;
+  background: #1a1a1a; border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.85);
+  max-height: 300px; overflow-y: auto; display: none;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent;
+  animation: dropIn 0.2s cubic-bezier(0.22,1,0.36,1);
+}
+.cat-dropdown-menu.open { display: block; }
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cat-option-item {
+  padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--text-dim);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; transition: all 0.15s; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cat-option-item:last-child { border-bottom: none; }
+.cat-option-item:hover { background: var(--surface3); color: var(--text); }
+.cat-option-item.active { background: rgba(229,9,20,0.18); color: var(--red); font-weight: 800; }
+
+.cat-opt-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.cat-opt-count { font-size: 11px; opacity: 0.6; background: rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+.cat-option-item.active .cat-opt-count { background: var(--red); color: #fff; opacity: 1; }
+
+/* Quick Pills Bar (Scrollable Strip) */
+.category-pills {
+  display: flex; gap: 6px; overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px; width: 100%; min-width: 0;
+}
+.category-pills::-webkit-scrollbar { display: none; }
+
+.cat-pill {
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text-dim);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+}
+.cat-pill:hover { color: var(--text); border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
+.cat-pill.active { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; box-shadow: 0 2px 10px var(--red-glow); }
+
+/* Channel List */
+.channel-list {
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; flex: 1; padding-right: 2px;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent;
+  min-width: 0;
+}
+
+.channel-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s; position: relative; min-width: 0;
+}
+.channel-card:hover {
+  background: var(--surface3); border-color: rgba(255,255,255,0.2);
+  transform: translateX(3px);
+}
+.channel-card.active {
+  background: rgba(229,9,20,0.14);
+  border-color: var(--red);
+}
+.channel-card.active::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; background: var(--red); border-radius: 10px 0 0 10px;
+}
+
+.channel-thumb {
+  width: 44px; height: 44px; border-radius: 8px;
+  object-fit: cover; background: var(--surface3);
+  flex-shrink: 0; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; color: var(--text-muted);
+  overflow: hidden;
+}
+.channel-info-min { flex: 1; min-width: 0; }
+.channel-name-min {
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 2px; color: #fff;
+}
+.channel-group-min { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+
+/* Equalizer / Playing Animation */
+.playing-bars {
+  display: none; align-items: flex-end; gap: 2px; height: 14px; width: 14px; flex-shrink: 0;
+}
+.channel-card.active .playing-bars { display: flex; }
+.bar {
+  flex: 1; background: var(--red); border-radius: 1px;
+  animation: bounce 1s ease-in-out infinite alternate;
+}
+.bar:nth-child(1) { height: 60%; animation-delay: 0.1s; }
+.bar:nth-child(2) { height: 100%; animation-delay: 0.3s; }
+.bar:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+@keyframes bounce { 0% { height: 30%; } 100% { height: 100%; } }
+
+.state-empty {
+  text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13px;
+}
+
+/* Toast Notice */
+.toast-notice {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+  background: rgba(20,20,20,0.95); border: 1px solid var(--border);
+  color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 13px; font-weight: 600;
+  z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1); opacity: 0;
+}
+.toast-notice.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" class="logo">ANVI</a>
+  <div class="header-nav">
+    <a href="index.html" class="nav-btn">Beranda</a>
+    <a href="movies.html" class="nav-btn">Film</a>
+    <a href="series.html" class="nav-btn">Series</a>
+    <a href="tv.html" class="nav-btn active">📺 Live TV</a>
+    <a href="admin.html" class="nav-btn">Admin</a>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT: PLAYER AREA -->
+  <div class="player-container">
+    <div class="video-wrapper" id="videoWrapper">
+      <div class="player-overlay-badge">
+        <div class="live-dot"></div>
+        <div class="live-text">LIVE STREAM</div>
+      </div>
+
+      <!-- Exit Fullscreen Button inside Fullscreen -->
+      <button class="fullscreen-exit-btn" id="fsExitBtn" onclick="toggleFullscreen()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        Keluar Layar Penuh
+      </button>
+
+      <!-- Video Element -->
+      <video id="videoPlayer" class="video-element" controls autoplay playsinline></video>
+    </div>
+
+    <!-- PLAYER INFO CARD -->
+    <div class="player-info-card">
+      <div class="channel-meta">
+        <div class="channel-logo-large" id="currentLogo">📺</div>
+        <div class="channel-details">
+          <div class="channel-title-large" id="currentTitle">Memuat Channel…</div>
+          <div><span class="channel-group-tag" id="currentGroup">Live TV</span></div>
+        </div>
+      </div>
+      <div class="player-actions">
+        <button class="btn-action" onclick="shareChannel()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Bagikan
+        </button>
+        <button class="btn-action" id="btnFullscreenToggle" onclick="toggleFullscreen()">
+          <svg id="fsBtnIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18-5h-3a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 1-2 2h-3m-8 0H5a2 2 0 0 1-2-2v-3"/></svg>
+          <span id="fsBtnText">Layar Penuh</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SIDEBAR CHANNEL LIST -->
+  <div class="sidebar-container">
+    <div class="sidebar-header">
+      <div class="sidebar-title">
+        <span>📺 Saluran TV</span>
+        <span class="channel-count-badge" id="channelCount">0</span>
+      </div>
+    </div>
+
+    <!-- Search Box with Clear Button -->
+    <div class="search-wrapper">
+      <input type="text" class="search-channel-input" id="searchChannel" placeholder="🔍 Cari saluran TV..." oninput="handleSearchInput()">
+      <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()">✕</button>
+    </div>
+
+    <!-- CUSTOM CATEGORY DROPDOWN (100% Overflow-Safe) -->
+    <div class="custom-cat-container" id="customCatContainer">
+      <div class="cat-dropdown-trigger" id="catTrigger" onclick="toggleCatDropdown()">
+        <span class="cat-trigger-text" id="catTriggerText">📂 Semua Kategori</span>
+        <span class="cat-trigger-badge" id="catTriggerBadge">0</span>
+        <svg class="cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="cat-dropdown-menu" id="catDropdownMenu"></div>
+    </div>
+
+    <!-- Quick Category Pills Bar -->
+    <div class="category-pills" id="categoryPills"></div>
+
+    <!-- Channel List -->
+    <div class="channel-list" id="channelList">
+      <div class="state-empty">Memuat daftar saluran...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast Notice -->
+<div class="toast-notice" id="toastNotice"></div>
+
+<script>
+const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const M3U_URL = "https://raw.githubusercontent.com/Bluestraveller13/super-duper-spork/refs/heads/main/KITKATJOSS";
+
+let allChannels = [];
+let filteredChannels = [];
+let activeCategory = 'Semua';
+let activeChannel = null;
+
+let hlsPlayer = null;
+let dashPlayer = null;
+
+async function init() {
+  const m3uChannels = await fetchM3UChannels();
+
+  const m3uByUrlMap = new Map();
+  const m3uByNameMap = new Map();
+
+  m3uChannels.forEach(c => {
+    if (c.stream_url) m3uByUrlMap.set(c.stream_url.trim().toLowerCase(), c);
+    if (c.name) m3uByNameMap.set(c.name.trim().toLowerCase(), c);
+  });
+
+  try {
+    const { data, error } = await sb.from('Channels').select('*').eq('is_active', true).order('name', { ascending: true });
+    if (error || !data || !data.length) {
+      console.log('Fungsi Supabase kosong/error, memuat daftar M3U langsung...');
+      allChannels = m3uChannels;
+    } else {
+      // Merge M3U metadata (license_key, license_type, headers) into Supabase channel objects
+      allChannels = data.map(dbCh => {
+        const streamKey = (dbCh.stream_url || '').trim().toLowerCase();
+        const nameKey = (dbCh.name || '').trim().toLowerCase();
+        const match = m3uByUrlMap.get(streamKey) || m3uByNameMap.get(nameKey);
+
+        if (match) {
+          return {
+            ...dbCh,
+            license_type: dbCh.license_type || match.license_type || '',
+            license_key: dbCh.license_key || match.license_key || '',
+            license_server_url: dbCh.license_server_url || match.license_server_url || '',
+            license_headers: dbCh.license_headers || match.license_headers || null,
+            user_agent: dbCh.user_agent || match.user_agent || '',
+            referer: dbCh.referer || match.referer || '',
+            origin: dbCh.origin || match.origin || ''
+          };
+        }
+        return dbCh;
+      });
+    }
+  } catch(e) {
+    allChannels = m3uChannels;
+  }
+
+  buildCategoryUI();
+  filterChannels();
+
+  // URL query param channel index or first channel
+  const params = new URLSearchParams(location.search);
+  const channelName = params.get('ch');
+  let startCh = allChannels[0];
+  if (channelName) {
+    const found = allChannels.find(c => c.name.toLowerCase() === channelName.toLowerCase());
+    if (found) startCh = found;
+  }
+  if (startCh) playChannel(startCh);
+}
+
+/**
+ * Advanced M3U Metadata Parser (#KODIPROP, #EXTVLCOPT, #EXTINF)
+ */
+async function fetchM3UChannels() {
+  try {
+    const res = await fetch(M3U_URL);
+    if (!res.ok) return [];
+    const text = await res.text();
+    return parseM3UText(text);
+  } catch(e) {
+    return [];
+  }
+}
+
+function parseM3UText(text) {
+  const lines = text.split('\n');
+  const channels = [];
+  let pendingMeta = {
+    license_type: '',
+    license_key: '',
+    user_agent: '',
+    referer: '',
+    origin: ''
+  };
+  let currentInf = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    if (line.startsWith('#KODIPROP:')) {
+      const prop = line.substring(10).trim();
+      const eqIdx = prop.indexOf('=');
+      if (eqIdx !== -1) {
+        const propKey = prop.substring(0, eqIdx).trim();
+        const propVal = prop.substring(eqIdx + 1).trim();
+        if (propKey.includes('license_type')) {
+          pendingMeta.license_type = propVal;
+        } else if (propKey.includes('license_key')) {
+          pendingMeta.license_key = propVal;
+        }
+      }
+    } else if (line.startsWith('#EXTVLCOPT:')) {
+      const opt = line.substring(11).trim();
+      const eqIdx = opt.indexOf('=');
+      if (eqIdx !== -1) {
+        const optKey = opt.substring(0, eqIdx).trim().toLowerCase();
+        const optVal = opt.substring(eqIdx + 1).trim();
+        if (optKey === 'http-user-agent' || optKey === 'user-agent') {
+          pendingMeta.user_agent = optVal;
+        } else if (optKey === 'http-referrer' || optKey === 'http-referer' || optKey === 'referer') {
+          pendingMeta.referer = optVal;
+        } else if (optKey === 'http-origin' || optKey === 'origin') {
+          pendingMeta.origin = optVal;
+        } else if (optKey === 'clearkey' || optKey === 'license_key') {
+          pendingMeta.license_key = optVal;
+        }
+      }
+    } else if (line.startsWith('#EXTINF:')) {
+      const logoMatch = line.match(/tvg-logo=["']([^"']+)["']/i);
+      const groupMatch = line.match(/group-title=["']([^"']+)["']/i);
+      const nameParts = line.split(',');
+      const name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'Channel';
+
+      currentInf = {
+        name: name,
+        group_title: groupMatch ? groupMatch[1].trim() : 'Live TV',
+        logo: logoMatch ? logoMatch[1].trim() : ''
+      };
+    } else if (!line.startsWith('#')) {
+      if (currentInf) {
+        const streamUrl = line.trim();
+        channels.push({
+          name: currentInf.name,
+          group_title: currentInf.group_title,
+          logo: currentInf.logo,
+          stream_url: streamUrl,
+          stream_type: streamUrl.includes('.mpd') ? 'dash' : 'hls',
+          license_type: pendingMeta.license_type,
+          license_key: pendingMeta.license_key,
+          user_agent: pendingMeta.user_agent,
+          referer: pendingMeta.referer,
+          origin: pendingMeta.origin,
+          is_active: true
+        });
+
+        currentInf = null;
+        pendingMeta = { license_type: '', license_key: '', user_agent: '', referer: '', origin: '' };
+      }
+    }
+  }
+
+  return channels;
+}
+
+function buildCategoryUI() {
+  const counts = {};
+  allChannels.forEach(c => {
+    const g = c.group_title || 'Lainnya';
+    counts[g] = (counts[g] || 0) + 1;
+  });
+
+  const groups = ['Semua', ...Object.keys(counts).sort()];
+
+  // Build Custom Dropdown Menu
+  const menuEl = document.getElementById('catDropdownMenu');
+  menuEl.innerHTML = '';
+  groups.forEach(g => {
+    const countVal = g === 'Semua' ? allChannels.length : counts[g];
+    const isAct = g === activeCategory;
+    const item = document.createElement('div');
+    item.className = 'cat-option-item' + (isAct ? ' active' : '');
+    item.innerHTML = `
+      <span class="cat-opt-name">${g === 'Semua' ? '📂 Semua Kategori' : g}</span>
+      <span class="cat-opt-count">${countVal}</span>
+    `;
+    item.onclick = (e) => {
+      e.stopPropagation();
+      selectCategory(g);
+      closeCatDropdown();
+    };
+    menuEl.appendChild(item);
+  });
+
+  // Build Quick Pills Strip
+  const pillsEl = document.getElementById('categoryPills');
+  pillsEl.innerHTML = '';
+  groups.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-pill' + (g === activeCategory ? ' active' : '');
+    btn.innerText = g;
+    btn.onclick = () => selectCategory(g);
+    pillsEl.appendChild(btn);
+  });
+
+  updateTriggerLabel(activeCategory, activeCategory === 'Semua' ? allChannels.length : counts[activeCategory]);
+}
+
+function updateTriggerLabel(cat, count) {
+  const textEl = document.getElementById('catTriggerText');
+  const badgeEl = document.getElementById('catTriggerBadge');
+  if (textEl) textEl.innerText = cat === 'Semua' ? '📂 Semua Kategori' : `📂 ${cat}`;
+  if (badgeEl) badgeEl.innerText = count || 0;
+}
+
+function toggleCatDropdown() {
+  const trig = document.getElementById('catTrigger');
+  const menu = document.getElementById('catDropdownMenu');
+  const isOpen = menu.classList.contains('open');
+  trig.classList.toggle('open', !isOpen);
+  menu.classList.toggle('open', !isOpen);
+}
+
+function closeCatDropdown() {
+  document.getElementById('catTrigger')?.classList.remove('open');
+  document.getElementById('catDropdownMenu')?.classList.remove('open');
+}
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('customCatContainer')?.contains(e.target)) {
+    closeCatDropdown();
+  }
+});
+
+function selectCategory(cat) {
+  activeCategory = cat;
+  buildCategoryUI();
+  filterChannels();
+}
+
+function handleSearchInput() {
+  const query = document.getElementById('searchChannel').value;
+  document.getElementById('searchClearBtn').style.display = query ? 'block' : 'none';
+  filterChannels();
+}
+
+function clearSearch() {
+  document.getElementById('searchChannel').value = '';
+  document.getElementById('searchClearBtn').style.display = 'none';
+  filterChannels();
+}
+
+function filterChannels() {
+  const query = document.getElementById('searchChannel').value.toLowerCase().trim();
+  filteredChannels = allChannels.filter(c => {
+    const matchCat = activeCategory === 'Semua' || (c.group_title || 'Lainnya') === activeCategory;
+    const matchQuery = !query || c.name.toLowerCase().includes(query) || (c.group_title || '').toLowerCase().includes(query);
+    return matchCat && matchQuery;
+  });
+
+  renderChannelList();
+}
+
+function renderChannelList() {
+  const listEl = document.getElementById('channelList');
+  document.getElementById('channelCount').innerText = filteredChannels.length;
+  listEl.innerHTML = '';
+
+  if (!filteredChannels.length) {
+    listEl.innerHTML = '<div class="state-empty">Tidak ada saluran ditemukan.</div>';
+    return;
+  }
+
+  filteredChannels.forEach(ch => {
+    const isCurrent = activeChannel && activeChannel.name === ch.name;
+    const card = document.createElement('div');
+    card.className = 'channel-card' + (isCurrent ? ' active' : '');
+
+    const thumbHtml = ch.logo
+      ? `<img class="channel-thumb" src="${ch.logo}" alt="${ch.name}" onerror="this.outerHTML='<div class=\\'channel-thumb\\'>📺</div>'">`
+      : `<div class="channel-thumb">📺</div>`;
+
+    card.innerHTML = `
+      ${thumbHtml}
+      <div class="channel-info-min">
+        <div class="channel-name-min">${ch.name}</div>
+        <div class="channel-group-min">${ch.group_title || 'Live TV'}</div>
+      </div>
+      <div class="playing-bars">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      </div>
+    `;
+
+    card.onclick = () => playChannel(ch);
+    listEl.appendChild(card);
+  });
+}
+
+/**
+ * Convert HEX string (32 chars) to Base64URL string for W3C ClearKey EME
+ */
+function hexToBase64Url(hex) {
+  hex = (hex || '').replace(/-/g, '').trim();
+  if (!hex || hex.length % 2 !== 0) return '';
+  const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Construct Backend Proxy URL forwarding metadata (User-Agent, Referer, Origin)
+ */
+function getPlayableUrl(ch) {
+  const rawUrl = ch.stream_url.trim();
+  if (rawUrl.startsWith('<iframe')) return rawUrl;
+
+  const q = new URLSearchParams();
+  q.set('url', rawUrl);
+  if (ch.user_agent) q.set('user_agent', ch.user_agent);
+  if (ch.referer) q.set('referer', ch.referer);
+  if (ch.origin) q.set('origin', ch.origin);
+
+  const keyStr = (ch.license_key || '').trim();
+  const licType = (ch.license_type || '').trim().toLowerCase();
+
+  if (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') {
+    q.set('clearkey', '1');
+  }
+
+  return location.origin + '/api/dash-proxy?' + q.toString();
+}
+
+let currentDrmState = 'INITIALIZING';
+let activeKeySystem = null;
+
+function showPlayOverlay(videoEl) {
+  currentDrmState = 'AUTOPLAY_BLOCKED';
+  console.log('[PLAYBACK STATE] AUTOPLAY_BLOCKED | User interaction required to play media.');
+  let overlay = document.getElementById('playOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'playOverlay';
+    overlay.className = 'play-overlay';
+    overlay.innerHTML = `
+      <button class="btn-play-overlay">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <span>Klik untuk Memutar Siaran</span>
+      </button>
+    `;
+    const wrapper = document.getElementById('videoWrapper');
+    if (wrapper) wrapper.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+  overlay.onclick = (evt) => {
+    if (evt) { evt.preventDefault(); evt.stopPropagation(); }
+    if (videoEl) {
+      videoEl.play().then(() => {
+        hidePlayOverlay();
+        console.log('[PLAYBACK STATE] Media playback started after user click.');
+      }).catch(err => {
+        console.warn('[PLAYBACK CLICK ERROR]', err);
+      });
+    }
+  };
+}
+
+function hidePlayOverlay() {
+  const overlay = document.getElementById('playOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+/**
+ * Main Playback Engine (DASH + ClearKey & HLS + Detailed Diagnostics)
+ */
+function playChannel(ch) {
+  activeChannel = ch;
+
+  console.log('[CHANNEL OBJECT]', JSON.stringify(ch));
+
+  // Update UI Metadata
+  document.getElementById('currentTitle').innerText = ch.name;
+  document.getElementById('currentGroup').innerText = ch.group_title || 'Live TV';
+
+  const logoEl = document.getElementById('currentLogo');
+  if (ch.logo) {
+    logoEl.innerHTML = `<img src="${ch.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='📺'">`;
+  } else {
+    logoEl.innerText = '📺';
+  }
+
+  renderChannelList();
+  destroyPlayers();
+
+  const wrapper = document.getElementById('videoWrapper');
+  const video = document.getElementById('videoPlayer');
+  let rawUrl = ch.stream_url.trim();
+
+  // Handle iFrame embed
+  if (rawUrl.startsWith('<iframe') || (rawUrl.includes('embed') && !rawUrl.includes('.m3u8') && !rawUrl.includes('.mpd'))) {
+    video.style.display = 'none';
+    let oldIframe = wrapper.querySelector('iframe');
+    if (oldIframe) oldIframe.remove();
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'iframe-element';
+    iframe.allowFullscreen = true;
+    iframe.allow = "autoplay; fullscreen";
+
+    if (rawUrl.startsWith('<iframe')) {
+      const match = rawUrl.match(/src=["']([^"']+)["']/i);
+      iframe.src = match ? match[1] : rawUrl;
+    } else {
+      iframe.src = rawUrl;
+    }
+    wrapper.appendChild(iframe);
+    return;
+  }
+
+  video.style.display = 'block';
+  let oldIframe = wrapper.querySelector('iframe');
+  if (oldIframe) oldIframe.remove();
+
+  const playableUrl = getPlayableUrl(ch);
+
+  // DASH Pemutaran (.mpd)
+  if (rawUrl.includes('.mpd') || ch.stream_type === 'dash') {
+    if (window.dashjs) {
+      dashPlayer = dashjs.MediaPlayer().create();
+
+      const keyStr = (ch.license_key || '').trim();
+      const licType = (ch.license_type || '').trim().toLowerCase();
+      const widevineLicenseUrl = (ch.license_server_url || ch.license_url || (keyStr.startsWith('http') ? keyStr : '')).trim();
+
+      const isFubo = (ch.name || '').toUpperCase().includes('FUBO');
+
+      const protData = {};
+
+      if (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') {
+        const [kidHex, keyHex] = keyStr.split(':');
+        const kid = hexToBase64Url(kidHex.trim());
+        const key = hexToBase64Url(keyHex.trim());
+
+        protData["org.w3.clearkey"] = {
+          clearkeys: {
+            [kid]: key
+          },
+          priority: 0
+        };
+      } else if (widevineLicenseUrl) {
+        console.log('[DRM Debug] Configured Widevine License Server URL:', widevineLicenseUrl);
+        protData["com.widevine.alpha"] = { "serverURL": widevineLicenseUrl };
+        protData["com.microsoft.playready"] = { "serverURL": widevineLicenseUrl };
+      }
+
+      console.log('%c=== [DRM DIAGNOSTICS: CHANNEL LOAD] ===', 'color: #01b4e4; font-weight: bold;');
+      console.log('1. Database Channel Name:', ch.name);
+      console.log('2. Database license_type:', ch.license_type || '(none)');
+      console.log('3. Database license_key:', ch.license_key || '(none)');
+      console.log('4. Database license_server_url:', ch.license_server_url || '(none)');
+      console.log('5. Protection Data Passed to dash.js:', JSON.stringify(protData, null, 2));
+
+      if (Object.keys(protData).length > 0) {
+        dashPlayer.setProtectionData(protData);
+      }
+
+/**
+ * Read-only ISO BMFF PSSH Box Parser for EME initData inspection
+ */
+function parseIsoBmffPssh(initData) {
+  if (!initData) return;
+  const buffer = initData.buffer ? initData.buffer.slice(initData.byteOffset, initData.byteOffset + initData.byteLength) : initData;
+  const view = new DataView(buffer);
+  let offset = 0;
+  let boxIndex = 1;
+
+  const drmMap = {
+    "9a04f079-9840-4286-ab92-e65be0885f95": "PlayReady",
+    "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed": "Widevine",
+    "e2719d58-a985-b3c9-781a-b030af78d30e": "ClearKey",
+    "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b": "Common PSSH"
+  };
+
+  const containerTypes = new Set(["moov", "moof", "trak", "mdia", "minf", "stbl", "stsd", "sinf", "schi"]);
+
+  while (offset + 8 <= view.byteLength) {
+    let size = view.getUint32(offset);
+    const typeInt = view.getUint32(offset + 4);
+    const typeStr = String.fromCharCode(
+      (typeInt >> 24) & 0xff,
+      (typeInt >> 16) & 0xff,
+      (typeInt >> 8) & 0xff,
+      typeInt & 0xff
+    );
+
+    let headerSize = 8;
+    if (size === 1 && offset + 16 <= view.byteLength) {
+      const high = view.getUint32(offset + 8);
+      const low = view.getUint32(offset + 12);
+      size = (high * 0x100000000) + low;
+      headerSize = 16;
+    } else if (size === 0) {
+      size = view.byteLength - offset;
+    }
+
+    if (size < 8 || offset + size > view.byteLength) break;
+
+    if (typeStr === "pssh" && offset + 28 <= view.byteLength) {
+      const version = view.getUint8(offset + 8);
+
+      let sysIdHex = '';
+      for (let i = 0; i < 16; i++) {
+        sysIdHex += view.getUint8(offset + 12 + i).toString(16).padStart(2, '0');
+      }
+
+      const uuid = [
+        sysIdHex.slice(0, 8),
+        sysIdHex.slice(8, 12),
+        sysIdHex.slice(12, 16),
+        sysIdHex.slice(16, 20),
+        sysIdHex.slice(20, 32)
+      ].join('-');
+
+      const drmName = drmMap[uuid.toLowerCase()] || "Unknown System ID";
+      console.log(`[FUBO PSSH] #${boxIndex} systemId=${uuid} (${drmName}) size=${size} version=${version}`);
+      boxIndex++;
+      offset += size;
+    } else if (containerTypes.has(typeStr)) {
+      offset += headerSize;
+    } else {
+      offset += size;
+    }
+  }
+}
+
+      // Native EME encrypted event listener for FUBO raw EME inspection
+      video.addEventListener("encrypted", async (e) => {
+        if (isFubo) {
+          console.log("[FUBO RAW EME] initDataType:", e.initDataType);
+          console.log("[FUBO RAW EME] initData byteLength:", e.initData ? e.initData.byteLength : 0);
+          if (e.initData) {
+            parseIsoBmffPssh(e.initData);
+          }
+        }
+      });
+
+      dashPlayer.initialize(video, playableUrl, true);
+
+      // Handle Autoplay NotAllowedError gracefully
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          hidePlayOverlay();
+        }).catch(err => {
+          if (err.name === 'NotAllowedError' || String(err).includes('user didn\'t interact') || String(err).includes('interact with the document')) {
+            showPlayOverlay(video);
+          }
+        });
+      }
+
+      // Media element readyState & error diagnostics for FUBO
+      video.onloadeddata = () => {
+        if (isFubo) console.log('[FUBO DIAGNOSTICS] video.readyState onloadeddata:', video.readyState);
+      };
+      video.oncanplay = () => {
+        if (isFubo) console.log('[FUBO DIAGNOSTICS] video.readyState oncanplay:', video.readyState);
+      };
+      video.onerror = () => {
+        if (isFubo) console.warn('[FUBO DIAGNOSTICS] video.error:', video.error);
+      };
+
+      dashPlayer.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function(e) {
+        const schemes = [];
+        try {
+          const periods = e.data.Period_asArray || (e.data.Period ? [e.data.Period] : []);
+          periods.forEach(p => {
+            const adaptSets = p.AdaptationSet_asArray || (p.AdaptationSet ? [p.AdaptationSet] : []);
+            adaptSets.forEach(a => {
+              const protList = a.ContentProtection_asArray || (a.ContentProtection ? [a.ContentProtection] : []);
+              protList.forEach(cp => {
+                if (cp.schemeIdUri) schemes.push(cp.schemeIdUri);
+              });
+            });
+          });
+        } catch(err) {
+          console.warn('[DRM MANIFEST LOG ERROR]', err);
+        }
+        console.log('%c=== [DRM DIAGNOSTICS: MANIFEST SCHEMES] ===', 'color: #f5a623; font-weight: bold;');
+        console.log('MPD ContentProtection Scheme URIs:', Array.from(new Set(schemes)));
+      });
+
+      if (dashjs.MediaPlayer.events.NEED_KEY) {
+        dashPlayer.on(dashjs.MediaPlayer.events.NEED_KEY, function(e) {
+          let initDataHex = '';
+          const initDataType = e.data ? (e.data.initDataType || 'cenc') : (e.key || 'cenc');
+          if (e.data && e.data.initData) {
+            try {
+              const u8 = new Uint8Array(e.data.initData);
+              initDataHex = Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch(err) {}
+          }
+          console.log('%c=== [DRM DIAGNOSTICS: NEED_KEY EVENT] ===', 'color: #ff6b6b; font-weight: bold;');
+          console.log('initDataType:', initDataType);
+          console.log('initData length:', e.data && e.data.initData ? e.data.initData.byteLength : 0);
+          console.log('initData Hex snippet:', initDataHex.slice(0, 128));
+
+          const hasWidevinePssh = initDataHex.includes('edef8ba979d64acea3c827dcd51d21ed');
+          const hasClearkeyPssh = initDataHex.includes('1077efecc0b24d02ace33c1e52e2fb4b');
+          const hasPlayreadyPssh = initDataHex.includes('9a04f07998404286ab92e65be0885f95');
+
+          if (hasWidevinePssh) console.log('🔍 System ID in initData: Widevine (edef8ba9-79d6-4ace-a3c8-27dcd51d21ed)');
+          if (hasClearkeyPssh) console.log('🔍 System ID in initData: W3C ClearKey (1077efec-c0b2-4d02-ace3-3c1e52e2fb4b)');
+          if (hasPlayreadyPssh) console.log('🔍 System ID in initData: PlayReady (9a04f079-9840-4286-ab92-e65be0885f95)');
+
+          if (isFubo) {
+            console.log('[FUBO RAW ENCRYPTED EVENT] initDataType:', initDataType, '| PlayReady:', hasPlayreadyPssh, '| Widevine:', hasWidevinePssh, '| Common PSSH:', hasClearkeyPssh);
+            if ((hasPlayreadyPssh || hasWidevinePssh) && !hasClearkeyPssh) {
+              console.warn('⚠️ [BROWSER_CLEARKEY_INITDATA_UNAVAILABLE]: playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
+            }
+          }
+        });
+      }
+
+      if (dashjs.MediaPlayer.events.PROTECTION_CREATED) {
+        dashPlayer.on(dashjs.MediaPlayer.events.PROTECTION_CREATED, function(e) {
+          console.log('[DRM PROTECTION CREATED]:', e.data);
+        });
+      }
+
+      dashPlayer.on(dashjs.MediaPlayer.events.KEY_SYSTEM_SELECTED, function(e) {
+        activeKeySystem = e.data?.keySystem?.systemString || e.keySystem?.systemString || (e.data?.systemString) || null;
+        const initType = e.data && e.data.initDataType ? e.data.initDataType : 'N/A';
+
+        console.log('%c=== [DRM DIAGNOSTICS: KEY SYSTEM SELECTION] ===', 'color: #1db954; font-weight: bold;');
+        console.log('Selected Key System by dash.js:', activeKeySystem, '| initDataType:', initType);
+        console.log('Expected Key System (from DB/Playlist):', ch.license_type || 'org.w3.clearkey');
+
+        if (activeKeySystem === 'org.w3.clearkey') {
+          console.log('✅ CLEARKEY SELECTED: dash.js configured and initialized org.w3.clearkey successfully.');
+        } else if (activeKeySystem === 'com.widevine.alpha' || activeKeySystem === 'com.microsoft.playready') {
+          if (!widevineLicenseUrl && (licType === 'org.w3.clearkey' || keyStr.includes(':'))) {
+            currentDrmState = 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE';
+            console.warn('⚠️ BROWSER_CLEARKEY_INITDATA_UNAVAILABLE: Playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
+            showToast('🔒 Siaran ini hanya kompatibel dengan Player Native (TiviMate/Kodi) atau memerlukan source yang kompatibel dengan browser.');
+
+            setTimeout(() => {
+              if (dashPlayer && currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
+                dashPlayer.reset();
+              }
+            }, 300);
+          } else if (widevineLicenseUrl) {
+            console.log('[DRM STATE] Widevine session selected with authorized license server URL:', widevineLicenseUrl);
+          } else {
+            console.warn('⚠️ WIDEVINE SELECTED BY DASH.JS: Database specified org.w3.clearkey, but dash.js selected com.widevine.alpha.');
+          }
+        }
+      });
+
+      if (dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED) {
+        dashPlayer.on(dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED, function(e) {
+          console.log('[DRM KEY_STATUSES_CHANGED]:', e.data);
+          if (isFubo) console.log('[FUBO TEST RESULT] KEY_STATUSES_CHANGED:', e.data);
+        });
+      }
+
+      dashPlayer.on(dashjs.MediaPlayer.events.KEY_SESSION_CREATED, function(e) {
+        const keyId = e.data?.keyId || e.keyId || (e.data?.session?.keyId);
+        if (isFubo) console.log('[FUBO TEST RESULT] KEY_SESSION_CREATED:', e.data);
+
+        if (activeKeySystem === 'org.w3.clearkey' && keyId && String(keyId) !== 'undefined') {
+          currentDrmState = 'CLEARKEY_OK';
+          console.log('[DRM STATE] CLEARKEY_OK | ClearKey session created successfully with keyId:', keyId);
+        } else {
+          console.log('[DRM KEY SESSION CREATED]:', e.data);
+        }
+      });
+
+      dashPlayer.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+        handlePlayerError('DASH', e);
+      });
+    } else {
+      video.src = playableUrl;
+    }
+  } else {
+    // HLS Pemutaran (.m3u8)
+    if (Hls.isSupported()) {
+      hlsPlayer = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true
+      });
+      hlsPlayer.loadSource(playableUrl);
+      hlsPlayer.attachMedia(video);
+
+      hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            hidePlayOverlay();
+          }).catch(err => {
+            if (err.name === 'NotAllowedError' || String(err).includes('user didn\'t interact')) {
+              showPlayOverlay(video);
+            }
+          });
+        }
+      });
+
+      hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
+        if (data.fatal) {
+          handleHlsFatalError(data);
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = playableUrl;
+      video.play().then(() => hidePlayOverlay()).catch(err => {
+        if (err.name === 'NotAllowedError' || String(err).includes('user didn\'t interact')) {
+          showPlayOverlay(video);
+        }
+      });
+    } else {
+      video.src = playableUrl;
+    }
+  }
+}
+
+/**
+ * Detailed Diagnostics for DASH Player Errors
+ */
+function handlePlayerError(type, err) {
+  console.warn(`[${type} Player Error]`, err);
+
+  if (currentDrmState === 'FUBO_WIDEVINE_LICENSE_REQUIRED' || currentDrmState === 'WIDEVINE_REQUIRED') {
+    return;
+  }
+
+  const code = err.error || err.code;
+
+  if (code === 'key_status_error' || code === 'key_session_created_error' || err.event?.error === 'key_status_error' || (err.error && String(err.error).includes('DRM'))) {
+    showToast('🔑 Error DRM: Siaran ini membutuhkan Kunci ClearKey / License URL yang sesuai.');
+  } else if (err.event && err.event.status === 401) {
+    showToast('🔒 HTTP 401: Token / Akses siaran tidak diizinkan.');
+  } else if (err.event && err.event.status === 403) {
+    showToast('⛔ HTTP 403: Akses stream ditolak oleh server upstream.');
+  } else if (err.event && err.event.status === 404) {
+    showToast('🔍 HTTP 404: Link manifest / segment tidak ditemukan.');
+  } else {
+    showToast('⚠️ Gagal memutar siaran (Cek log konsol atau status DRM).');
+  }
+}
+
+/**
+ * Detailed Diagnostics for HLS Player Errors
+ */
+function handleHlsFatalError(data) {
+  console.warn('[HLS Fatal Error]', data);
+  switch (data.type) {
+    case Hls.ErrorTypes.NETWORK_ERROR:
+      if (data.response && data.response.code === 403) {
+        showToast('⛔ HTTP 403: Akses ditolak oleh server siaran.');
+      } else if (data.response && data.response.code === 401) {
+        showToast('🔒 HTTP 401: Token autentikasi kadaluwarsa.');
+      } else if (data.response && data.response.code === 404) {
+        showToast('🔍 HTTP 404: Saluran tidak ditemukan di server.');
+      } else {
+        showToast('🌐 Network Error: Gagal terhubung ke server streaming.');
+      }
+      break;
+    case Hls.ErrorTypes.MEDIA_ERROR:
+      showToast('🎥 Media Error: Format codec video/audio tidak didukung.');
+      hlsPlayer.recoverMediaError();
+      break;
+    default:
+      showToast('⚠️ Gagal memutar siaran HLS.');
+      break;
+  }
+}
+
+function destroyPlayers() {
+  hidePlayOverlay();
+  currentDrmState = 'INITIALIZING';
+  activeKeySystem = null;
+  if (hlsPlayer) {
+    hlsPlayer.destroy();
+    hlsPlayer = null;
+  }
+  if (dashPlayer) {
+    dashPlayer.reset();
+    dashPlayer = null;
+  }
+}
+
+/* FULLSCREEN HANDLER FIX */
+function toggleFullscreen() {
+  const wrapper = document.getElementById('videoWrapper');
+  const video = document.getElementById('videoPlayer');
+
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    if (wrapper.requestFullscreen) {
+      wrapper.requestFullscreen().catch(err => {
+        if (video.requestFullscreen) video.requestFullscreen();
+      });
+    } else if (wrapper.webkitRequestFullscreen) {
+      wrapper.webkitRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
+
+function updateFullscreenState() {
+  const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  const textEl = document.getElementById('fsBtnText');
+  const iconEl = document.getElementById('fsBtnIcon');
+  const btn = document.getElementById('btnFullscreenToggle');
+
+  if (isFS) {
+    textEl.innerText = 'Keluar Layar Penuh';
+    iconEl.innerHTML = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>';
+    btn.classList.add('active-fs');
+  } else {
+    textEl.innerText = 'Layar Penuh';
+    iconEl.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18-5h-3a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 1-2 2h-3m-8 0H5a2 2 0 0 1-2-2v-3"/>';
+    btn.classList.remove('active-fs');
+  }
+}
+
+document.addEventListener('fullscreenchange', updateFullscreenState);
+document.addEventListener('webkitfullscreenchange', updateFullscreenState);
+
+function showToast(msg) {
+  const t = document.getElementById('toastNotice');
+  t.innerText = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function shareChannel() {
+  if (!activeChannel) return;
+  const link = location.origin + location.pathname + '?ch=' + encodeURIComponent(activeChannel.name);
+  navigator.clipboard.writeText(link).then(() => {
+    showToast(`Link siaran "${activeChannel.name}" berhasil disalin!`);
+  });
+}
+
+init();
+</script>
+</body>
+</html>

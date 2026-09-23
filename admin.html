@@ -229,6 +229,7 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
     <button id="tab-Movies" class="tab active" onclick="switchTab('Movies')">🎬 Movies</button>
     <button id="tab-Series" class="tab" onclick="switchTab('Series')">📺 Series</button>
     <button id="tab-Episodes" class="tab" onclick="switchTab('Episodes')">🎞 Episodes</button>
+    <button id="tab-Channels" class="tab" onclick="switchTab('Channels')">📡 Live TV</button>
     <button id="tab-VIP" class="tab vip" onclick="switchTab('VIP')">✦ VIP</button>
   </div>
 
@@ -423,6 +424,75 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
       <div class="field"><label>Link Video Server 2 (Opsional)</label><input id="v_video2" placeholder="Link cadangan..."></div>
     </div>
     <button id="v_btn" class="btn-save red" style="background:var(--gold);color:#000;box-shadow:0 3px 12px rgba(245,197,24,0.25)" onclick="saveVipData()">✦ Simpan Konten VIP</button>
+  </div>
+
+  <!-- CHANNELS FORM -->
+  <div id="form-Channels" class="form-panel">
+    <div class="form-heading" id="c_head">📡 Kelola Channel Live TV</div>
+
+    <!-- M3U AUTO IMPORT & DELETE BOX -->
+    <div class="tmdb-box" style="border-color: rgba(229,9,20,0.3); background: linear-gradient(135deg, rgba(229,9,20,0.07), rgba(229,9,20,0.02)); margin-bottom: 24px;">
+      <div class="tmdb-header">
+        <span class="tmdb-logo" style="background:var(--red);color:#fff">M3U</span>
+        <span class="tmdb-label" style="color:var(--red)">Kelola Playlist IPTV (.m3u)</span>
+        <span class="tmdb-hint">✨ Import atau Hapus Sekumpulan Channel dari Link Playlist M3U</span>
+      </div>
+      <div class="tmdb-row" style="flex-wrap:wrap">
+        <input class="tmdb-input" id="m3u_url" value="https://raw.githubusercontent.com/Bluestraveller13/super-duper-spork/refs/heads/main/KITKATJOSS" placeholder="https://.../playlist.m3u">
+        <button class="btn-tmdb" id="btn_import_m3u" style="background:var(--red);color:#fff" onclick="importM3U()">⚡ Import M3U</button>
+        <button class="btn-tmdb" id="btn_delete_m3u" style="background:rgba(229,9,20,0.15);color:#ff6b6b;border:1px solid rgba(229,9,20,0.35)" onclick="deleteChannelsFromM3U()">🗑️ Hapus dari Link M3U</button>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.4)">
+        Masukkan link M3U lalu klik <b>⚡ Import M3U</b> untuk menambah channel, atau <b>🗑️ Hapus dari Link M3U</b> untuk menghapus seluruh channel dari link playlist tersebut sekaligus tanpa perlu hapus satu per satu.
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field"><label>Nama Channel TV</label><input id="c_name" placeholder="Contoh: TransTV HD, RCTI, HBO"></div>
+      <div class="field"><label>Kategori / Group</label><input id="c_group" placeholder="Contoh: Indonesia Channels, HBO Group, Sports"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Logo URL (Opsional)</label><input id="c_logo" placeholder="https://.../logo.png" oninput="previewChannelLogo()"></div>
+      <div class="field">
+        <label>Tipe Stream</label>
+        <select id="c_type">
+          <option value="hls">HLS (.m3u8)</option>
+          <option value="dash">MPEG-DASH (.mpd)</option>
+          <option value="iframe">Iframe Embed</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>URL Stream / Embed</label><input id="c_url" placeholder="https://.../stream.m3u8 atau <iframe ...>"></div>
+
+    <!-- DRM & HEADER SETTINGS -->
+    <div style="margin: 20px 0 14px 0; font-size: 13px; font-weight: 700; color: var(--tmdb); display: flex; align-items: center; gap: 8px;">
+      <span>🔐 Pengaturan DRM & Header Proxy (Opsional)</span>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Tipe DRM / Lisensi</label>
+        <select id="c_license_type">
+          <option value="">Tanpa DRM / Standard</option>
+          <option value="org.w3.clearkey">ClearKey (org.w3.clearkey)</option>
+          <option value="com.widevine.alpha">Widevine (com.widevine.alpha)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>License Key (ClearKey KID:KEY)</label>
+        <input id="c_license_key" placeholder="kid:key (contoh: de8045e9...:6807bd09...)">
+      </div>
+    </div>
+    <div class="field">
+      <label>License Server URL (Widevine License Server)</label>
+      <input id="c_license_server_url" placeholder="https://... (Server lisensi resmi Widevine)">
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>User-Agent Proxy (Opsional)</label><input id="c_user_agent" placeholder="Custom User-Agent header..."></div>
+      <div class="field"><label>Referer Proxy (Opsional)</label><input id="c_referer" placeholder="https://..."></div>
+    </div>
+    <div class="field"><label>Origin Proxy (Opsional)</label><input id="c_origin" placeholder="https://..."></div>
+
+    <button id="c_btn" class="btn-save red" onclick="saveChannel()">Simpan Channel TV</button>
   </div>
 
   <!-- LIST -->
@@ -769,6 +839,13 @@ async function loadData() {
     renderList(allData);
     return;
   }
+  if (currentTab === 'Channels') {
+    const { data, error } = await sb.from('Channels').select('*').order('created_at', { ascending: false });
+    if (error) { el.innerHTML = `<p style="color:#ff6b6b">Error: ${error.message}</p>`; return; }
+    allData = data || [];
+    renderList(allData);
+    return;
+  }
   let q;
   if (currentTab === 'Episodes') q = sb.from('Episodes').select('*, Series(title)').order('series_id').order('episode');
   else q = sb.from(currentTab).select('*').eq('is18', false).order('created_at', { ascending: false });
@@ -798,6 +875,30 @@ function renderList(data) {
         </div>`;
       el.appendChild(d);
     });
+  } else if (currentTab === 'Channels') {
+    const grid = document.createElement('div');
+    grid.className = 'grid-cards';
+    data.forEach((item, i) => {
+      const card = document.createElement('div');
+      card.className = 'card'; card.style.animationDelay = (i*0.03)+'s';
+      let drmBadge = '';
+      if (item.license_type === 'org.w3.clearkey') drmBadge = '🔑 ClearKey';
+      else if (item.license_type === 'com.widevine.alpha') drmBadge = '🔒 Widevine';
+
+      card.innerHTML = `
+        ${item.logo ? `<img src="${item.logo}" loading="lazy" alt="${item.name}" onerror="this.style.display='none'">` : '<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--surface2)">📺</div>'}
+        <div class="card-gtag" style="background:rgba(229,9,20,0.8);color:#fff">${item.group_title || 'TV'}</div>
+        <div class="card-body">
+          <div class="card-name">${item.name}</div>
+          <div class="card-genre">${item.stream_type.toUpperCase()} ${drmBadge ? '· ' + drmBadge : ''}</div>
+          <div class="card-actions">
+            <button class="btn-e edit" onclick="prepareChannelEdit('${item.id}')">Edit</button>
+            <button class="btn-e del" onclick="delChannel('${item.id}')">Hapus</button>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    });
+    el.appendChild(grid);
   } else {
     const grid = document.createElement('div');
     grid.className = 'grid-cards';
@@ -1176,6 +1277,205 @@ async function prepareVipEdit(id, table) {
   document.getElementById('v_head').innerText = 'Edit VIP: ' + data.title;
   document.getElementById('v_btn').innerText = '✦ Update Konten VIP';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── LIVE TV CHANNELS & M3U IMPORTER ── */
+async function saveChannel() {
+  const payload = {
+    name: document.getElementById('c_name').value.trim(),
+    group_title: document.getElementById('c_group').value.trim() || 'Indonesia Channels',
+    logo: document.getElementById('c_logo').value.trim(),
+    stream_type: document.getElementById('c_type').value,
+    stream_url: document.getElementById('c_url').value.trim(),
+    license_type: document.getElementById('c_license_type').value || null,
+    license_key: document.getElementById('c_license_key').value.trim() || null,
+    license_server_url: document.getElementById('c_license_server_url').value.trim() || null,
+    user_agent: document.getElementById('c_user_agent').value.trim() || null,
+    referer: document.getElementById('c_referer').value.trim() || null,
+    origin: document.getElementById('c_origin').value.trim() || null,
+    is_active: true
+  };
+  if (!payload.name || !payload.stream_url) {
+    return toast('warning', 'Field Wajib', 'Nama Channel dan URL Stream wajib diisi!');
+  }
+  const res = editId
+    ? await sb.from('Channels').update(payload).eq('id', editId)
+    : await sb.from('Channels').insert([payload]);
+  if (res.error) { toast('error', 'Gagal Menyimpan', res.error.message); return; }
+  toast('success', 'Channel Tersimpan', `Channel "${payload.name}" berhasil disimpan.`);
+  editId = null;
+  resetChannelForm();
+  loadData();
+}
+
+function resetChannelForm() {
+  ['c_name','c_group','c_logo','c_url','c_license_type','c_license_key','c_license_server_url','c_user_agent','c_referer','c_origin'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('c_type').value = 'hls';
+  document.getElementById('c_head').innerText = '📡 Kelola Channel Live TV';
+  document.getElementById('c_btn').innerText = 'Simpan Channel TV';
+}
+
+async function prepareChannelEdit(id) {
+  const { data } = await sb.from('Channels').select('*').eq('id', id).single();
+  if (!data) return;
+  editId = id;
+  document.getElementById('c_name').value = data.name || '';
+  document.getElementById('c_group').value = data.group_title || '';
+  document.getElementById('c_logo').value = data.logo || '';
+  document.getElementById('c_type').value = data.stream_type || 'hls';
+  document.getElementById('c_url').value = data.stream_url || '';
+  document.getElementById('c_license_type').value = data.license_type || '';
+  document.getElementById('c_license_key').value = data.license_key || '';
+  document.getElementById('c_license_server_url').value = data.license_server_url || '';
+  document.getElementById('c_user_agent').value = data.user_agent || '';
+  document.getElementById('c_referer').value = data.referer || '';
+  document.getElementById('c_origin').value = data.origin || '';
+  document.getElementById('c_head').innerText = 'Edit Channel: ' + data.name;
+  document.getElementById('c_btn').innerText = 'Update Channel';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function delChannel(id) {
+  if (!confirm('Hapus channel TV ini?')) return;
+  const { error } = await sb.from('Channels').delete().eq('id', id);
+  if (error) { toast('error', 'Gagal Menghapus', error.message); }
+  else { toast('success', 'Berhasil Dihapus', 'Channel TV telah dihapus.'); loadData(); }
+}
+
+async function importM3U() {
+  const url = document.getElementById('m3u_url').value.trim();
+  if (!url) return toast('warning', 'URL M3U Kosong', 'Masukkan URL file M3U terlebih dahulu.');
+  const btn = document.getElementById('btn_import_m3u');
+  btn.disabled = true;
+  btn.innerText = '⚡ Memproses...';
+  toast('info', 'Mengunduh Playlist M3U', 'Sedang mengunduh dan membaca playlist...');
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+    const text = await res.text();
+
+    const lines = text.split('\n');
+    const channelsToInsert = [];
+    let currentChannel = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('#EXTINF:')) {
+        const logoMatch = line.match(/tvg-logo=["']([^"']+)["']/i);
+        const groupMatch = line.match(/group-title=["']([^"']+)["']/i);
+        const nameParts = line.split(',');
+        const name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'Channel';
+
+        currentChannel = {
+          name: name,
+          group_title: groupMatch ? groupMatch[1].trim() : 'Indonesia Channels',
+          logo: logoMatch ? logoMatch[1].trim() : '',
+          stream_url: '',
+          stream_type: 'hls',
+          is_active: true
+        };
+      } else if (line && !line.startsWith('#')) {
+        if (currentChannel) {
+          currentChannel.stream_url = line;
+          if (line.includes('.mpd')) currentChannel.stream_type = 'dash';
+          channelsToInsert.push(currentChannel);
+          currentChannel = null;
+        }
+      }
+    }
+
+    if (!channelsToInsert.length) {
+      toast('warning', 'Format Tidak Dikenal', 'Tidak ada channel valid yang ditemukan di file M3U ini.');
+      btn.disabled = false; btn.innerText = '⚡ Import M3U';
+      return;
+    }
+
+    toast('info', 'Menyimpan ke Supabase', `Ditemukan ${channelsToInsert.length} channel. Mengirim ke database...`);
+
+    const chunkSize = 50;
+    let successCount = 0;
+    for (let i = 0; i < channelsToInsert.length; i += chunkSize) {
+      const chunk = channelsToInsert.slice(i, i + chunkSize);
+      const { error } = await sb.from('Channels').insert(chunk);
+      if (!error) {
+        successCount += chunk.length;
+      } else {
+        console.error('Batch insert error:', error);
+      }
+    }
+
+    toast('success', 'Import Selesai!', `Berhasil mengimpor ${successCount} dari ${channelsToInsert.length} channel TV.`);
+    loadData();
+  } catch (err) {
+    toast('error', 'Gagal Import M3U', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '⚡ Import M3U';
+  }
+}
+
+async function deleteChannelsFromM3U() {
+  const url = document.getElementById('m3u_url').value.trim();
+  if (!url) return toast('warning', 'URL M3U Kosong', 'Masukkan URL file M3U yang ingin dihapus.');
+
+  const btn = document.getElementById('btn_delete_m3u');
+  btn.disabled = true;
+  btn.innerText = '🗑️ Memproses...';
+  toast('info', 'Membaca Playlist M3U', 'Mengunduh playlist untuk mencocokkan channel yang akan dihapus...');
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+    const text = await res.text();
+
+    const lines = text.split('\n');
+    const streamUrls = new Set();
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line && !line.startsWith('#')) {
+        streamUrls.add(line);
+      }
+    }
+
+    const urlList = Array.from(streamUrls);
+    if (!urlList.length) {
+      toast('warning', 'Playlist Kosong', 'Tidak ada URL stream valid yang ditemukan di file M3U ini.');
+      btn.disabled = false; btn.innerText = '🗑️ Hapus dari Link M3U';
+      return;
+    }
+
+    if (!confirm(`Ditemukan ${urlList.length} URL stream di file M3U ini.\n\nApakah Anda yakin ingin MENGHAPUS SEMUA channel yang cocok dengan link playlist ini dari database?`)) {
+      btn.disabled = false; btn.innerText = '🗑️ Hapus dari Link M3U';
+      return;
+    }
+
+    toast('info', 'Menghapus dari Database', `Sedang menghapus channel...`);
+
+    const chunkSize = 50;
+    let deletedTotal = 0;
+
+    for (let i = 0; i < urlList.length; i += chunkSize) {
+      const chunk = urlList.slice(i, i + chunkSize);
+      const { data, error } = await sb.from('Channels').delete().in('stream_url', chunk).select('id');
+      if (!error && data) {
+        deletedTotal += data.length;
+      } else if (error) {
+        console.error('Batch delete error:', error);
+      }
+    }
+
+    toast('success', 'Hapus Massal Selesai!', `Berhasil menghapus ${deletedTotal} channel dari database yang berasal dari link M3U ini.`);
+    loadData();
+  } catch (err) {
+    toast('error', 'Gagal Hapus dari M3U', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '🗑️ Hapus dari Link M3U';
+  }
 }
 
 checkAuth();
