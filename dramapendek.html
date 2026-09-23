@@ -366,7 +366,7 @@ function handleSearch(evt) {
 async function fetchApi(endpoint) {
   const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
   const customProxyBase = (localStorage.getItem('shortdrama_proxy_base_url') || localStorage.getItem('proxy_base_url') || localStorage.getItem('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
-  const defaultServerlessBase = "https://remapermadii-rema-angger-s-projects.vercel.app";
+  const defaultServerlessBase = "https://remapermadii-git-main-rema-angger-s-projects.vercel.app";
   const cleanEp = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
 
   const proxyBase = (customProxyBase || (isLocal ? location.origin : defaultServerlessBase)).replace(/\/+$/, '');
