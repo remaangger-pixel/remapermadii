@@ -479,55 +479,55 @@ const FALLBACK_DRAMAS = [
     tags: "Fantasy, Romansa, Magic"
   },
   {
-    id: "34260",
+    id: "42000027287",
     provider: "shortmax",
     title: "Hidup Setelah Perceraian",
-    cover: "https://volcengine-forward.shorttv.live/images/cover/cover-34260.jpg",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000027287/42000027287.jpg",
     episodes: 60,
     desc: "Wanita yang dihina dan diceraikan oleh suaminya berhasil bangkit kembali sebagai pengusaha tersukses.",
     tags: "Balas Dendam, Mandiri, CEO"
   },
   {
-    id: "34261",
+    id: "42000026221",
     provider: "shortmax",
     title: "Kembalinya Sang Ratu Bisnis",
-    cover: "https://volcengine-forward.shorttv.live/images/cover/cover-34261.jpg",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000026221/42000026221.jpg",
     episodes: 55,
     desc: "Pewaris takhta konglomerat menyamar sebagai gadis biasa untuk menemukan cinta sejati.",
     tags: "Penyamaran, CEO, Romansa"
   },
   {
-    id: "6a94e84d2d504e8c2b0ebb6a",
+    id: "42000027488",
     provider: "reelshort",
     title: "Suami Lemah Itu Ternyata Dewa Perang",
-    cover: "https://v-img.crazymaplestudios.co/reelshort/cover-dewaperang.jpg",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000027488/42000027488.jpg",
     episodes: 75,
     desc: "Pria yang kerap dihina keluarga mertua ternyata adalah jenderal tertinggi sang Dewa Perang.",
     tags: "Dewa Perang, Action, Balas Dendam"
   },
   {
-    id: "6a94e84d2d504e8c2b0ebb6b",
+    id: "42000023894",
     provider: "reelshort",
     title: "Pernikahan Kontrak dengan Triliuner",
-    cover: "https://v-img.crazymaplestudios.co/reelshort/cover-triliuner.jpg",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000023894/42000023894.jpg",
     episodes: 65,
     desc: "Pernikahan sewaan demi menyelamatkan bisnis keluarga yang berujung pada cinta sejati.",
     tags: "Pernikahan Kontrak, CEO, Drama"
   },
   {
-    id: "31001662749",
+    id: "42000019280",
     provider: "goodshort",
     title: "Jatuh Cinta pada Musuh Bebuyutan",
-    cover: "https://img.goodshort.com/cover/31001662749.jpg",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000019280/42000019280.jpg",
     episodes: 58,
     desc: "Dua rival sengit di dunia bisnis mendapati diri mereka terikat pernikahan dijodohkan.",
     tags: "Benci Jadi Cinta, CEO, Komedi Romantis"
   },
   {
-    id: "31001662750",
+    id: "42000029029",
     provider: "goodshort",
     title: "Takdir Manis Sang Dokter Cantik",
-    cover: "https://img.goodshort.com/cover/31001662750.jpg",
+    cover: "https://hwztchapter.dramaboxdb.com/data/cppartner/4x2/42x0/420x0/42000029029/42000029029.jpg",
     episodes: 42,
     desc: "Kisah dokter bedah jenius yang memikat hati presiden direktur rumah sakit ternama.",
     tags: "Dokter, CEO, Romansa"
@@ -549,7 +549,6 @@ function renderGridData(data) {
 
   // Fallback to curated catalog if API rate limited or returned empty
   if (items.length === 0) {
-    console.warn('[SHORT DRAMA] Using curated fallback collection for provider:', currentProvider);
     const providerMatches = FALLBACK_DRAMAS.filter(d => d.provider === currentProvider);
     items = providerMatches.length > 0 ? providerMatches : FALLBACK_DRAMAS;
   }
@@ -560,7 +559,7 @@ function renderGridData(data) {
     card.className = 'drama-card';
     card.innerHTML = `
       <div class="poster-wrap">
-        <img src="${drama.cover}" alt="${drama.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=No+Poster'">
+        <img src="${drama.cover}" alt="${drama.title}" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&q=80'">
         ${drama.episodes ? `<div class="badge-ep">${drama.episodes} Ep</div>` : ''}
         <div class="badge-provider">${currentProvider}</div>
         <div class="play-overlay-btn">
