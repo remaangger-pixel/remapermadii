@@ -823,12 +823,18 @@ function getPlayableUrl(ch, forceDirect = false) {
   const rawUrl = (ch.stream_url || '').trim();
   if (rawUrl.startsWith('<iframe') || forceDirect) return rawUrl;
 
+  const keyStr = (ch.license_key || '').trim();
+  const licType = (ch.license_type || '').trim().toLowerCase();
+  const isClearKey = keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha';
   const hasCustomHeaders = !!((ch.user_agent || '').trim() || (ch.referer || '').trim() || (ch.origin || '').trim());
+
   const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
   const customProxyBase = (localStorage.getItem('proxy_base_url') || window.PROXY_BASE_URL || '').trim();
 
-  // If channel has NO custom headers AND no custom proxy base URL is configured AND not local, play direct stream URL
-  if (!hasCustomHeaders && !customProxyBase && !isLocal) {
+  // Route through proxy if headers are set OR if ClearKey is specified (so proxy can inject ClearKey schemeIdUri into MPD)
+  const needsProxy = hasCustomHeaders || isClearKey;
+
+  if (!needsProxy && !customProxyBase && !isLocal) {
     console.log('[PLAYBACK] Using direct CDN stream URL (no proxy required):', rawUrl);
     return rawUrl;
   }
@@ -838,15 +844,9 @@ function getPlayableUrl(ch, forceDirect = false) {
   if (ch.user_agent) q.set('user_agent', ch.user_agent);
   if (ch.referer) q.set('referer', ch.referer);
   if (ch.origin) q.set('origin', ch.origin);
+  if (isClearKey) q.set('clearkey', '1');
 
-  const keyStr = (ch.license_key || '').trim();
-  const licType = (ch.license_type || '').trim().toLowerCase();
-
-  if (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') {
-    q.set('clearkey', '1');
-  }
-
-  const proxyBase = customProxyBase || (isLocal ? location.origin : location.origin);
+  const proxyBase = customProxyBase || location.origin;
   return proxyBase + '/api/dash-proxy?' + q.toString();
 }
 
@@ -1168,7 +1168,7 @@ function parseIsoBmffPssh(initData) {
         if (activeKeySystem === 'org.w3.clearkey') {
           console.log('✅ CLEARKEY SELECTED: dash.js configured and initialized org.w3.clearkey successfully.');
         } else if (activeKeySystem === 'com.widevine.alpha' || activeKeySystem === 'com.microsoft.playready') {
-          if (!widevineLicenseUrl && (licType === 'org.w3.clearkey' || keyStr.includes(':'))) {
+          if (isFubo && !widevineLicenseUrl && (licType === 'org.w3.clearkey' || keyStr.includes(':'))) {
             currentDrmState = 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE';
             console.warn('⚠️ BROWSER_CLEARKEY_INITDATA_UNAVAILABLE: Playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
             showToast('🔒 Siaran ini hanya kompatibel dengan Player Native (TiviMate/Kodi) atau memerlukan source yang kompatibel dengan browser.');
