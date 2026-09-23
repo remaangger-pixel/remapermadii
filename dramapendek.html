@@ -364,12 +364,32 @@ function handleSearch(evt) {
 }
 
 async function fetchApi(endpoint) {
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
+  const customProxyBase = (localStorage.getItem('proxy_base_url') || window.PROXY_BASE_URL || '').trim();
+  const cleanEp = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+
+  let primaryUrl = '';
+  if (isLocal || customProxyBase) {
+    const proxyBase = customProxyBase || location.origin;
+    primaryUrl = `${proxyBase}/api/shortdrama?endpoint=${encodeURIComponent(cleanEp)}`;
+  } else {
+    // Live static environment: default directly to Sansekai API
+    primaryUrl = `https://api.sansekai.my.id/api${cleanEp}`;
+  }
+
   try {
-    const res = await fetch(`${PROXY_API}?endpoint=${encodeURIComponent(endpoint)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    const res = await fetch(primaryUrl);
+    if (res.ok) return await res.json();
+    throw new Error(`Primary request HTTP ${res.status}`);
   } catch(e) {
-    console.error('API Error:', e);
+    console.warn(`[SHORT DRAMA API] Primary URL (${primaryUrl}) failed: ${e.message}. Retrying direct API fallback...`);
+    try {
+      const fallbackUrl = `https://api.sansekai.my.id/api${cleanEp}`;
+      const res2 = await fetch(fallbackUrl);
+      if (res2.ok) return await res2.json();
+    } catch(e2) {
+      console.error('[SHORT DRAMA API] Direct Sansekai API fallback error:', e2);
+    }
     return null;
   }
 }
