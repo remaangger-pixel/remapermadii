@@ -365,17 +365,12 @@ function handleSearch(evt) {
 
 async function fetchApi(endpoint) {
   const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
-  const customProxyBase = (localStorage.getItem('proxy_base_url') || window.PROXY_BASE_URL || '').trim();
+  const customProxyBase = (localStorage.getItem('shortdrama_proxy_base_url') || localStorage.getItem('proxy_base_url') || localStorage.getItem('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
+  const defaultServerlessBase = "https://remapermadii.vercel.app";
   const cleanEp = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
 
-  let primaryUrl = '';
-  if (isLocal || customProxyBase) {
-    const proxyBase = customProxyBase || location.origin;
-    primaryUrl = `${proxyBase}/api/shortdrama?endpoint=${encodeURIComponent(cleanEp)}`;
-  } else {
-    // Live static environment: default directly to Sansekai API
-    primaryUrl = `https://api.sansekai.my.id/api${cleanEp}`;
-  }
+  const proxyBase = (customProxyBase || (isLocal ? location.origin : defaultServerlessBase)).replace(/\/+$/, '');
+  const primaryUrl = `${proxyBase}/api/shortdrama?endpoint=${encodeURIComponent(cleanEp)}`;
 
   try {
     const res = await fetch(primaryUrl);

@@ -816,6 +816,9 @@ function hexToBase64Url(hex) {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// Production Serverless Proxy Base URL for Vercel
+const DASH_PROXY_BASE_URL = (localStorage.getItem('dash_proxy_base_url') || localStorage.getItem('proxy_base_url') || window.DASH_PROXY_BASE_URL || window.PROXY_BASE_URL || "https://remapermadii.vercel.app").replace(/\/+$/, '');
+
 /**
  * Construct Playable Stream URL (Direct CDN or Backend Proxy)
  */
@@ -826,13 +829,14 @@ function getPlayableUrl(ch, forceDirect = false) {
   const keyStr = (ch.license_key || '').trim();
   const licType = (ch.license_type || '').trim().toLowerCase();
   const isClearKey = keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha';
+  const isDash = rawUrl.includes('.mpd') || ch.stream_type === 'dash';
   const hasCustomHeaders = !!((ch.user_agent || '').trim() || (ch.referer || '').trim() || (ch.origin || '').trim());
 
   const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
-  const customProxyBase = (localStorage.getItem('proxy_base_url') || window.PROXY_BASE_URL || '').trim();
+  const customProxyBase = (localStorage.getItem('proxy_base_url') || localStorage.getItem('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
 
-  // Route through proxy if headers are set OR if ClearKey is specified (so proxy can inject ClearKey schemeIdUri into MPD)
-  const needsProxy = hasCustomHeaders || isClearKey;
+  // Route through proxy if headers are set OR if ClearKey is specified OR if it is a DASH stream
+  const needsProxy = hasCustomHeaders || isClearKey || isDash;
 
   if (!needsProxy && !customProxyBase && !isLocal) {
     console.log('[PLAYBACK] Using direct CDN stream URL (no proxy required):', rawUrl);
@@ -846,8 +850,8 @@ function getPlayableUrl(ch, forceDirect = false) {
   if (ch.origin) q.set('origin', ch.origin);
   if (isClearKey) q.set('clearkey', '1');
 
-  const proxyBase = customProxyBase || location.origin;
-  return proxyBase + '/api/dash-proxy?' + q.toString();
+  const proxyBase = (customProxyBase || (isLocal ? location.origin : DASH_PROXY_BASE_URL)).replace(/\/+$/, '');
+  return `${proxyBase}/api/dash-proxy?` + q.toString();
 }
 
 let currentDrmState = 'INITIALIZING';
@@ -1259,15 +1263,6 @@ function handlePlayerError(type, err) {
   console.warn(`[${type} Player Error]`, err);
 
   if (currentDrmState === 'FUBO_WIDEVINE_LICENSE_REQUIRED' || currentDrmState === 'WIDEVINE_REQUIRED' || currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
-    return;
-  }
-
-  // Automatic Direct Stream Fallback if proxy endpoint returned 404 or network error
-  if (!isFallbackAttempt && activeChannel && activeChannel.stream_url && currentPlayableUrl !== activeChannel.stream_url.trim()) {
-    console.warn('⚠️ [PROXY FALLBACK] Proxy server returned error. Retrying playback with direct CDN URL...');
-    showToast('🔄 Server proxy tidak ditemukan/Error, mengalihkan ke pemutaran langsung (Direct CDN)...');
-    destroyPlayers();
-    playChannel(activeChannel, true);
     return;
   }
 

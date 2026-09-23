@@ -6,7 +6,7 @@ const url = require('url');
  * Vercel Serverless Function Proxy for DASH (.mpd) and HLS (.m3u8) Streams
  */
 module.exports = async (req, res) => {
-  // CORS Headers
+  // CORS Headers allowing any origin including https://anvicreate.web.id
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
       if (err) {
         res.statusCode = 502;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Upstream connection failed', details: err.message }));
+        res.end(JSON.stringify({ error: 'Upstream connection failed', details: err.message, targetUrl: targetUrlStr }));
         return;
       }
 
@@ -71,35 +71,39 @@ module.exports = async (req, res) => {
           .replace(/%24Bandwidth%24/g, '$Bandwidth$');
       };
 
+      // CASE 1: M3U8 Manifest Rewriting
       if (isM3U8 && bodyBuffer) {
         const manifestText = bodyBuffer.toString('utf-8');
         const rewritten = rewriteM3U8(manifestText, finalUrl, proxyUrlBuilder);
         res.statusCode = statusCode;
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl; charset=utf-8');
         res.setHeader('Content-Length', Buffer.byteLength(rewritten));
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.end(rewritten);
         return;
       }
 
+      // CASE 2: MPD Manifest Rewriting
       if (isMPD && bodyBuffer) {
         const manifestText = bodyBuffer.toString('utf-8');
         const rewritten = rewriteMPD(manifestText, finalUrl, proxyUrlBuilder, isClearKey);
         res.statusCode = statusCode;
         res.setHeader('Content-Type', 'application/dash+xml; charset=utf-8');
         res.setHeader('Content-Length', Buffer.byteLength(rewritten));
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.end(rewritten);
         return;
       }
 
-      // Stream segments directly
-      const resHeaders = {};
-      if (upstreamRes.headers['content-type']) resHeaders['Content-Type'] = upstreamRes.headers['content-type'];
-      if (upstreamRes.headers['content-length']) resHeaders['Content-Length'] = upstreamRes.headers['content-length'];
-      if (upstreamRes.headers['content-range']) resHeaders['Content-Range'] = upstreamRes.headers['content-range'];
-      if (upstreamRes.headers['accept-ranges']) resHeaders['Accept-Ranges'] = upstreamRes.headers['accept-ranges'];
+      // CASE 3: Segment / Binary Streaming
+      const responseHeaders = {};
+      if (upstreamRes.headers['content-type']) responseHeaders['Content-Type'] = upstreamRes.headers['content-type'];
+      if (upstreamRes.headers['content-length']) responseHeaders['Content-Length'] = upstreamRes.headers['content-length'];
+      if (upstreamRes.headers['content-range']) responseHeaders['Content-Range'] = upstreamRes.headers['content-range'];
+      if (upstreamRes.headers['accept-ranges']) responseHeaders['Accept-Ranges'] = upstreamRes.headers['accept-ranges'];
 
       res.statusCode = statusCode;
-      Object.keys(resHeaders).forEach(h => res.setHeader(h, resHeaders[h]));
+      Object.keys(responseHeaders).forEach(h => res.setHeader(h, responseHeaders[h]));
 
       if (bodyBuffer) {
         res.end(bodyBuffer);
@@ -109,6 +113,7 @@ module.exports = async (req, res) => {
     });
   } catch (e) {
     res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: e.message }));
   }
 };
@@ -186,24 +191,72 @@ function rewriteM3U8(manifestText, baseUrlStr, proxyUrlBuilder) {
 }
 
 function rewriteMPD(manifestText, baseUrlStr, proxyUrlBuilder, isClearKey) {
-  let rewritten = manifestText;
+  let manifestDirUrl = baseUrlStr;
+  try {
+    const u = new URL(baseUrlStr);
+    const lastSlash = u.pathname.lastIndexOf('/');
+    manifestDirUrl = u.origin + (lastSlash !== -1 ? u.pathname.substring(0, lastSlash + 1) : u.pathname);
+  } catch (e) {}
 
-  if (isClearKey && !rewritten.includes('1077efec-c0b2-4d02-ace3-3c1e52e2fb4b')) {
-    const clearkeyXml = `<ContentProtection schemeIdUri="urn:uuid:1077efec-c0b2-4d02-ace3-3c1e52e2fb4b" value="ClearKey"/>`;
-    if (rewritten.includes('<AdaptationSet')) {
-      rewritten = rewritten.replace(/<AdaptationSet([^>]*)>/gi, `<AdaptationSet$1>\n      ${clearkeyXml}`);
+  const toProxiedUrl = (relOrAbsUrl) => {
+    try {
+      const absUrl = new URL(relOrAbsUrl, manifestDirUrl).toString();
+      return proxyUrlBuilder(absUrl);
+    } catch (e) {
+      return relOrAbsUrl;
+    }
+  };
+
+  if (isClearKey) {
+    manifestText = manifestText.replace(/<ContentProtection[^>]*schemeIdUri="urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"[\s\S]*?<\/ContentProtection>/gi, '');
+    manifestText = manifestText.replace(/<ContentProtection[^>]*schemeIdUri="urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"[^>]*\/>/gi, '');
+    manifestText = manifestText.replace(/<ContentProtection[^>]*schemeIdUri="urn:uuid:9a04f079-9840-4286-ab92-e65be0885f95"[\s\S]*?<\/ContentProtection>/gi, '');
+    manifestText = manifestText.replace(/<ContentProtection[^>]*schemeIdUri="urn:uuid:9a04f079-9840-4286-ab92-e65be0885f95"[^>]*\/>/gi, '');
+
+    if (!manifestText.includes('e2719d58-a985-b3c9-781a-b030af78d30e')) {
+      manifestText = manifestText.replace(
+        /(<ContentProtection[^>]*schemeIdUri="urn:mpeg:dash:mp4protection:2011"[^>]*>[\s\S]*?<\/ContentProtection>|<ContentProtection[^>]*schemeIdUri="urn:mpeg:dash:mp4protection:2011"[^>]*\/>)/gi,
+        (match) => `${match}\n      <ContentProtection schemeIdUri="urn:uuid:e2719d58-a985-b3c9-781a-b030af78d30e" value="ClearKey"/>`
+      );
     }
   }
 
-  const baseUrlRegex = /<BaseURL>([^<]+)<\/BaseURL>/gi;
-  rewritten = rewritten.replace(baseUrlRegex, (match, p1) => {
-    try {
-      const absUrl = new URL(p1.trim(), baseUrlStr).toString();
-      return `<BaseURL>${proxyUrlBuilder(absUrl)}</BaseURL>`;
-    } catch (e) {
-      return match;
-    }
+  manifestText = manifestText.replace(/initialization=["']([^"']+)["']/gi, (match, relUrl) => {
+    const proxied = toProxiedUrl(relUrl).replace(/&/g, '&amp;');
+    return `initialization="${proxied}"`;
   });
 
-  return rewritten;
+  manifestText = manifestText.replace(/media=["']([^"']+)["']/gi, (match, relUrl) => {
+    const proxied = toProxiedUrl(relUrl).replace(/&/g, '&amp;');
+    return `media="${proxied}"`;
+  });
+
+  manifestText = manifestText.replace(/sourceURL=["']([^"']+)["']/gi, (match, relUrl) => {
+    const proxied = toProxiedUrl(relUrl).replace(/&/g, '&amp;');
+    return `sourceURL="${proxied}"`;
+  });
+
+  manifestText = manifestText.replace(/index=["']([^"']+)["']/gi, (match, relUrl) => {
+    const proxied = toProxiedUrl(relUrl).replace(/&/g, '&amp;');
+    return `index="${proxied}"`;
+  });
+
+  const proxiedBaseDir = proxyUrlBuilder(manifestDirUrl).replace(/&/g, '&amp;');
+  if (manifestText.includes('<BaseURL>')) {
+    manifestText = manifestText.replace(/<BaseURL>([^<]+)<\/BaseURL>/gi, (match, origBase) => {
+      const proxied = toProxiedUrl(origBase.trim()).replace(/&/g, '&amp;');
+      return `<BaseURL>${proxied}</BaseURL>`;
+    });
+  } else {
+    manifestText = manifestText.replace(/(<MPD[^>]*>)/i, `$1\n  <BaseURL>${proxiedBaseDir}</BaseURL>`);
+  }
+
+  if (manifestText.includes('<Location>')) {
+    manifestText = manifestText.replace(/<Location>([^<]+)<\/Location>/gi, (match, origLoc) => {
+      const proxied = toProxiedUrl(origLoc.trim()).replace(/&/g, '&amp;');
+      return `<Location>${proxied}</Location>`;
+    });
+  }
+
+  return manifestText;
 }
