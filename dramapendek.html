@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drama Pendek — ANVI Stream</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0b0d14;
+  --surface: #131722;
+  --surface2: #1a202c;
+  --surface3: #242c3d;
+  --accent: #ff0055;
+  --accent-glow: rgba(255, 0, 85, 0.4);
+  --cyan: #01b4e4;
+  --gold: #f5c518;
+  --text: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.08);
+  --glass: rgba(19, 23, 34, 0.75);
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 68px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4%; background: rgba(11, 13, 20, 0.92);
+  border-bottom: 1px solid var(--border); backdrop-filter: blur(12px);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px;
+  color: var(--accent); text-decoration: none; text-shadow: 0 0 24px var(--accent-glow);
+}
+.header-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nav-btn {
+  background: transparent; border: none;
+  color: var(--text-dim); font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 6px;
+  cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+}
+.nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.nav-btn.active { color: #fff; background: var(--accent); box-shadow: 0 2px 12px var(--accent-glow); }
+
+/* ── HERO BANNER ── */
+.hero-banner {
+  padding: 100px 4% 30px;
+  background: radial-gradient(circle at 50% 0%, rgba(255,0,85,0.15) 0%, transparent 70%);
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 6vw, 68px);
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+.hero-sub { font-size: 14px; color: var(--text-muted); max-width: 600px; margin: 0 auto 24px; }
+
+/* ── PROVIDER SWITCHER ── */
+.provider-scroll { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.p-tab {
+  padding: 10px 20px; border-radius: 30px; background: var(--surface);
+  border: 1px solid var(--border); color: var(--text-dim); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex; align-items: center; gap: 8px; user-select: none;
+}
+.p-tab:hover { background: var(--surface2); color: #fff; transform: translateY(-2px); }
+.p-tab.active {
+  background: linear-gradient(135deg, var(--accent) 0%, #d60046 100%);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 20px var(--accent-glow); transform: scale(1.05);
+}
+
+/* ── CATEGORY & SEARCH BAR ── */
+.filter-bar {
+  max-width: 1400px; margin: 0 auto; width: 100%; padding: 16px 4%;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.cat-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.cat-btn {
+  padding: 7px 16px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-dim); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.cat-btn:hover { background: var(--surface3); color: #fff; }
+.cat-btn.active { background: rgba(255,0,85,0.15); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+.search-box { position: relative; width: 280px; }
+.search-box input {
+  width: 100%; padding: 9px 14px 9px 38px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; color: #fff; font-size: 13px; outline: none; transition: all 0.2s;
+}
+.search-box input:focus { border-color: var(--accent); background: var(--surface3); }
+.search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--text-muted); }
+
+/* ── DRAMA GRID (9:16 ASPECT RATIO) ── */
+.content-container { max-width: 1400px; margin: 0 auto; width: 100%; padding: 10px 4% 80px; flex: 1; }
+.drama-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 16px;
+}
+@media(max-width: 500px) { .drama-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 10px; } }
+
+.drama-card {
+  position: relative; border-radius: 10px; overflow: hidden; background: var(--surface);
+  cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4); border: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.drama-card:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 12px 30px rgba(0,0,0,0.7); border-color: rgba(255,0,85,0.4); }
+.poster-wrap { position: relative; width: 100%; aspect-ratio: 9/14; overflow: hidden; background: #1a1e29; }
+.poster-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.drama-card:hover .poster-wrap img { transform: scale(1.08); }
+
+.badge-ep {
+  position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15);
+}
+.badge-provider {
+  position: absolute; top: 8px; left: 8px; background: var(--accent);
+  color: #fff; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+}
+.play-overlay-btn {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.3s;
+}
+.drama-card:hover .play-overlay-btn { opacity: 1; }
+.play-icon {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px var(--accent-glow); transform: scale(0.8); transition: transform 0.2s;
+}
+.drama-card:hover .play-icon { transform: scale(1); }
+
+.card-info { padding: 12px 10px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.card-title { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-tags { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── STATE & LOADING ── */
+.state-box { text-align: center; padding: 90px 20px; color: var(--text-muted); grid-column: 1 / -1; }
+.state-box .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── PLAYER MODAL (VERTICAL 9:16 FULLSCREEN EXPERIENCE) ── */
+.player-modal {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(5, 7, 12, 0.95);
+  backdrop-filter: blur(16px); display: none; align-items: center; justify-content: center;
+  padding: 10px; animation: modalFadeIn 0.3s ease;
+}
+@keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+  width: 100%; max-width: 1100px; height: 90vh; max-height: 850px; background: var(--surface);
+  border-radius: 16px; border: 1px solid var(--border); overflow: hidden;
+  display: flex; flex-direction: row; box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+}
+@media(max-width: 850px) {
+  .modal-content { flex-direction: column; height: 95vh; }
+}
+
+/* LEFT: VIDEO CONTAINER */
+.video-container {
+  flex: 1.2; background: #000; position: relative; display: flex; align-items: center; justify-content: center;
+}
+.video-container video {
+  width: 100%; height: 100%; max-height: 100%; object-fit: contain; background: #000;
+}
+.modal-close-btn {
+  position: absolute; top: 14px; right: 14px; z-index: 20; width: 36px; height: 36px;
+  border-radius: 50%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.modal-close-btn:hover { background: var(--accent); border-color: transparent; }
+
+/* RIGHT: EPISODES & DETAILS PANEL */
+.details-panel {
+  flex: 1; padding: 20px; display: flex; flex-direction: column; background: var(--surface);
+  border-left: 1px solid var(--border); overflow: hidden;
+}
+@media(max-width: 850px) {
+  .details-panel { border-left: none; border-top: 1px solid var(--border); max-height: 45%; }
+}
+
+.panel-header { margin-bottom: 14px; }
+.panel-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.panel-meta { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.panel-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.episodes-title-bar {
+  display: flex; justify-content: space-between; align-items: center; margin: 16px 0 10px;
+  font-size: 13px; font-weight: 700; color: var(--cyan);
+}
+.ep-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 8px;
+  overflow-y: auto; padding-right: 4px; flex: 1;
+}
+.ep-btn {
+  padding: 10px 4px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-dim); font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s;
+}
+.ep-btn:hover { background: var(--surface3); color: #fff; border-color: rgba(255,255,255,0.2); }
+.ep-btn.active {
+  background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.player-controls-row {
+  margin-top: 14px; display: flex; gap: 10px;
+}
+.ctrl-btn {
+  flex: 1; padding: 10px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border);
+  color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ctrl-btn:hover { background: var(--surface3); border-color: var(--accent); }
+
+/* TOAST NOTIFICATION */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+  background: var(--surface2); border: 1px solid var(--accent); color: #fff;
+  padding: 12px 24px; border-radius: 30px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 1200; transition: transform 0.3s ease; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" class="logo">ANVI</a>
+  <div class="header-nav">
+    <a href="index.html" class="nav-btn">Beranda</a>
+    <a href="movies.html" class="nav-btn">Film</a>
+    <a href="series.html" class="nav-btn">Series</a>
+    <a href="tv.html" class="nav-btn">📺 Live TV</a>
+    <a href="dramapendek.html" class="nav-btn active">🎭 Drama Pendek</a>
+    <a href="admin.html" class="nav-btn">Admin</a>
+  </div>
+</header>
+
+<!-- HERO BANNER -->
+<div class="hero-banner">
+  <div class="hero-title">DRAMA PENDEK ASIAN</div>
+  <div class="hero-sub">Nikmati ribuan serial pendek berkualitas tinggi dari DramaBox, ReelShort, ShortMax, GoodShort, dan platform populer lainnya.</div>
+
+  <!-- PROVIDER SWITCHER -->
+  <div class="provider-scroll">
+    <button class="p-tab active" onclick="switchProvider('dramabox', this)">🎬 DramaBox</button>
+    <button class="p-tab" onclick="switchProvider('shortmax', this)">⚡ ShortMax</button>
+    <button class="p-tab" onclick="switchProvider('reelshort', this)">📱 ReelShort</button>
+    <button class="p-tab" onclick="switchProvider('goodshort', this)">🌟 GoodShort</button>
+    <button class="p-tab" onclick="switchProvider('melolo', this)">📺 Melolo</button>
+    <button class="p-tab" onclick="switchProvider('pinedrama', this)">🌲 PineDrama</button>
+    <button class="p-tab" onclick="switchProvider('netshort', this)">🍿 NetShort</button>
+  </div>
+</div>
+
+<!-- FILTER & SEARCH BAR -->
+<div class="filter-bar">
+  <div class="cat-tabs" id="catTabs">
+    <button class="cat-btn active" onclick="switchCategory('foryou', this)">🔥 For You</button>
+    <button class="cat-btn" onclick="switchCategory('trending', this)">📈 Trending</button>
+    <button class="cat-btn" onclick="switchCategory('latest', this)">✨ Terbaru</button>
+    <button class="cat-btn" onclick="switchCategory('dubindo', this)">🇮🇩 Dub Indo</button>
+  </div>
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Cari drama pendek..." onkeyup="handleSearch(event)">
+  </div>
+</div>
+
+<!-- MAIN CATALOG GRID -->
+<div class="content-container">
+  <div class="drama-grid" id="dramaGrid"></div>
+</div>
+
+<!-- PLAYER MODAL (9:16 VERTICAL EXPERIENCE) -->
+<div class="player-modal" id="playerModal">
+  <div class="modal-content">
+    <div class="video-container">
+      <button class="modal-close-btn" onclick="closePlayerModal()">✕</button>
+      <video id="videoPlayer" controls autoplay playsinline></video>
+    </div>
+    <div class="details-panel">
+      <div class="panel-header">
+        <div class="panel-title" id="modalTitle">Judul Drama</div>
+        <div class="panel-meta">
+          <span id="modalProviderBadge" style="color:var(--accent); font-weight:800;">DRAMABOX</span> • 
+          <span id="modalEpCount">0 Episode</span>
+        </div>
+        <div class="panel-desc" id="modalDesc">Deskripsi drama singkat akan ditampilkan di sini...</div>
+      </div>
+
+      <div class="episodes-title-bar">
+        <span>DAFTAR EPISODE</span>
+        <span id="activeEpLabel" style="color:var(--text-dim); font-size:12px;">Episode 1</span>
+      </div>
+      <div class="ep-grid" id="epGrid"></div>
+
+      <div class="player-controls-row">
+        <button class="ctrl-btn" onclick="prevEpisode()">◄ Prev</button>
+        <button class="ctrl-btn" onclick="nextEpisode()">Next ►</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let currentProvider = 'dramabox';
+let currentCategory = 'foryou';
+let activeDrama = null;
+let episodesList = [];
+let currentEpIndex = 0;
+let hlsInstance = null;
+
+const PROXY_API = '/api/shortdrama';
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function switchProvider(provider, btnEl) {
+  currentProvider = provider;
+  document.querySelectorAll('.p-tab').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  loadCatalog();
+}
+
+function switchCategory(category, btnEl) {
+  currentCategory = category;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  loadCatalog();
+}
+
+function handleSearch(evt) {
+  if (evt.key === 'Enter') {
+    const q = document.getElementById('searchInput').value.trim();
+    if (q) searchDrama(q);
+    else loadCatalog();
+  }
+}
+
+async function fetchApi(endpoint) {
+  try {
+    const res = await fetch(`${PROXY_API}?endpoint=${encodeURIComponent(endpoint)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch(e) {
+    console.error('API Error:', e);
+    return null;
+  }
+}
+
+async function loadCatalog() {
+  const grid = document.getElementById('dramaGrid');
+  grid.innerHTML = `
+    <div class="state-box">
+      <div class="spinner"></div>
+      <p>Memuat katalog drama pendek...</p>
+    </div>`;
+
+  let endpoint = `/${currentProvider}/${currentCategory}`;
+  if (currentProvider === 'reelshort' && currentCategory === 'trending') endpoint = '/reelshort/homepage';
+  if (currentProvider === 'shortmax' && currentCategory === 'trending') endpoint = '/shortmax/rekomendasi';
+
+  const data = await fetchApi(endpoint);
+  renderGridData(data);
+}
+
+async function searchDrama(query) {
+  const grid = document.getElementById('dramaGrid');
+  grid.innerHTML = `
+    <div class="state-box">
+      <div class="spinner"></div>
+      <p>Mencari "${query}"...</p>
+    </div>`;
+
+  const endpoint = `/${currentProvider}/search?query=${encodeURIComponent(query)}`;
+  const data = await fetchApi(endpoint);
+  renderGridData(data);
+}
+
+function renderGridData(data) {
+  const grid = document.getElementById('dramaGrid');
+  grid.innerHTML = '';
+
+  if (!data) {
+    grid.innerHTML = `
+      <div class="state-box">
+        <p>⚠️ Gagal mengambil data siaran dari API. Silakan coba provider lain.</p>
+      </div>`;
+    return;
+  }
+
+  let items = [];
+  if (Array.isArray(data)) items = data;
+  else if (data.data && Array.isArray(data.data)) items = data.data;
+  else if (data.data && data.data.records && Array.isArray(data.data.records)) items = data.data.records;
+  else if (data.results && Array.isArray(data.results)) items = data.results;
+  else if (data.lists && Array.isArray(data.lists)) items = data.lists;
+
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div class="state-box">
+        <p>Tidak ada drama pendek ditemukan di kategori ini.</p>
+      </div>`;
+    return;
+  }
+
+  items.forEach(item => {
+    const drama = normalizeDramaItem(item);
+    const card = document.createElement('div');
+    card.className = 'drama-card';
+    card.innerHTML = `
+      <div class="poster-wrap">
+        <img src="${drama.cover}" alt="${drama.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=No+Poster'">
+        ${drama.episodes ? `<div class="badge-ep">${drama.episodes} Ep</div>` : ''}
+        <div class="badge-provider">${currentProvider}</div>
+        <div class="play-overlay-btn">
+          <div class="play-icon">▶</div>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-title">${drama.title}</div>
+        <div class="card-tags">${drama.tags || 'Short Drama'}</div>
+      </div>`;
+    card.onclick = () => openDramaDetail(drama);
+    grid.appendChild(card);
+  });
+}
+
+function normalizeDramaItem(item) {
+  return {
+    id: item.bookId || item.shortPlayId || item.book_id || item.id || item.action,
+    title: item.bookName || item.name || item.book_title || item.title || 'Untitled Drama',
+    cover: item.coverWap || item.cover || item.book_pic || item.poster || '',
+    episodes: item.chapterCount || item.episodeTotal || item.total_chapter || item.episodes || '',
+    desc: item.introduction || item.description || item.summary || 'Tidak ada deskripsi tersedia.',
+    tags: Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || ''),
+    raw: item
+  };
+}
+
+async function openDramaDetail(drama) {
+  activeDrama = drama;
+  document.getElementById('modalTitle').innerText = drama.title;
+  document.getElementById('modalProviderBadge').innerText = currentProvider.toUpperCase();
+  document.getElementById('modalEpCount').innerText = drama.episodes ? `${drama.episodes} Episode` : '';
+  document.getElementById('modalDesc').innerText = drama.desc;
+
+  document.getElementById('playerModal').style.display = 'flex';
+  document.getElementById('epGrid').innerHTML = '<div class="spinner"></div>';
+
+  // Fetch Episodes
+  let epEndpoint = `/${currentProvider}/get-allepisode?bookId=${drama.id}`;
+  if (currentProvider === 'shortmax') epEndpoint = `/shortmax/detail?shortPlayId=${drama.id}`;
+  if (currentProvider === 'reelshort') epEndpoint = `/reelshort/detail?book_id=${drama.id}`;
+  if (currentProvider === 'goodshort') epEndpoint = `/goodshort/get-allepisode?bookId=${drama.id}`;
+
+  const epData = await fetchApi(epEndpoint);
+  parseEpisodes(epData, drama);
+}
+
+function parseEpisodes(epData, drama) {
+  episodesList = [];
+
+  if (Array.isArray(epData)) {
+    episodesList = epData.map((ep, idx) => ({
+      index: idx + 1,
+      title: ep.title || `Ep ${idx+1}`,
+      url: ep.videoUrl || ep.streamUrl || ep.url || ep.mp4Url || ep.hlsUrl
+    }));
+  } else if (epData && epData.data) {
+    const list = epData.data.chapterList || epData.data.episodes || epData.data.list || (Array.isArray(epData.data) ? epData.data : []);
+    episodesList = list.map((ep, idx) => ({
+      index: idx + 1,
+      title: ep.chapterName || ep.title || `Ep ${idx+1}`,
+      url: ep.videoUrl || ep.streamUrl || ep.video_url || ep.hls_url
+    }));
+  } else if (epData && epData.results) {
+    episodesList = epData.results.map((ep, idx) => ({
+      index: idx + 1,
+      title: `Ep ${ep.episode || idx+1}`,
+      url: ep.hlsUrl || ep.streamUrl || ep.url
+    }));
+  }
+
+  // Fallback if episode list structure is simple
+  if (episodesList.length === 0) {
+    const total = parseInt(drama.episodes) || 10;
+    for (let i = 1; i <= total; i++) {
+      episodesList.push({ index: i, title: `Ep ${i}`, url: null });
+    }
+  }
+
+  renderEpisodeButtons();
+  if (episodesList.length > 0) playEpisode(0);
+}
+
+function renderEpisodeButtons() {
+  const container = document.getElementById('epGrid');
+  container.innerHTML = '';
+  episodesList.forEach((ep, idx) => {
+    const btn = document.createElement('button');
+    btn.className = `ep-btn ${idx === currentEpIndex ? 'active' : ''}`;
+    btn.innerText = `Ep ${ep.index}`;
+    btn.onclick = () => playEpisode(idx);
+    container.appendChild(btn);
+  });
+}
+
+async function playEpisode(idx) {
+  currentEpIndex = idx;
+  renderEpisodeButtons();
+  document.getElementById('activeEpLabel').innerText = `Episode ${episodesList[idx].index}`;
+
+  const video = document.getElementById('videoPlayer');
+  let streamUrl = episodesList[idx].url;
+
+  if (!streamUrl) {
+    showToast(`Memuat stream Episode ${idx + 1}...`);
+    // Fetch episode stream dynamically if needed
+    const epRes = await fetchApi(`/${currentProvider}/get-episode?bookId=${activeDrama.id}&episode=${idx+1}`);
+    if (epRes) {
+      streamUrl = epRes.streamUrl || epRes.videoUrl || epRes.url || (epRes.data ? epRes.data.streamUrl : null);
+    }
+  }
+
+  if (!streamUrl) {
+    showToast(`⚠️ Stream Episode ${idx+1} tidak ditemukan.`);
+    return;
+  }
+
+  // Play video via Hls.js or HTML5 native
+  if (streamUrl.includes('.m3u8')) {
+    if (Hls.isSupported()) {
+      if (hlsInstance) hlsInstance.destroy();
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(streamUrl);
+      hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.play();
+    }
+  } else {
+    video.src = streamUrl;
+    video.play().catch(e => console.log('Autoplay blocked:', e));
+  }
+
+  video.onended = () => {
+    showToast(`Episode ${idx+1} selesai. Memutar episode berikutnya...`);
+    nextEpisode();
+  };
+}
+
+function nextEpisode() {
+  if (currentEpIndex < episodesList.length - 1) {
+    playEpisode(currentEpIndex + 1);
+  } else {
+    showToast('🎉 Ini adalah episode terakhir.');
+  }
+}
+
+function prevEpisode() {
+  if (currentEpIndex > 0) {
+    playEpisode(currentEpIndex - 1);
+  }
+}
+
+function closePlayerModal() {
+  const modal = document.getElementById('playerModal');
+  const video = document.getElementById('videoPlayer');
+  video.pause();
+  video.src = '';
+  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  modal.style.display = 'none';
+}
+
+// Initial Load
+loadCatalog();
+</script>
+</body>
+</html>

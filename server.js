@@ -49,6 +49,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ROUTE 1B: Short Drama API Proxy (/api/shortdrama)
+  if (pathname === '/api/shortdrama') {
+    handleShortDramaRequest(req, res);
+    return;
+  }
+
   // ROUTE 2: Static File Serving
   let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
 
@@ -466,10 +472,90 @@ function rewriteMPD(manifestText, manifestUrl, proxyUrlBuilder, isClearKey = fal
   return manifestText;
 }
 
+const shortDramaCache = new Map();
+const SD_CACHE_TTL = 10 * 60 * 1000;
+
+function handleShortDramaRequest(clientReq, clientRes) {
+  const parsedUrl = url.parse(clientReq.url, true);
+  const query = parsedUrl.query;
+  const endpoint = query.endpoint;
+  const targetUrlParam = query.url;
+
+  let targetUrl = '';
+  if (endpoint) {
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    const queryParams = new URLSearchParams();
+    Object.keys(query).forEach(k => {
+      if (k !== 'endpoint' && k !== 'url') queryParams.set(k, query[k]);
+    });
+    const qs = queryParams.toString();
+    targetUrl = `https://api.sansekai.my.id/api${cleanEndpoint}` + (qs ? `?${qs}` : '');
+  } else if (targetUrlParam) {
+    targetUrl = targetUrlParam;
+  } else {
+    clientRes.writeHead(400, { 'Content-Type': 'application/json' });
+    clientRes.end(JSON.stringify({ error: 'Missing endpoint or url parameter' }));
+    return;
+  }
+
+  const cached = shortDramaCache.get(targetUrl);
+  if (cached && (Date.now() - cached.timestamp < SD_CACHE_TTL)) {
+    clientRes.writeHead(200, {
+      'Content-Type': 'application/json',
+      'X-Cache': 'HIT'
+    });
+    clientRes.end(cached.data);
+    return;
+  }
+
+  try {
+    const parsedTarget = new URL(targetUrl);
+    const transport = parsedTarget.protocol === 'https:' ? https : http;
+    const options = {
+      protocol: parsedTarget.protocol,
+      hostname: parsedTarget.hostname,
+      port: parsedTarget.port || (parsedTarget.protocol === 'https:' ? 443 : 80),
+      path: parsedTarget.pathname + parsedTarget.search,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*'
+      }
+    };
+
+    const req = transport.request(options, (upstreamRes) => {
+      const chunks = [];
+      upstreamRes.on('data', chunk => chunks.push(chunk));
+      upstreamRes.on('end', () => {
+        const bodyText = Buffer.concat(chunks).toString('utf-8');
+        if (upstreamRes.statusCode === 200 && !bodyText.includes('Too Many Requests')) {
+          shortDramaCache.set(targetUrl, { timestamp: Date.now(), data: bodyText });
+        }
+        clientRes.writeHead(upstreamRes.statusCode, {
+          'Content-Type': upstreamRes.headers['content-type'] || 'application/json',
+          'X-Cache': 'MISS'
+        });
+        clientRes.end(bodyText);
+      });
+    });
+
+    req.on('error', err => {
+      clientRes.writeHead(502, { 'Content-Type': 'application/json' });
+      clientRes.end(JSON.stringify({ error: 'Upstream connection failed', details: err.message }));
+    });
+
+    req.end();
+  } catch(e) {
+    clientRes.writeHead(500, { 'Content-Type': 'application/json' });
+    clientRes.end(JSON.stringify({ error: 'Invalid URL format', details: e.message }));
+  }
+}
+
 server.listen(PORT, () => {
   console.log(`=================================================`);
   console.log(`🚀 ANVI IPTV Streaming Server & Proxy Active`);
   console.log(`📡 URL: http://localhost:${PORT}`);
   console.log(`⚡ Proxy Route: http://localhost:${PORT}/api/dash-proxy?url=...`);
+  console.log(`🎭 Short Drama Route: http://localhost:${PORT}/api/shortdrama?endpoint=...`);
   console.log(`=================================================`);
 });
