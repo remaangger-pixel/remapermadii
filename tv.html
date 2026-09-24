@@ -1488,6 +1488,8 @@
       const isClearKey = (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') || licType === 'org.w3.clearkey';
       const isWidevine = licType === 'com.widevine.alpha' || licType === 'com.microsoft.playready' || (!isClearKey && (widevineLicenseUrl || keyStr.startsWith('http')));
 
+      const isFubo = (ch.name || '').toUpperCase().includes('FUBO');
+
       // Check Widevine / PlayReady without license server
       if (isWidevine && !widevineLicenseUrl) {
         console.log('[DRM MODE] WIDEVINE');
@@ -1525,9 +1527,15 @@
         dashPlayer.setProtectionData(protData);
       }
 
-      // Determine Playable URL (Direct First or Proxy Fallback)
+      // Determine Playable URL according to routing policy:
+      // 1. ClearKey DASH -> Always use DASH_CLEARKEY_PROXY proven proxy workflow
+      // 2. Non-DRM DASH -> Try DASH_DIRECT first, then DASH_PROXY_FALLBACK on network error
       let targetPlayableUrl = '';
-      if (useProxyFallback) {
+      if (isClearKey) {
+        currentPlaybackRoute = 'DASH_CLEARKEY_PROXY';
+        console.log('[PLAYBACK ROUTE] DASH_CLEARKEY_PROXY');
+        targetPlayableUrl = buildDashProxyUrl(ch);
+      } else if (useProxyFallback) {
         currentPlaybackRoute = 'DASH_PROXY_FALLBACK';
         console.log('[PLAYBACK ROUTE] DASH_PROXY_FALLBACK');
         targetPlayableUrl = buildDashProxyUrl(ch);
@@ -1552,6 +1560,38 @@
         });
       }
 
+      // DRM Diagnostics & Multi-DRM incompatibility detection (e.g. FUBO)
+      dashPlayer.on(dashjs.MediaPlayer.events.KEY_SYSTEM_SELECTED, function (e) {
+        activeKeySystem = e.data?.keySystem?.systemString || e.keySystem?.systemString || (e.data?.systemString) || null;
+        console.log('[DRM KEY_SYSTEM_SELECTED]', activeKeySystem);
+
+        if (activeKeySystem === 'com.widevine.alpha' || activeKeySystem === 'com.microsoft.playready') {
+          if (!widevineLicenseUrl && (licType === 'org.w3.clearkey' || isClearKey)) {
+            currentDrmState = 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE';
+            console.warn('⚠️ BROWSER_CLEARKEY_INITDATA_UNAVAILABLE: Playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
+            showToast('🔒 Siaran ini hanya kompatibel dengan Player Native (TiviMate/Kodi) atau memerlukan source yang kompatibel dengan browser.');
+
+            setTimeout(() => {
+              if (dashPlayer && currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
+                dashPlayer.reset();
+              }
+            }, 300);
+          }
+        }
+      });
+
+      dashPlayer.on(dashjs.MediaPlayer.events.KEY_SESSION_CREATED, function (e) {
+        const keyId = e.data?.keyId || e.keyId || (e.data?.session?.keyId);
+        if (activeKeySystem === 'org.w3.clearkey' && keyId && String(keyId) !== 'undefined') {
+          currentDrmState = 'CLEARKEY_OK';
+          console.log('[DRM STATE] CLEARKEY_OK | ClearKey session created successfully');
+        }
+      });
+
+      dashPlayer.on(dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED, function (e) {
+        console.log('[DRM KEY_STATUSES_CHANGED]', e.data);
+      });
+
       dashPlayer.on(dashjs.MediaPlayer.events.ERROR, function (e) {
         handleDashPlayerError(e);
       });
@@ -1563,7 +1603,7 @@
     function handleDashPlayerError(e) {
       console.warn('[DASH PLAYER ERROR EVENT]', e);
 
-      if (currentDrmState === 'AUTOPLAY_BLOCKED') return;
+      if (currentDrmState === 'AUTOPLAY_BLOCKED' || currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') return;
 
       const errCode = e.error || e.code || '';
       const errEvent = e.event || {};
@@ -1585,7 +1625,7 @@
         return;
       }
 
-      // Network / CORS / Manifest loading failures trigger fallback
+      // Network / CORS / Manifest loading failures trigger fallback for non-DRM DASH
       const isNetworkFailure = (
         status === 0 || status === 403 || status === 404 || status >= 500 ||
         errCode === 'download' || errCode === 'download_error' || errCode === 'manifestError' ||
@@ -1594,7 +1634,7 @@
       );
 
       if (isNetworkFailure) {
-        if (!isProxyFallbackAttempt && activeChannel) {
+        if (!isProxyFallbackAttempt && currentPlaybackRoute === 'DASH_DIRECT' && activeChannel) {
           const reasonStr = `HTTP ${status || 'CORS/Network Error'} (${errCode || 'Fetch Failed'})`;
           console.warn(`[DASH DIRECT FAILED] ${reasonStr}`);
           showToast('Direct stream blocked by source server.');
@@ -1603,7 +1643,7 @@
           destroyPlayers();
           playChannel(activeChannel, true);
           return;
-        } else if (isProxyFallbackAttempt) {
+        } else if (isProxyFallbackAttempt || currentPlaybackRoute === 'DASH_CLEARKEY_PROXY') {
           const reasonStr = `HTTP ${status || 'Proxy Connection Error'} (${errCode || 'Proxy Failed'})`;
           console.warn(`[DASH PROXY FAILED] ${reasonStr}`);
           showToast('Proxy fallback unavailable.');
