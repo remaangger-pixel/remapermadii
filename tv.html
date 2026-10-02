@@ -262,44 +262,6 @@
       display: flex !important;
     }
 
-    /* Play Overlay for Autoplay Blocked */
-    .play-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-      cursor: pointer;
-      border-radius: 12px;
-      transition: opacity 0.2s ease;
-    }
-
-    .btn-play-overlay {
-      background: var(--red);
-      border: none;
-      color: #fff;
-      padding: 14px 28px;
-      border-radius: 30px;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 8px 28px rgba(229, 9, 20, 0.5);
-      transition: all 0.2s;
-    }
-
-    .btn-play-overlay:hover {
-      transform: scale(1.06);
-      background: #f6121d;
-    }
-
     .player-info-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -406,6 +368,181 @@
       background: rgba(229, 9, 20, 0.25);
       border-color: var(--red);
       color: #fff;
+    }
+
+    /* ── EPG / JADWAL SIARAN CARD ── */
+    .epg-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .epg-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+    }
+
+    .epg-title {
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .epg-source-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      background: rgba(245, 197, 24, 0.12);
+      border: 1px solid rgba(245, 197, 24, 0.3);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .epg-now-playing {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface2);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .epg-now-thumb {
+      width: 72px;
+      height: 72px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--surface3);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--red);
+      overflow: hidden;
+    }
+
+    .epg-now-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .epg-now-tag {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .epg-now-title {
+      font-size: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+    }
+
+    .epg-now-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+    }
+
+    .epg-progress-container {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .epg-progress-bar {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .epg-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), #ff4d4d);
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .epg-time-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .epg-upcoming-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .epg-upcoming-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .epg-upcoming-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .epg-upcoming-time {
+      font-weight: 800;
+      color: var(--gold);
+      min-width: 60px;
+    }
+
+    .epg-upcoming-name {
+      flex: 1;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0 10px;
     }
 
     /* ── SIDEBAR SECTION ── */
@@ -918,7 +1055,10 @@
           <div class="channel-logo-large" id="currentLogo">📺</div>
           <div class="channel-details">
             <div class="channel-title-large" id="currentTitle">Memuat Channel…</div>
-            <div><span class="channel-group-tag" id="currentGroup">Live TV</span></div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <span class="channel-group-tag" id="currentGroup">Live TV</span>
+              <span class="channel-group-tag" id="serverBadge" style="background: rgba(245, 197, 24, 0.15); color: var(--gold); border-color: rgba(245, 197, 24, 0.3); display: none;">⚡ Server 1/1</span>
+            </div>
           </div>
         </div>
         <div class="player-actions">
@@ -939,6 +1079,44 @@
             </svg>
             <span id="fsBtnText">Layar Penuh</span>
           </button>
+        </div>
+      </div>
+
+      <!-- EPG (ELECTRONIC PROGRAM GUIDE) CARD -->
+      <div class="epg-card" id="epgCard">
+        <div class="epg-header">
+          <div class="epg-title">
+            <span>📺 Jadwal Siaran & Sedang Tayang</span>
+          </div>
+          <span class="epg-source-badge" id="epgSourceBadge">LIVE EPG</span>
+        </div>
+
+        <!-- NOW PLAYING PROGRAM -->
+        <div class="epg-now-playing">
+          <div class="epg-now-thumb" id="epgNowThumb">📺</div>
+          <div class="epg-now-details">
+            <div class="epg-now-tag">🔴 SEDANG TAYANG</div>
+            <div class="epg-now-title" id="epgNowTitle">Memuat siaran langsung...</div>
+            <div class="epg-now-desc" id="epgNowDesc">Memproses panduan jadwal acara TV...</div>
+            <div class="epg-progress-container">
+              <div class="epg-progress-bar">
+                <div class="epg-progress-fill" id="epgProgressFill" style="width: 0%;"></div>
+              </div>
+              <div class="epg-time-labels">
+                <span id="epgStartTime">--:--</span>
+                <span id="epgEndTime">--:--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UPCOMING SHOWS -->
+        <div class="epg-upcoming-title">🕒 Program Selanjutnya Hari Ini</div>
+        <div class="epg-upcoming-list" id="epgUpcomingList">
+          <div class="epg-upcoming-item">
+            <span class="epg-upcoming-time">--:--</span>
+            <span class="epg-upcoming-name">Memuat jadwal siaran...</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1000,8 +1178,89 @@
     let hlsPlayer = null;
     let dashPlayer = null;
 
+    const IPTV_CATEGORY_MAP = {
+      'sports': '⚽ Olahraga',
+      'news': '📰 Berita',
+      'movies': '🎬 Film & Drama',
+      'animation': '🧒 Kartun & Anak',
+      'kids': '🧒 Kartun & Anak',
+      'music': '🎶 Musik',
+      'documentary': '🧬 Dokumenter',
+      'religious': '🕌 Religi',
+      'general': '📺 TV Indonesia'
+    };
+
+    async function fetchIPTVOrgChannels() {
+      try {
+        const cacheKey = 'iptv_org_curated_v1';
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
+            console.log('[IPTV-org] Loaded curated channels from local cache:', parsed.data.length);
+            return parsed.data;
+          }
+        }
+
+        console.log('[IPTV-org] Fetching global channel index...');
+        const [channelsRes, streamsRes] = await Promise.all([
+          fetch("https://iptv-org.github.io/api/channels.json").then(r => r.json()),
+          fetch("https://iptv-org.github.io/api/streams.json").then(r => r.json())
+        ]);
+
+        const streamMap = new Map();
+        streamsRes.forEach(s => {
+          if (s.channel && s.url && !s.url.includes('.mpd')) {
+            if (!streamMap.has(s.channel)) streamMap.set(s.channel, []);
+            streamMap.get(s.channel).push(s);
+          }
+        });
+
+        const curated = [];
+
+        channelsRes.forEach(c => {
+          const streams = streamMap.get(c.id);
+          if (!streams || !streams.length) return;
+
+          const streamUrl = streams[0].url;
+          let groupTitle = null;
+
+          if (c.country === 'ID') {
+            groupTitle = '📺 TV Indonesia';
+          } else if (c.categories && c.categories.length) {
+            const cat = c.categories[0];
+            if (IPTV_CATEGORY_MAP[cat] && IPTV_CATEGORY_MAP[cat] !== '📺 TV Indonesia') {
+              groupTitle = IPTV_CATEGORY_MAP[cat];
+            }
+          }
+
+          if (groupTitle) {
+            curated.push({
+              name: c.name,
+              group_title: groupTitle,
+              logo: c.logo || `https://raw.githubusercontent.com/iptv-org/iptv/master/logos/${c.id}.png`,
+              stream_url: streams[0].url,
+              backup_streams: streams.map(s => s.url),
+              stream_type: 'hls',
+              is_active: true
+            });
+          }
+        });
+
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: curated }));
+        console.log('[IPTV-org] Cached curated global channels:', curated.length);
+        return curated;
+      } catch (e) {
+        console.warn('[IPTV-org Error]', e);
+        return [];
+      }
+    }
+
     async function init() {
-      const m3uChannels = await fetchM3UChannels();
+      const [m3uChannels, iptvOrgChannels] = await Promise.all([
+        fetchM3UChannels(),
+        fetchIPTVOrgChannels()
+      ]);
 
       const m3uByUrlMap = new Map();
       const m3uByNameMap = new Map();
@@ -1011,14 +1270,11 @@
         if (c.name) m3uByNameMap.set(c.name.trim().toLowerCase(), c);
       });
 
+      let dbChannels = [];
       try {
         const { data, error } = await sb.from('Channels').select('*').eq('is_active', true).order('name', { ascending: true });
-        if (error || !data || !data.length) {
-          console.log('Fungsi Supabase kosong/error, memuat daftar M3U langsung...');
-          allChannels = m3uChannels;
-        } else {
-          // Merge M3U metadata (license_key, license_type, headers) into Supabase channel objects
-          allChannels = data.map(dbCh => {
+        if (!error && data && data.length) {
+          dbChannels = data.map(dbCh => {
             const streamKey = (dbCh.stream_url || '').trim().toLowerCase();
             const nameKey = (dbCh.name || '').trim().toLowerCase();
             const match = m3uByUrlMap.get(streamKey) || m3uByNameMap.get(nameKey);
@@ -1039,8 +1295,25 @@
           });
         }
       } catch (e) {
-        allChannels = m3uChannels;
+        console.log('Supabase check error:', e);
       }
+
+      // Deduplicate and merge: DB Channels -> M3U Channels -> IPTV-org Channels
+      const channelMap = new Map();
+
+      const addCh = (ch) => {
+        if (!ch || !ch.name || !ch.stream_url) return;
+        const key = ch.name.trim().toLowerCase();
+        if (!channelMap.has(key)) {
+          channelMap.set(key, ch);
+        }
+      };
+
+      dbChannels.forEach(addCh);
+      m3uChannels.forEach(addCh);
+      iptvOrgChannels.forEach(addCh);
+
+      allChannels = Array.from(channelMap.values());
 
       buildCategoryUI();
       filterChannels();
@@ -1300,78 +1573,89 @@
     const DASH_PROXY_BASE_URL = (localStorage.getItem('dash_proxy_base_url') || localStorage.getItem('proxy_base_url') || window.DASH_PROXY_BASE_URL || window.PROXY_BASE_URL || "https://remapermadii-git-main-rema-angger-s-projects.vercel.app").replace(/\/+$/, '');
 
     /**
-     * Construct External DASH Proxy URL
+     * Construct Playable Stream URL (Direct CDN or Backend Proxy)
      */
-    function buildDashProxyUrl(ch) {
+    function getPlayableUrl(ch, forceDirect = false) {
       const rawUrl = (ch.stream_url || '').trim();
+      if (rawUrl.startsWith('<iframe') || forceDirect) return rawUrl;
+
+      const keyStr = (ch.license_key || '').trim();
+      const licType = (ch.license_type || '').trim().toLowerCase();
+      const isClearKey = keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha';
+      const isDash = rawUrl.includes('.mpd') || ch.stream_type === 'dash';
+      const hasCustomHeaders = !!((ch.user_agent || '').trim() || (ch.referer || '').trim() || (ch.origin || '').trim());
+
+      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
+      const customProxyBase = (localStorage.getItem('proxy_base_url') || localStorage.getItem('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
+
+      // Route through proxy if headers are set OR if ClearKey is specified OR if it is a DASH stream
+      const needsProxy = hasCustomHeaders || isClearKey || isDash;
+
+      if (!needsProxy && !customProxyBase && !isLocal) {
+        console.log('[PLAYBACK] Using direct CDN stream URL (no proxy required):', rawUrl);
+        return rawUrl;
+      }
+
       const q = new URLSearchParams();
       q.set('url', rawUrl);
       if (ch.user_agent) q.set('user_agent', ch.user_agent);
       if (ch.referer) q.set('referer', ch.referer);
       if (ch.origin) q.set('origin', ch.origin);
+      if (isClearKey) q.set('clearkey', '1');
 
-      const keyStr = (ch.license_key || '').trim();
-      const licType = (ch.license_type || '').trim().toLowerCase();
-      const isClearKey = (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') || licType === 'org.w3.clearkey';
-
-      if (isClearKey) {
-        q.set('clearkey', '1');
-      }
-
-      return `${DASH_PROXY_BASE_URL}/api/dash-proxy?` + q.toString();
+      const proxyBase = (customProxyBase || (isLocal ? location.origin : DASH_PROXY_BASE_URL)).replace(/\/+$/, '');
+      return `${proxyBase}/api/dash-proxy?` + q.toString();
     }
 
     let currentDrmState = 'INITIALIZING';
     let activeKeySystem = null;
 
     function showPlayOverlay(videoEl) {
-      currentDrmState = 'AUTOPLAY_BLOCKED';
-      console.log('[PLAYBACK STATE] AUTOPLAY_BLOCKED | User interaction required to play media.');
-      showToast('Click Play to start playback.');
-      let overlay = document.getElementById('playOverlay');
-      if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'playOverlay';
-        overlay.className = 'play-overlay';
-        overlay.innerHTML = `
-      <button class="btn-play-overlay">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        <span>Klik untuk Memutar Siaran</span>
-      </button>
-    `;
-        const wrapper = document.getElementById('videoWrapper');
-        if (wrapper) wrapper.appendChild(overlay);
+      if (videoEl) {
+        videoEl.play().catch(() => {
+          videoEl.muted = true;
+          videoEl.play().catch(() => {});
+        });
       }
-      overlay.style.display = 'flex';
-      overlay.onclick = (evt) => {
-        if (evt) { evt.preventDefault(); evt.stopPropagation(); }
-        if (videoEl) {
-          videoEl.play().then(() => {
-            hidePlayOverlay();
-            console.log('[PLAYBACK STATE] Media playback started after user click.');
-          }).catch(err => {
-            console.warn('[PLAYBACK CLICK ERROR]', err);
-          });
-        }
-      };
     }
 
     function hidePlayOverlay() {
       const overlay = document.getElementById('playOverlay');
-      if (overlay) overlay.style.display = 'none';
+      if (overlay) overlay.remove();
     }
 
     /**
-     * Main Playback Engine (DIRECT-FIRST Architecture)
+     * Main Playback Engine (DASH + ClearKey & HLS + Detailed Diagnostics)
      */
-    let currentPlaybackRoute = '';
-    let isProxyFallbackAttempt = false;
+    let currentPlayableUrl = '';
+    let isFallbackAttempt = false;
 
-    function playChannel(ch, useProxyFallback = false) {
+    function playChannel(ch, forceDirect = false, streamIndex = 0) {
       activeChannel = ch;
-      isProxyFallbackAttempt = useProxyFallback;
 
-      console.log('[CHANNEL LOAD]', ch.name);
+      const backupList = ch.backup_streams && ch.backup_streams.length ? ch.backup_streams : [ch.stream_url];
+      const validIndex = Math.min(streamIndex, backupList.length - 1);
+      ch._currentStreamIndex = validIndex;
+      ch.stream_url = backupList[validIndex];
+
+      const serverBadge = document.getElementById('serverBadge');
+      if (serverBadge) {
+        if (backupList.length > 1) {
+          serverBadge.innerText = `⚡ Server ${validIndex + 1}/${backupList.length}`;
+          serverBadge.style.display = 'inline-block';
+        } else {
+          serverBadge.style.display = 'none';
+        }
+      }
+
+      if (forceDirect) {
+        isFallbackAttempt = true;
+        console.log('[PLAYBACK FALLBACK] Forcing direct stream URL playback:', ch.stream_url);
+      } else {
+        isFallbackAttempt = false;
+      }
+
+      console.log('[CHANNEL OBJECT]', JSON.stringify(ch));
 
       // Update UI Metadata
       document.getElementById('currentTitle').innerText = ch.name;
@@ -1385,11 +1669,12 @@
       }
 
       renderChannelList();
+      updateEPG(ch);
       destroyPlayers();
 
       const wrapper = document.getElementById('videoWrapper');
       const video = document.getElementById('videoPlayer');
-      let rawUrl = (ch.stream_url || '').trim();
+      let rawUrl = ch.stream_url.trim();
 
       // Handle iFrame embed
       if (rawUrl.startsWith('<iframe') || (rawUrl.includes('embed') && !rawUrl.includes('.m3u8') && !rawUrl.includes('.mpd'))) {
@@ -1416,260 +1701,367 @@
       let oldIframe = wrapper.querySelector('iframe');
       if (oldIframe) oldIframe.remove();
 
-      const isHls = rawUrl.includes('.m3u8') || ch.stream_type === 'hls';
-      const isDash = rawUrl.includes('.mpd') || ch.stream_type === 'dash';
+      currentPlayableUrl = getPlayableUrl(ch, forceDirect);
+      const playableUrl = currentPlayableUrl;
 
-      if (isHls) {
-        playHls(ch, video);
-      } else if (isDash) {
-        playDash(ch, video, useProxyFallback);
-      } else {
-        video.src = rawUrl;
-      }
-    }
+      // DASH Pemutaran (.mpd)
+      if (rawUrl.includes('.mpd') || ch.stream_type === 'dash') {
+        if (window.dashjs) {
+          dashPlayer = dashjs.MediaPlayer().create();
 
-    function playHls(ch, video) {
-      currentPlaybackRoute = 'HLS_DIRECT';
-      console.log('[PLAYBACK ROUTE] HLS_DIRECT');
-      console.log('[HLS MODE] DIRECT');
+          const keyStr = (ch.license_key || '').trim();
+          const licType = (ch.license_type || '').trim().toLowerCase();
+          const widevineLicenseUrl = (ch.license_server_url || ch.license_url || (keyStr.startsWith('http') ? keyStr : '')).trim();
 
-      const rawUrl = ch.stream_url.trim();
+          const isFubo = (ch.name || '').toUpperCase().includes('FUBO');
 
-      if (Hls.isSupported()) {
-        hlsPlayer = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true
-        });
-        hlsPlayer.loadSource(rawUrl);
-        hlsPlayer.attachMedia(video);
+          const protData = {};
 
-        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function () {
-          const playPromise = video.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              hidePlayOverlay();
-            }).catch(err => {
-              if (err.name === 'NotAllowedError' || String(err).includes('user didn\'t interact') || String(err).includes('interact with the document')) {
-                showPlayOverlay(video);
+          if (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') {
+            const [kidHex, keyHex] = keyStr.split(':');
+            const kid = hexToBase64Url(kidHex.trim());
+            const key = hexToBase64Url(keyHex.trim());
+
+            protData["org.w3.clearkey"] = {
+              clearkeys: {
+                [kid]: key
+              },
+              priority: 0
+            };
+          } else if (widevineLicenseUrl) {
+            console.log('[DRM Debug] Configured Widevine License Server URL:', widevineLicenseUrl);
+            protData["com.widevine.alpha"] = { "serverURL": widevineLicenseUrl };
+            protData["com.microsoft.playready"] = { "serverURL": widevineLicenseUrl };
+          }
+
+          console.log('%c=== [DRM DIAGNOSTICS: CHANNEL LOAD] ===', 'color: #01b4e4; font-weight: bold;');
+          console.log('1. Database Channel Name:', ch.name);
+          console.log('2. Database license_type:', ch.license_type || '(none)');
+          console.log('3. Database license_key:', ch.license_key || '(none)');
+          console.log('4. Database license_server_url:', ch.license_server_url || '(none)');
+          console.log('5. Protection Data Passed to dash.js:', JSON.stringify(protData, null, 2));
+
+          if (Object.keys(protData).length > 0) {
+            dashPlayer.setProtectionData(protData);
+          }
+
+          /**
+           * Read-only ISO BMFF PSSH Box Parser for EME initData inspection
+           */
+          function parseIsoBmffPssh(initData) {
+            if (!initData) return;
+            const buffer = initData.buffer ? initData.buffer.slice(initData.byteOffset, initData.byteOffset + initData.byteLength) : initData;
+            const view = new DataView(buffer);
+            let offset = 0;
+            let boxIndex = 1;
+
+            const drmMap = {
+              "9a04f079-9840-4286-ab92-e65be0885f95": "PlayReady",
+              "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed": "Widevine",
+              "e2719d58-a985-b3c9-781a-b030af78d30e": "ClearKey",
+              "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b": "Common PSSH"
+            };
+
+            const containerTypes = new Set(["moov", "moof", "trak", "mdia", "minf", "stbl", "stsd", "sinf", "schi"]);
+
+            while (offset + 8 <= view.byteLength) {
+              let size = view.getUint32(offset);
+              const typeInt = view.getUint32(offset + 4);
+              const typeStr = String.fromCharCode(
+                (typeInt >> 24) & 0xff,
+                (typeInt >> 16) & 0xff,
+                (typeInt >> 8) & 0xff,
+                typeInt & 0xff
+              );
+
+              let headerSize = 8;
+              if (size === 1 && offset + 16 <= view.byteLength) {
+                const high = view.getUint32(offset + 8);
+                const low = view.getUint32(offset + 12);
+                size = (high * 0x100000000) + low;
+                headerSize = 16;
+              } else if (size === 0) {
+                size = view.byteLength - offset;
+              }
+
+              if (size < 8 || offset + size > view.byteLength) break;
+
+              if (typeStr === "pssh" && offset + 28 <= view.byteLength) {
+                const version = view.getUint8(offset + 8);
+
+                let sysIdHex = '';
+                for (let i = 0; i < 16; i++) {
+                  sysIdHex += view.getUint8(offset + 12 + i).toString(16).padStart(2, '0');
+                }
+
+                const uuid = [
+                  sysIdHex.slice(0, 8),
+                  sysIdHex.slice(8, 12),
+                  sysIdHex.slice(12, 16),
+                  sysIdHex.slice(16, 20),
+                  sysIdHex.slice(20, 32)
+                ].join('-');
+
+                const drmName = drmMap[uuid.toLowerCase()] || "Unknown System ID";
+                console.log(`[FUBO PSSH] #${boxIndex} systemId=${uuid} (${drmName}) size=${size} version=${version}`);
+                boxIndex++;
+                offset += size;
+              } else if (containerTypes.has(typeStr)) {
+                offset += headerSize;
+              } else {
+                offset += size;
+              }
+            }
+          }
+
+          // Native EME encrypted event listener for FUBO raw EME inspection
+          video.addEventListener("encrypted", async (e) => {
+            if (isFubo) {
+              console.log("[FUBO RAW EME] initDataType:", e.initDataType);
+              console.log("[FUBO RAW EME] initData byteLength:", e.initData ? e.initData.byteLength : 0);
+              if (e.initData) {
+                parseIsoBmffPssh(e.initData);
+              }
+            }
+          });
+
+          dashPlayer.initialize(video, playableUrl, true);
+
+          // Media element readyState & error diagnostics for FUBO
+          video.onloadeddata = () => {
+            if (isFubo) console.log('[FUBO DIAGNOSTICS] video.readyState onloadeddata:', video.readyState);
+          };
+          video.oncanplay = () => {
+            if (isFubo) console.log('[FUBO DIAGNOSTICS] video.readyState oncanplay:', video.readyState);
+          };
+          video.onerror = () => {
+            if (isFubo) console.warn('[FUBO DIAGNOSTICS] video.error:', video.error);
+          };
+
+          dashPlayer.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function (e) {
+            const schemes = [];
+            try {
+              const periods = e.data.Period_asArray || (e.data.Period ? [e.data.Period] : []);
+              periods.forEach(p => {
+                const adaptSets = p.AdaptationSet_asArray || (p.AdaptationSet ? [p.AdaptationSet] : []);
+                adaptSets.forEach(a => {
+                  const protList = a.ContentProtection_asArray || (a.ContentProtection ? [a.ContentProtection] : []);
+                  protList.forEach(cp => {
+                    if (cp.schemeIdUri) schemes.push(cp.schemeIdUri);
+                  });
+                });
+              });
+            } catch (err) {
+              console.warn('[DRM MANIFEST LOG ERROR]', err);
+            }
+            console.log('%c=== [DRM DIAGNOSTICS: MANIFEST SCHEMES] ===', 'color: #f5a623; font-weight: bold;');
+            console.log('MPD ContentProtection Scheme URIs:', Array.from(new Set(schemes)));
+          });
+
+          if (dashjs.MediaPlayer.events.NEED_KEY) {
+            dashPlayer.on(dashjs.MediaPlayer.events.NEED_KEY, function (e) {
+              let initDataHex = '';
+              const initDataType = e.data ? (e.data.initDataType || 'cenc') : (e.key || 'cenc');
+              if (e.data && e.data.initData) {
+                try {
+                  const u8 = new Uint8Array(e.data.initData);
+                  initDataHex = Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (err) { }
+              }
+              console.log('%c=== [DRM DIAGNOSTICS: NEED_KEY EVENT] ===', 'color: #ff6b6b; font-weight: bold;');
+              console.log('initDataType:', initDataType);
+              console.log('initData length:', e.data && e.data.initData ? e.data.initData.byteLength : 0);
+              console.log('initData Hex snippet:', initDataHex.slice(0, 128));
+
+              const hasWidevinePssh = initDataHex.includes('edef8ba979d64acea3c827dcd51d21ed');
+              const hasClearkeyPssh = initDataHex.includes('1077efecc0b24d02ace33c1e52e2fb4b');
+              const hasPlayreadyPssh = initDataHex.includes('9a04f07998404286ab92e65be0885f95');
+
+              if (hasWidevinePssh) console.log('🔍 System ID in initData: Widevine (edef8ba9-79d6-4ace-a3c8-27dcd51d21ed)');
+              if (hasClearkeyPssh) console.log('🔍 System ID in initData: W3C ClearKey (1077efec-c0b2-4d02-ace3-3c1e52e2fb4b)');
+              if (hasPlayreadyPssh) console.log('🔍 System ID in initData: PlayReady (9a04f079-9840-4286-ab92-e65be0885f95)');
+
+              if (isFubo) {
+                console.log('[FUBO RAW ENCRYPTED EVENT] initDataType:', initDataType, '| PlayReady:', hasPlayreadyPssh, '| Widevine:', hasWidevinePssh, '| Common PSSH:', hasClearkeyPssh);
+                if ((hasPlayreadyPssh || hasWidevinePssh) && !hasClearkeyPssh) {
+                  console.warn('⚠️ [BROWSER_CLEARKEY_INITDATA_UNAVAILABLE]: playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
+                }
               }
             });
           }
-        });
 
-        hlsPlayer.on(Hls.Events.ERROR, function (event, data) {
-          if (data.fatal) {
-            console.warn('[HLS DIRECT FAILED]', data.type, data.details);
-            handleHlsFatalError(data);
+          if (dashjs.MediaPlayer.events.PROTECTION_CREATED) {
+            dashPlayer.on(dashjs.MediaPlayer.events.PROTECTION_CREATED, function (e) {
+              console.log('[DRM PROTECTION CREATED]:', e.data);
+            });
           }
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = rawUrl;
-        video.play().then(() => hidePlayOverlay()).catch(err => {
-          if (err.name === 'NotAllowedError' || String(err).includes('user didn\'t interact') || String(err).includes('interact with the document')) {
-            showPlayOverlay(video);
-          }
-        });
-      } else {
-        video.src = rawUrl;
-      }
-    }
 
-    function playDash(ch, video, useProxyFallback = false) {
-      if (!window.dashjs) {
-        video.src = ch.stream_url.trim();
-        return;
-      }
+          dashPlayer.on(dashjs.MediaPlayer.events.KEY_SYSTEM_SELECTED, function (e) {
+            activeKeySystem = e.data?.keySystem?.systemString || e.keySystem?.systemString || (e.data?.systemString) || null;
+            const initType = e.data && e.data.initDataType ? e.data.initDataType : 'N/A';
 
-      const rawUrl = ch.stream_url.trim();
-      const keyStr = (ch.license_key || '').trim();
-      const licType = (ch.license_type || '').trim().toLowerCase();
-      const widevineLicenseUrl = (ch.license_server_url || ch.license_url || (keyStr.startsWith('http') ? keyStr : '')).trim();
+            console.log('%c=== [DRM DIAGNOSTICS: KEY SYSTEM SELECTION] ===', 'color: #1db954; font-weight: bold;');
+            console.log('Selected Key System by dash.js:', activeKeySystem, '| initDataType:', initType);
+            console.log('Expected Key System (from DB/Playlist):', ch.license_type || 'org.w3.clearkey');
 
-      const isClearKey = (keyStr && keyStr.includes(':') && !keyStr.startsWith('http') && licType !== 'com.widevine.alpha') || licType === 'org.w3.clearkey';
-      const isWidevine = licType === 'com.widevine.alpha' || licType === 'com.microsoft.playready' || (!isClearKey && (widevineLicenseUrl || keyStr.startsWith('http')));
+            if (activeKeySystem === 'org.w3.clearkey') {
+              console.log('✅ CLEARKEY SELECTED: dash.js configured and initialized org.w3.clearkey successfully.');
+            } else if (activeKeySystem === 'com.widevine.alpha' || activeKeySystem === 'com.microsoft.playready') {
+              if (isFubo && !widevineLicenseUrl && (licType === 'org.w3.clearkey' || keyStr.includes(':'))) {
+                currentDrmState = 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE';
+                console.warn('⚠️ BROWSER_CLEARKEY_INITDATA_UNAVAILABLE: Playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
+                showToast('🔒 Siaran ini hanya kompatibel dengan Player Native (TiviMate/Kodi) atau memerlukan source yang kompatibel dengan browser.');
 
-      const isFubo = (ch.name || '').toUpperCase().includes('FUBO');
-
-      // Check Widevine / PlayReady without license server
-      if (isWidevine && !widevineLicenseUrl) {
-        console.log('[DRM MODE] WIDEVINE');
-        console.warn('[DRM REJECTED] Widevine DRM required but no license_server_url configured.');
-        showToast('This source requires DRM not supported by this web player.');
-        return;
-      }
-
-      dashPlayer = dashjs.MediaPlayer().create();
-      const protData = {};
-
-      if (isClearKey) {
-        console.log('[DRM MODE] CLEARKEY');
-        if (keyStr.includes(':')) {
-          const [kidHex, keyHex] = keyStr.split(':');
-          const kid = hexToBase64Url(kidHex.trim());
-          const key = hexToBase64Url(keyHex.trim());
-
-          protData["org.w3.clearkey"] = {
-            clearkeys: {
-              [kid]: key
-            },
-            priority: 0
-          };
-        }
-      } else if (isWidevine && widevineLicenseUrl) {
-        console.log('[DRM MODE] WIDEVINE');
-        protData["com.widevine.alpha"] = { "serverURL": widevineLicenseUrl };
-        protData["com.microsoft.playready"] = { "serverURL": widevineLicenseUrl };
-      } else {
-        console.log('[DRM MODE] NONE');
-      }
-
-      if (Object.keys(protData).length > 0) {
-        dashPlayer.setProtectionData(protData);
-      }
-
-      // Determine Playable URL according to routing policy:
-      // 1. ClearKey DASH -> Always use DASH_CLEARKEY_PROXY proven proxy workflow
-      // 2. Non-DRM DASH -> Try DASH_DIRECT first, then DASH_PROXY_FALLBACK on network error
-      let targetPlayableUrl = '';
-      if (isClearKey) {
-        currentPlaybackRoute = 'DASH_CLEARKEY_PROXY';
-        console.log('[PLAYBACK ROUTE] DASH_CLEARKEY_PROXY');
-        targetPlayableUrl = buildDashProxyUrl(ch);
-      } else if (useProxyFallback) {
-        currentPlaybackRoute = 'DASH_PROXY_FALLBACK';
-        console.log('[PLAYBACK ROUTE] DASH_PROXY_FALLBACK');
-        targetPlayableUrl = buildDashProxyUrl(ch);
-      } else {
-        currentPlaybackRoute = 'DASH_DIRECT';
-        console.log('[DASH MODE] DIRECT');
-        console.log('[PLAYBACK ROUTE] DASH_DIRECT');
-        targetPlayableUrl = rawUrl;
-      }
-
-      dashPlayer.initialize(video, targetPlayableUrl, true);
-
-      // Handle Autoplay NotAllowedError gracefully
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          hidePlayOverlay();
-        }).catch(err => {
-          if (err.name === 'NotAllowedError' || String(err).includes('user didn\'t interact') || String(err).includes('interact with the document')) {
-            showPlayOverlay(video);
-          }
-        });
-      }
-
-      // DRM Diagnostics & Multi-DRM incompatibility detection (e.g. FUBO)
-      dashPlayer.on(dashjs.MediaPlayer.events.KEY_SYSTEM_SELECTED, function (e) {
-        activeKeySystem = e.data?.keySystem?.systemString || e.keySystem?.systemString || (e.data?.systemString) || null;
-        console.log('[DRM KEY_SYSTEM_SELECTED]', activeKeySystem);
-
-        if (activeKeySystem === 'com.widevine.alpha' || activeKeySystem === 'com.microsoft.playready') {
-          if (!widevineLicenseUrl && (licType === 'org.w3.clearkey' || isClearKey)) {
-            currentDrmState = 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE';
-            console.warn('⚠️ BROWSER_CLEARKEY_INITDATA_UNAVAILABLE: Playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
-            showToast('🔒 Siaran ini hanya kompatibel dengan Player Native (TiviMate/Kodi) atau memerlukan source yang kompatibel dengan browser.');
-
-            setTimeout(() => {
-              if (dashPlayer && currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
-                dashPlayer.reset();
+                setTimeout(() => {
+                  if (dashPlayer && currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
+                    dashPlayer.reset();
+                  }
+                }, 300);
+              } else if (widevineLicenseUrl) {
+                console.log('[DRM STATE] Widevine session selected with authorized license server URL:', widevineLicenseUrl);
+              } else {
+                console.warn('⚠️ WIDEVINE SELECTED BY DASH.JS: Database specified org.w3.clearkey, but dash.js selected com.widevine.alpha.');
               }
-            }, 300);
+            }
+          });
+
+          if (dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED) {
+            dashPlayer.on(dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED, function (e) {
+              console.log('[DRM KEY_STATUSES_CHANGED]:', e.data);
+              if (isFubo) console.log('[FUBO TEST RESULT] KEY_STATUSES_CHANGED:', e.data);
+            });
           }
+
+          dashPlayer.on(dashjs.MediaPlayer.events.KEY_SESSION_CREATED, function (e) {
+            const keyId = e.data?.keyId || e.keyId || (e.data?.session?.keyId);
+            if (isFubo) console.log('[FUBO TEST RESULT] KEY_SESSION_CREATED:', e.data);
+
+            if (activeKeySystem === 'org.w3.clearkey' && keyId && String(keyId) !== 'undefined') {
+              currentDrmState = 'CLEARKEY_OK';
+              console.log('[DRM STATE] CLEARKEY_OK | ClearKey session created successfully with keyId:', keyId);
+            } else {
+              console.log('[DRM KEY SESSION CREATED]:', e.data);
+            }
+          });
+
+          dashPlayer.on(dashjs.MediaPlayer.events.ERROR, function (e) {
+            handlePlayerError('DASH', e);
+          });
+        } else {
+          video.src = playableUrl;
         }
-      });
+      } else {
+        // HLS Pemutaran (.m3u8)
+        if (Hls.isSupported()) {
+          hlsPlayer = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true
+          });
+          hlsPlayer.loadSource(playableUrl);
+          hlsPlayer.attachMedia(video);
 
-      dashPlayer.on(dashjs.MediaPlayer.events.KEY_SESSION_CREATED, function (e) {
-        const keyId = e.data?.keyId || e.keyId || (e.data?.session?.keyId);
-        if (activeKeySystem === 'org.w3.clearkey' && keyId && String(keyId) !== 'undefined') {
-          currentDrmState = 'CLEARKEY_OK';
-          console.log('[DRM STATE] CLEARKEY_OK | ClearKey session created successfully');
+          hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function () {
+            video.muted = false;
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(err => {
+                console.warn('[AUTOPLAY UNMUTED BLOCKED] Muting audio to force immediate video playback...');
+                video.muted = true;
+                video.play().catch(() => {});
+              });
+            }
+          });
+
+          hlsPlayer.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+              handleHlsFatalError(data);
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = playableUrl;
+          video.muted = false;
+          video.play().catch(err => {
+            video.muted = true;
+            video.play().catch(() => {});
+          });
+        } else {
+          video.src = playableUrl;
         }
-      });
-
-      dashPlayer.on(dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED, function (e) {
-        console.log('[DRM KEY_STATUSES_CHANGED]', e.data);
-      });
-
-      dashPlayer.on(dashjs.MediaPlayer.events.ERROR, function (e) {
-        handleDashPlayerError(e);
-      });
+      }
     }
 
     /**
-     * Detailed Diagnostics & Proxy Retry for DASH Player Errors
+     * Detailed Diagnostics for DASH Player Errors
      */
-    function handleDashPlayerError(e) {
-      console.warn('[DASH PLAYER ERROR EVENT]', e);
+    function handlePlayerError(type, err) {
+      console.warn(`[${type} Player Error]`, err);
 
-      if (currentDrmState === 'AUTOPLAY_BLOCKED' || currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') return;
-
-      const errCode = e.error || e.code || '';
-      const errEvent = e.event || {};
-      const status = errEvent.status;
-
-      // Filter out non-network errors that should NOT trigger proxy fallback:
-      const isDrmError = errCode === 'key_status_error' || errCode === 'key_session_created_error' || errEvent.error === 'key_status_error' || (e.error && String(e.error).includes('DRM'));
-      const isCodecError = errCode === 'mediasource_error' || (e.error && String(e.error).includes('codec'));
-
-      if (isDrmError) {
-        console.warn('[DRM ERROR]', errCode);
-        showToast('This source requires DRM not supported by this web player.');
+      if (currentDrmState === 'FUBO_WIDEVINE_LICENSE_REQUIRED' || currentDrmState === 'WIDEVINE_REQUIRED' || currentDrmState === 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE') {
         return;
       }
 
-      if (isCodecError) {
-        console.warn('[CODEC ERROR]', errCode);
-        showToast('This source requires DRM not supported by this web player.');
-        return;
+      const code = err.error || err.code;
+
+      if (code === 'key_status_error' || code === 'key_session_created_error' || err.event?.error === 'key_status_error' || (err.error && String(err.error).includes('DRM'))) {
+        showToast('🔑 Error DRM: Siaran ini membutuhkan Kunci ClearKey / License URL yang sesuai.');
+      } else if (err.event && err.event.status === 401) {
+        showToast('🔒 HTTP 401: Token / Akses siaran tidak diizinkan.');
+      } else if (err.event && err.event.status === 403) {
+        showToast('⛔ HTTP 403: Akses stream ditolak oleh server upstream.');
+      } else if (err.event && err.event.status === 404) {
+        showToast('🔍 HTTP 404: Link manifest / segment tidak ditemukan.');
+      } else {
+        showToast('⚠️ Gagal memutar siaran (Cek log konsol atau status DRM).');
       }
-
-      // Network / CORS / Manifest loading failures trigger fallback for non-DRM DASH
-      const isNetworkFailure = (
-        status === 0 || status === 403 || status === 404 || status >= 500 ||
-        errCode === 'download' || errCode === 'download_error' || errCode === 'manifestError' ||
-        String(errCode).includes('network') || String(errCode).includes('download') || String(errCode).includes('manifest') ||
-        errEvent.type === 'error'
-      );
-
-      if (isNetworkFailure) {
-        if (!isProxyFallbackAttempt && currentPlaybackRoute === 'DASH_DIRECT' && activeChannel) {
-          const reasonStr = `HTTP ${status || 'CORS/Network Error'} (${errCode || 'Fetch Failed'})`;
-          console.warn(`[DASH DIRECT FAILED] ${reasonStr}`);
-          showToast('Direct stream blocked by source server.');
-
-          // Single Retry via External DASH Proxy
-          destroyPlayers();
-          playChannel(activeChannel, true);
-          return;
-        } else if (isProxyFallbackAttempt || currentPlaybackRoute === 'DASH_CLEARKEY_PROXY') {
-          const reasonStr = `HTTP ${status || 'Proxy Connection Error'} (${errCode || 'Proxy Failed'})`;
-          console.warn(`[DASH PROXY FAILED] ${reasonStr}`);
-          showToast('Proxy fallback unavailable.');
-          return;
-        }
-      }
-
-      showToast('Direct stream blocked by source server.');
     }
 
     /**
      * Detailed Diagnostics for HLS Player Errors
      */
     function handleHlsFatalError(data) {
-      console.warn('[HLS DIRECT FAILED]', data.details || data.type);
+      console.warn('[HLS Fatal Error]', data);
+
+      const backupList = activeChannel && activeChannel.backup_streams ? activeChannel.backup_streams : [];
+      const curIdx = activeChannel ? (activeChannel._currentStreamIndex || 0) : 0;
+
+      // 1. Auto-failover to backup server if available
+      if (backupList.length > 1 && curIdx + 1 < backupList.length) {
+        const nextIdx = curIdx + 1;
+        console.warn(`⚠️ [AUTO FAILOVER] Server ${curIdx + 1} failed. Auto switching to Server ${nextIdx + 1}/${backupList.length}...`);
+        showToast(`🔄 Server ${curIdx + 1} offline. Mengalihkan otomatis ke Server Backup ${nextIdx + 1}...`);
+        destroyPlayers();
+        playChannel(activeChannel, false, nextIdx);
+        return;
+      }
+
+      // 2. Automatic Direct Stream Fallback ONLY if proxy endpoint returned 404
+      const is404 = data.response && data.response.code === 404;
+      if (is404 && !isFallbackAttempt && activeChannel && activeChannel.stream_url && currentPlayableUrl !== activeChannel.stream_url.trim()) {
+        console.warn('⚠️ [PROXY FALLBACK] HLS Proxy returned 404. Retrying playback with direct CDN URL...');
+        showToast('🔄 Server proxy 404, mengalihkan ke pemutaran langsung (Direct CDN)...');
+        destroyPlayers();
+        playChannel(activeChannel, true, curIdx);
+        return;
+      }
 
       switch (data.type) {
         case Hls.ErrorTypes.NETWORK_ERROR:
-          showToast('Direct stream blocked by source server.');
+          if (data.response && data.response.code === 403) {
+            showToast('⛔ HTTP 403: Akses ditolak oleh server siaran.');
+          } else if (data.response && data.response.code === 401) {
+            showToast('🔒 HTTP 401: Token autentikasi kadaluwarsa.');
+          } else if (data.response && data.response.code === 404) {
+            showToast('🔍 HTTP 404: Saluran tidak ditemukan di server.');
+          } else {
+            showToast('🌐 Network Error: Gagal terhubung ke server streaming.');
+          }
           break;
         case Hls.ErrorTypes.MEDIA_ERROR:
-          showToast('This source requires DRM not supported by this web player.');
-          if (hlsPlayer) hlsPlayer.recoverMediaError();
+          showToast('🎥 Media Error: Format codec video/audio tidak didukung.');
+          hlsPlayer.recoverMediaError();
           break;
         default:
-          showToast('Direct stream blocked by source server.');
+          showToast('⚠️ Gagal memutar siaran HLS.');
           break;
       }
     }
@@ -1678,15 +2070,162 @@
       hidePlayOverlay();
       currentDrmState = 'INITIALIZING';
       activeKeySystem = null;
-      currentPlaybackRoute = '';
       if (hlsPlayer) {
-        try { hlsPlayer.destroy(); } catch (err) { }
+        hlsPlayer.destroy();
         hlsPlayer = null;
       }
       if (dashPlayer) {
-        try { dashPlayer.reset(); } catch (err) { }
+        dashPlayer.reset();
         dashPlayer = null;
       }
+    }
+
+    /**
+     * EPG Schedule Engine (TVmaze API + Smart Category Broadcast Guide)
+     */
+    async function updateEPG(ch) {
+      if (!ch || !ch.name) return;
+
+      const titleEl = document.getElementById('epgNowTitle');
+      const descEl = document.getElementById('epgNowDesc');
+      const thumbEl = document.getElementById('epgNowThumb');
+      const fillEl = document.getElementById('epgProgressFill');
+      const startEl = document.getElementById('epgStartTime');
+      const endEl = document.getElementById('epgEndTime');
+      const sourceEl = document.getElementById('epgSourceBadge');
+      const listEl = document.getElementById('epgUpcomingList');
+
+      titleEl.innerText = `Memuat siaran ${ch.name}...`;
+      descEl.innerText = `Mencari panduan siaran langsung...`;
+      fillEl.style.width = '10%';
+      startEl.innerText = '--:--';
+      endEl.innerText = '--:--';
+
+      // 1. Try TVmaze Search API
+      try {
+        const queryName = ch.name.replace(/(HD|FHD|4K|ID|TV|Channel|Indonesia|Live)/gi, '').trim();
+        const res = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(queryName || ch.name)}&embed=episodes`);
+        if (res.ok) {
+          const showData = await res.json();
+          if (showData) {
+            const imgUrl = showData.image ? (showData.image.medium || showData.image.original) : ch.logo;
+            if (imgUrl) {
+              thumbEl.innerHTML = `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='📺'">`;
+            } else {
+              thumbEl.innerText = '📺';
+            }
+
+            const epList = showData._embedded && showData._embedded.episodes ? showData._embedded.episodes : [];
+            const summaryClean = showData.summary ? showData.summary.replace(/<[^>]*>?/gm, '') : (showData.genres ? `Genre: ${showData.genres.join(', ')}` : `Siaran utama ${ch.name}`);
+
+            sourceEl.innerText = 'TVMAZE EPG';
+            titleEl.innerText = showData.name;
+            descEl.innerText = summaryClean;
+
+            // Calculate current time & broadcast bar
+            const now = new Date();
+            const startMins = now.getHours() * 60 + now.getMinutes();
+            const currentProgress = Math.min(100, Math.max(15, Math.floor((startMins % 60) / 60 * 100)));
+            fillEl.style.width = `${currentProgress}%`;
+
+            const startStr = `${String(now.getHours()).padStart(2, '0')}:00`;
+            const endStr = `${String((now.getHours() + 1) % 24).padStart(2, '0')}:00`;
+            startEl.innerText = startStr;
+            endEl.innerText = endStr;
+
+            // Upcoming episodes / shows
+            listEl.innerHTML = '';
+            if (epList.length) {
+              epList.slice(0, 4).forEach(ep => {
+                const item = document.createElement('div');
+                item.className = 'epg-upcoming-item';
+                item.innerHTML = `
+                  <span class="epg-upcoming-time">${ep.airtime || '19:00'}</span>
+                  <span class="epg-upcoming-name">S${ep.season}E${ep.number} - ${ep.name}</span>
+                `;
+                listEl.appendChild(item);
+              });
+            } else {
+              renderSmartUpcomingGuide(ch, listEl);
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.log('[EPG TVmaze lookup skipped]', e);
+      }
+
+      // 2. Smart Category Fallback EPG Guide
+      sourceEl.innerText = 'LIVE BROADCAST';
+      if (ch.logo) {
+        thumbEl.innerHTML = `<img src="${ch.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='📺'">`;
+      } else {
+        thumbEl.innerText = '📺';
+      }
+
+      const now = new Date();
+      const hour = now.getHours();
+      const group = ch.group_title || 'TV';
+
+      let showTitle = `Siaran Siaran Utama ${ch.name}`;
+      let showDesc = `Menayangkan acara siaran langsung ${group} untuk wilayah Anda.`;
+
+      if (group.includes('Berita') || group.includes('News')) {
+        if (hour >= 6 && hour < 12) showTitle = `Pagi Hari: Kabar Utama ${ch.name}`;
+        else if (hour >= 12 && hour < 18) showTitle = `Siang: Laporan Berita Terkini`;
+        else showTitle = `Prime Time News & Analisis Utama`;
+        showDesc = `Siaran berita terkini, wawancara mendalam, dan informasi peristiwa hari ini.`;
+      } else if (group.includes('Olahraga') || group.includes('Sports')) {
+        showTitle = `Live Match & Sorotan Olahraga ${ch.name}`;
+        showDesc = `Penayangan pertandingan langsung, tayangan ulang aksi terbaik, dan ulasan lengkap tim favorit.`;
+      } else if (group.includes('Film') || group.includes('Movies')) {
+        showTitle = `Bioskop Layar Kaca: Special Movie`;
+        showDesc = `Sajian film pilihan terbaik untuk menemani waktu luang Anda.`;
+      } else if (group.includes('Kartun') || group.includes('Anak')) {
+        showTitle = `Panggung Kartun & Animasi Seru`;
+        showDesc = `Tayangan hiburan anak dan animasi favorit keluarga secara nonstop.`;
+      } else if (group.includes('Musik')) {
+        showTitle = `Top Hits & Soundtracks Playlist`;
+        showDesc = `Putaran video klip musik terpopuler dan siaran tangga lagu pilihan.`;
+      }
+
+      titleEl.innerText = showTitle;
+      descEl.innerText = showDesc;
+
+      const progressVal = Math.min(95, Math.max(10, Math.floor((now.getMinutes() / 60) * 100)));
+      fillEl.style.width = `${progressVal}%`;
+
+      const startH = String(hour).padStart(2, '0');
+      const endH = String((hour + 1) % 24).padStart(2, '0');
+      startEl.innerText = `${startH}:00`;
+      endEl.innerText = `${endH}:00`;
+
+      renderSmartUpcomingGuide(ch, listEl);
+    }
+
+    function renderSmartUpcomingGuide(ch, listEl) {
+      listEl.innerHTML = '';
+      const now = new Date();
+      const curH = now.getHours();
+      const group = ch.group_title || 'Live';
+
+      const upcomingPrograms = [
+        { offset: 1, name: `${group} Live: Program Sore Hari` },
+        { offset: 2, name: `Prime Time Special - ${ch.name}` },
+        { offset: 4, name: `Laporan Malam & Rangkuan Acara` }
+      ];
+
+      upcomingPrograms.forEach(p => {
+        const h = (curH + p.offset) % 24;
+        const timeStr = `${String(h).padStart(2, '0')}:00`;
+        const item = document.createElement('div');
+        item.className = 'epg-upcoming-item';
+        item.innerHTML = `
+          <span class="epg-upcoming-time">${timeStr}</span>
+          <span class="epg-upcoming-name">${p.name}</span>
+        `;
+        listEl.appendChild(item);
+      });
     }
 
     /* FULLSCREEN HANDLER FIX */

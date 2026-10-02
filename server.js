@@ -93,7 +93,7 @@ const server = http.createServer((req, res) => {
 /**
  * Construct Proxy URL for a target URL preserving DASH placeholders ($Number$, $RepresentationID$, etc.)
  */
-function makeProxyUrl(targetUrlStr, headers = {}, isClearKey = false) {
+function makeProxyUrl(targetUrlStr, headers = {}, isClearKey = false, baseUrl = '/api/dash-proxy') {
   const q = new URLSearchParams();
   q.set('url', targetUrlStr);
   if (headers.userAgent) q.set('user_agent', headers.userAgent);
@@ -101,7 +101,7 @@ function makeProxyUrl(targetUrlStr, headers = {}, isClearKey = false) {
   if (headers.origin) q.set('origin', headers.origin);
   if (isClearKey) q.set('clearkey', '1');
 
-  let proxyUrl = `http://localhost:${PORT}/api/dash-proxy?` + q.toString();
+  let proxyUrl = `${baseUrl}?` + q.toString();
 
   // Restore literal DASH placeholders if encoded (%24Number%24 -> $Number$)
   proxyUrl = proxyUrl
@@ -203,7 +203,11 @@ function handleProxyRequest(clientReq, clientRes) {
     const isM3U8 = targetUrlStr.includes('.m3u8') || contentType.includes('mpegurl');
     const isMPD = targetUrlStr.includes('.mpd') || contentType.includes('dash+xml');
 
-    const proxyUrlBuilder = (target) => makeProxyUrl(target, headers, isClearKey);
+    const host = clientReq.headers['host'] || `localhost:${PORT}`;
+    const protocol = (clientReq.socket && clientReq.socket.encrypted) || clientReq.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+    const proxyBaseUrl = `${protocol}://${host}/api/dash-proxy`;
+
+    const proxyUrlBuilder = (target) => makeProxyUrl(target, headers, isClearKey, proxyBaseUrl);
 
     // CASE 1: Manifest M3U8 Rewriting
     if (isM3U8 && bodyBuffer) {
