@@ -1301,17 +1301,17 @@
       // Deduplicate and merge: DB Channels -> M3U Channels -> IPTV-org Channels
       const channelMap = new Map();
 
-      const addCh = (ch) => {
+      const addCh = (ch, isVerified = false) => {
         if (!ch || !ch.name || !ch.stream_url) return;
         const key = ch.name.trim().toLowerCase();
         if (!channelMap.has(key)) {
-          channelMap.set(key, ch);
+          channelMap.set(key, { ...ch, is_verified: isVerified });
         }
       };
 
-      dbChannels.forEach(addCh);
-      m3uChannels.forEach(addCh);
-      iptvOrgChannels.forEach(addCh);
+      dbChannels.forEach(c => addCh(c, true));
+      m3uChannels.forEach(c => addCh(c, true));
+      iptvOrgChannels.forEach(c => addCh(c, false));
 
       allChannels = Array.from(channelMap.values());
 
@@ -2042,6 +2042,18 @@
         destroyPlayers();
         playChannel(activeChannel, true, curIdx);
         return;
+      }
+
+      // 3. Auto-play next channel if all servers for this channel are offline
+      const curListIdx = filteredChannels.findIndex(c => c.name === activeChannel.name);
+      if (curListIdx !== -1 && curListIdx + 1 < filteredChannels.length) {
+        const nextCh = filteredChannels[curListIdx + 1];
+        showToast(`⚠️ Siaran "${activeChannel.name}" sedang offline. Mengalihkan ke "${nextCh.name}"...`);
+        setTimeout(() => {
+          if (activeChannel && activeChannel.name !== nextCh.name) {
+            playChannel(nextCh);
+          }
+        }, 2500);
       }
 
       switch (data.type) {
