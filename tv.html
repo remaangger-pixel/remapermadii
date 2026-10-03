@@ -1298,7 +1298,15 @@
         console.log('Supabase check error:', e);
       }
 
-      // Deduplicate and merge: DB Channels -> M3U Channels -> IPTV-org Channels
+      // Clear legacy bloat cache if present
+      try {
+        const cacheRaw = localStorage.getItem('iptv_org_curated_v1');
+        if (cacheRaw && cacheRaw.length > 200000) {
+          localStorage.removeItem('iptv_org_curated_v1');
+        }
+      } catch(e){}
+
+      // Deduplicate and merge: DB Channels -> M3U Channels -> Verified IPTV-org Channels
       const channelMap = new Map();
 
       const addCh = (ch, isVerified = false) => {
@@ -1309,9 +1317,13 @@
         }
       };
 
+      // 1. Primary Verified Active Channels (Supabase & M3U Playlist)
       dbChannels.forEach(c => addCh(c, true));
       m3uChannels.forEach(c => addCh(c, true));
-      iptvOrgChannels.forEach(c => addCh(c, false));
+
+      // 2. High-Confidence Active Streams from IPTV-org (ID TV & Multi-Server Streams)
+      const topIptvOrg = iptvOrgChannels.filter(c => c.group_title === '📺 TV Indonesia' || (c.backup_streams && c.backup_streams.length >= 2));
+      topIptvOrg.forEach(c => addCh(c, false));
 
       allChannels = Array.from(channelMap.values());
 
@@ -1514,6 +1526,7 @@
     function filterChannels() {
       const query = document.getElementById('searchChannel').value.toLowerCase().trim();
       filteredChannels = allChannels.filter(c => {
+        if (c._isDead) return false;
         const matchCat = activeCategory === 'Semua' || (c.group_title || 'Lainnya') === activeCategory;
         const matchQuery = !query || c.name.toLowerCase().includes(query) || (c.group_title || '').toLowerCase().includes(query);
         return matchCat && matchQuery;
@@ -2044,16 +2057,21 @@
         return;
       }
 
-      // 3. Auto-play next channel if all servers for this channel are offline
+      // 3. Auto-play next channel and remove dead channel if all servers for this channel are offline
+      if (activeChannel) {
+        activeChannel._isDead = true;
+      }
       const curListIdx = filteredChannels.findIndex(c => c.name === activeChannel.name);
-      if (curListIdx !== -1 && curListIdx + 1 < filteredChannels.length) {
-        const nextCh = filteredChannels[curListIdx + 1];
-        showToast(`⚠️ Siaran "${activeChannel.name}" sedang offline. Mengalihkan ke "${nextCh.name}"...`);
+      filterChannels(); // Refresh sidebar list to automatically remove dead channel!
+
+      if (filteredChannels.length && curListIdx !== -1) {
+        const nextCh = filteredChannels[Math.min(curListIdx, filteredChannels.length - 1)];
+        showToast(`⚠️ Siaran "${activeChannel.name}" tidak aktif (dihapus dari list). Mengalihkan ke "${nextCh.name}"...`);
         setTimeout(() => {
           if (activeChannel && activeChannel.name !== nextCh.name) {
             playChannel(nextCh);
           }
-        }, 2500);
+        }, 1800);
       }
 
       switch (data.type) {
