@@ -4,6 +4,7 @@ const url = require('url');
 const path = require('path');
 const fs = require('fs');
 const { assertSafeTarget, safeLookup, isAllowedOrigin } = require('./api/_safe-url');
+const epg = require('./api/_epg');
 
 const PORT = process.env.PORT || 8000;
 const PUBLIC_DIR = __dirname;
@@ -54,6 +55,20 @@ const server = http.createServer((req, res) => {
   // ROUTE 1: DASH & HLS Proxy Endpoints (/api/dash-proxy, /proxy, /proxy-stream/...)
   if (pathname === '/api/dash-proxy' || pathname === '/proxy' || pathname.startsWith('/proxy-stream/')) {
     handleProxyRequest(req, res);
+    return;
+  }
+
+  // ROUTE 1A: Live TV programme guide (/api/epg?ids=RCTI.id,ANTV.id)
+  if (pathname === '/api/epg') {
+    const ids = String(parsedUrl.query.ids || '').split(',').map(x => x.trim()).filter(Boolean);
+    epg.lookup(ids).then((data) => {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
+      res.end(JSON.stringify(data));
+    }).catch((err) => {
+      console.log('[EPG] ERROR:', err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'EPG unavailable' }));
+    });
     return;
   }
 
