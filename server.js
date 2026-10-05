@@ -3,6 +3,7 @@ const https = require('https');
 const url = require('url');
 const path = require('path');
 const fs = require('fs');
+const { assertSafeTarget, safeLookup } = require('./api/_safe-url');
 
 const PORT = process.env.PORT || 8000;
 const PUBLIC_DIR = __dirname;
@@ -285,9 +286,9 @@ function fetchUpstream(targetUrlStr, clientReq, customHeaders, redirectCount, ca
 
   let parsedUrl;
   try {
-    parsedUrl = new url.URL(targetUrlStr);
+    parsedUrl = assertSafeTarget(targetUrlStr);
   } catch (e) {
-    return safeCallback(new Error('Invalid URL format: ' + targetUrlStr));
+    return safeCallback(e);
   }
 
   const lib = parsedUrl.protocol === 'https:' ? https : http;
@@ -314,6 +315,7 @@ function fetchUpstream(targetUrlStr, clientReq, customHeaders, redirectCount, ca
     method: clientReq.method || 'GET',
     headers: reqHeaders,
     timeout: 12000,
+    lookup: safeLookup,
     rejectUnauthorized: false
   };
 

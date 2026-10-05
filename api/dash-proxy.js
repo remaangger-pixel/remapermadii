@@ -1,17 +1,23 @@
 const http = require('http');
 const https = require('https');
 const url = require('url');
+const { assertSafeTarget, safeLookup, isAllowedOrigin } = require('./_safe-url');
+
+const MAX_MANIFEST_BYTES = 5 * 1024 * 1024;
 
 /**
  * Vercel Serverless Function Proxy for DASH (.mpd) and HLS (.m3u8) Streams
  */
 module.exports = async (req, res) => {
   const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+  if (!isAllowedOrigin(origin, req.headers.host)) {
+    res.statusCode = 403;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ error: 'Origin not allowed' }));
+    return;
   }
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type, Accept-Ranges');
@@ -30,6 +36,15 @@ module.exports = async (req, res) => {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: 'Missing target url parameter' }));
+    return;
+  }
+
+  try {
+    assertSafeTarget(targetUrlStr);
+  } catch (e) {
+    res.statusCode = 400;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ error: e.message }));
     return;
   }
 
@@ -127,9 +142,9 @@ function fetchUpstream(targetUrlStr, clientReq, headers, redirectCount, callback
 
   let parsedTarget;
   try {
-    parsedTarget = new URL(targetUrlStr);
+    parsedTarget = assertSafeTarget(targetUrlStr);
   } catch (e) {
-    return callback(new Error('Invalid upstream URL'));
+    return callback(e);
   }
 
   const transport = parsedTarget.protocol === 'https:' ? https : http;
@@ -151,7 +166,9 @@ function fetchUpstream(targetUrlStr, clientReq, headers, redirectCount, callback
     port: parsedTarget.port || (parsedTarget.protocol === 'https:' ? 443 : 80),
     path: parsedTarget.pathname + parsedTarget.search,
     method: clientReq.method || 'GET',
-    headers: requestHeaders
+    headers: requestHeaders,
+    lookup: safeLookup,
+    timeout: 15000
   };
 
   const req = transport.request(options, (upstreamRes) => {
@@ -165,7 +182,16 @@ function fetchUpstream(targetUrlStr, clientReq, headers, redirectCount, callback
 
     if (isManifest) {
       const chunks = [];
-      upstreamRes.on('data', chunk => chunks.push(chunk));
+      let total = 0;
+      upstreamRes.on('data', chunk => {
+        total += chunk.length;
+        if (total > MAX_MANIFEST_BYTES) {
+          upstreamRes.destroy(new Error('Manifest too large'));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      upstreamRes.on('error', err => callback(err));
       upstreamRes.on('end', () => {
         const bodyBuffer = Buffer.concat(chunks);
         callback(null, upstreamRes, targetUrlStr, bodyBuffer);
@@ -175,23 +201,31 @@ function fetchUpstream(targetUrlStr, clientReq, headers, redirectCount, callback
     }
   });
 
+  req.on('timeout', () => req.destroy(new Error('Upstream timeout')));
   req.on('error', err => callback(err));
   req.end();
 }
 
 function rewriteM3U8(manifestText, baseUrlStr, proxyUrlBuilder) {
-  const lines = manifestText.split(/\r?\n/);
-  const rewritten = lines.map(line => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) return line;
+  const toProxied = (ref) => {
     try {
-      const absoluteUrl = new URL(trimmed, baseUrlStr).toString();
-      return proxyUrlBuilder(absoluteUrl);
+      return proxyUrlBuilder(new URL(ref, baseUrlStr).toString());
     } catch (e) {
-      return line;
+      return ref;
     }
-  });
-  return rewritten.join('\n');
+  };
+
+  return manifestText.split(/\r?\n/).map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return line;
+    if (trimmed.startsWith('#')) {
+      // Tags such as #EXT-X-KEY / #EXT-X-MAP / #EXT-X-MEDIA carry URI="..." that must be proxied too
+      return trimmed.includes('URI=')
+        ? line.replace(/URI=(["'])([^"']+)\1/g, (m, q, ref) => `URI="${toProxied(ref)}"`)
+        : line;
+    }
+    return toProxied(trimmed);
+  }).join('\n');
 }
 
 function rewriteMPD(manifestText, baseUrlStr, proxyUrlBuilder, isClearKey) {
