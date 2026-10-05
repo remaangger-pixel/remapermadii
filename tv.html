@@ -866,6 +866,8 @@
       transition: all 0.2s;
       position: relative;
       min-width: 0;
+      content-visibility: auto;
+      contain-intrinsic-size: auto 66px;
     }
 
     .channel-card:hover {
@@ -1198,14 +1200,36 @@
       } catch (e) { return ''; }
     }
 
+    /**
+     * Logos that failed to load are remembered (also across visits) so they are never requested again.
+     */
+    const BAD_LOGOS_KEY = 'tv_bad_logos_v1';
+    const BAD_LOGOS_MAX = 3000;
+    const badLogos = (() => {
+      try { return new Set(JSON.parse(localStorage.getItem(BAD_LOGOS_KEY) || '[]')); } catch (e) { return new Set(); }
+    })();
+    let badLogosSaveTimer = null;
+
+    function markBadLogo(src) {
+      if (!src || badLogos.has(src)) return;
+      badLogos.add(src);
+      clearTimeout(badLogosSaveTimer);
+      badLogosSaveTimer = setTimeout(() => {
+        try {
+          const list = Array.from(badLogos).slice(-BAD_LOGOS_MAX);
+          localStorage.setItem(BAD_LOGOS_KEY, JSON.stringify(list));
+        } catch (e) { /* storage full/unavailable: session-only memory is fine */ }
+      }, 1000);
+    }
+
     /** Fill `el` with an <img> of `url` (radius px), or a 📺 fallback. No HTML parsing involved. */
     function setLogo(el, url, radius) {
       el.textContent = '';
       const src = url ? safeImgUrl(url) : '';
-      if (!src) { el.textContent = '📺'; return; }
+      if (!src || badLogos.has(src)) { el.textContent = '📺'; return; }
       const img = document.createElement('img');
       img.style.cssText = `width:100%;height:100%;object-fit:cover;border-radius:${radius}px;`;
-      img.onerror = () => { el.textContent = '📺'; };
+      img.onerror = () => { markBadLogo(src); el.textContent = '📺'; };
       img.src = src;
       el.appendChild(img);
     }
@@ -1582,6 +1606,15 @@
       renderChannelList();
     }
 
+    /** Highlight the playing channel without rebuilding the whole (possibly thousands-long) list. */
+    function updateActiveCard() {
+      const listEl = document.getElementById('channelList');
+      listEl.querySelectorAll('.channel-card.active').forEach(c => c.classList.remove('active'));
+      if (!activeChannel) return;
+      const card = Array.from(listEl.children).find(c => c.dataset && c.dataset.name === activeChannel.name);
+      if (card) card.classList.add('active');
+    }
+
     function renderChannelList() {
       const listEl = document.getElementById('channelList');
       document.getElementById('channelCount').innerText = filteredChannels.length;
@@ -1596,15 +1629,19 @@
         const isCurrent = activeChannel && activeChannel.name === ch.name;
         const card = document.createElement('div');
         card.className = 'channel-card' + (isCurrent ? ' active' : '');
+        card.dataset.name = ch.name;
 
         const thumb = document.createElement('div');
         thumb.className = 'channel-thumb';
         const logoSrc = ch.logo ? safeImgUrl(ch.logo) : '';
-        if (logoSrc) {
+        if (logoSrc && !badLogos.has(logoSrc)) {
           const img = document.createElement('img');
           img.className = 'channel-thumb';
           img.alt = ch.name;
-          img.onerror = () => { thumb.textContent = '📺'; img.replaceWith(thumb); };
+          img.loading = 'lazy'; // only fetch logos that scroll into view
+          img.decoding = 'async';
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = () => { markBadLogo(logoSrc); thumb.textContent = '📺'; img.replaceWith(thumb); };
           img.src = logoSrc;
           card.appendChild(img);
         } else {
@@ -1755,7 +1792,7 @@
 
       setLogo(document.getElementById('currentLogo'), ch.logo, 10);
 
-      renderChannelList();
+      updateActiveCard();
       updateEPG(ch);
       destroyPlayers();
 
