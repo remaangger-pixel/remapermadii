@@ -1267,7 +1267,7 @@
         console.log('Supabase check error:', e);
       }
 
-      // Deduplicate and merge: DB Channels -> M3U Channels
+      // Deduplicate Supabase channels by name (extra servers become backups)
       const channelMap = new Map();
 
       const addCh = (ch, isVerified = false) => {
@@ -1287,9 +1287,8 @@
         }
       };
 
-      // Verified active channels (Supabase & M3U playlist)
+      // Supabase is the single source of channels (controlled via is_active); the M3U playlist only supplies DRM keys/headers/tvg-id
       dbChannels.forEach(c => addCh(c, true));
-      m3uChannels.forEach(c => addCh(c, true));
 
       allChannels = Array.from(channelMap.values());
 
