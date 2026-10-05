@@ -3,7 +3,7 @@ const https = require('https');
 const url = require('url');
 const path = require('path');
 const fs = require('fs');
-const { assertSafeTarget, safeLookup } = require('./api/_safe-url');
+const { assertSafeTarget, safeLookup, isAllowedOrigin } = require('./api/_safe-url');
 
 const PORT = process.env.PORT || 8000;
 const PUBLIC_DIR = __dirname;
@@ -29,7 +29,14 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
   // CORS Headers for all incoming requests
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const reqOrigin = req.headers.origin;
+  if (!isAllowedOrigin(reqOrigin, req.headers.host)) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Origin not allowed' }));
+    return;
+  }
+  res.setHeader('Access-Control-Allow-Origin', reqOrigin || '*');
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type, Accept-Ranges');

@@ -1,6 +1,3 @@
 {
-  "functions": {
-    "api/dash-proxy.js": { "maxDuration": 30 }
-  },
   "regions": ["sin1"]
 }
