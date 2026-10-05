@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live TV Streaming — Anvi Create</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dashjs@latest/dist/dash.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
@@ -1190,17 +1190,39 @@
       'general': '📺 TV Indonesia'
     };
 
+    /** Only allow http(s) image URLs; anything else (javascript:, data:) is dropped. */
+    function safeImgUrl(u) {
+      try {
+        const p = new URL(u, location.href);
+        return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : '';
+      } catch (e) { return ''; }
+    }
+
+    /** Fill `el` with an <img> of `url` (radius px), or a 📺 fallback. No HTML parsing involved. */
+    function setLogo(el, url, radius) {
+      el.textContent = '';
+      const src = url ? safeImgUrl(url) : '';
+      if (!src) { el.textContent = '📺'; return; }
+      const img = document.createElement('img');
+      img.style.cssText = `width:100%;height:100%;object-fit:cover;border-radius:${radius}px;`;
+      img.onerror = () => { el.textContent = '📺'; };
+      img.src = src;
+      el.appendChild(img);
+    }
+
     async function fetchIPTVOrgChannels() {
       try {
         const cacheKey = 'iptv_org_curated_v1';
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
-            console.log('[IPTV-org] Loaded curated channels from local cache:', parsed.data.length);
-            return parsed.data;
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
+              console.log('[IPTV-org] Loaded curated channels from local cache:', parsed.data.length);
+              return parsed.data;
+            }
           }
-        }
+        } catch (e) { /* storage unavailable or corrupt cache: refetch */ }
 
         console.log('[IPTV-org] Fetching global channel index...');
         const [channelsRes, streamsRes] = await Promise.all([
@@ -1247,7 +1269,11 @@
           }
         });
 
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: curated }));
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: curated }));
+        } catch (e) {
+          console.warn('[IPTV-org] Cache skipped (storage full/unavailable):', e.name);
+        }
         console.log('[IPTV-org] Cached curated global channels:', curated.length);
         return curated;
       } catch (e) {
@@ -1312,8 +1338,17 @@
       const addCh = (ch, isVerified = false) => {
         if (!ch || !ch.name || !ch.stream_url) return;
         const key = ch.name.trim().toLowerCase();
-        if (!channelMap.has(key)) {
-          channelMap.set(key, { ...ch, is_verified: isVerified });
+        const existing = channelMap.get(key);
+        if (!existing) {
+          channelMap.set(key, { ...ch, is_verified: isVerified, backup_streams: ch.backup_streams && ch.backup_streams.length ? [...ch.backup_streams] : [ch.stream_url] });
+          return;
+        }
+        // Same channel name from another source: keep as backup server if it needs identical DRM/headers
+        const sameAuth = ['stream_type', 'license_type', 'license_key', 'user_agent', 'referer', 'origin']
+          .every(k => (existing[k] || '') === (ch[k] || ''));
+        if (sameAuth) {
+          const extra = ch.backup_streams && ch.backup_streams.length ? ch.backup_streams : [ch.stream_url];
+          extra.forEach(u => { if (u && !existing.backup_streams.includes(u)) existing.backup_streams.push(u); });
         }
       };
 
@@ -1347,10 +1382,14 @@
     async function fetchM3UChannels() {
       try {
         const res = await fetch(M3U_URL);
-        if (!res.ok) return [];
+        if (!res.ok) {
+          console.warn('[M3U] Playlist fetch failed with HTTP', res.status);
+          return [];
+        }
         const text = await res.text();
         return parseM3UText(text);
       } catch (e) {
+        console.warn('[M3U] Playlist fetch error:', e);
         return [];
       }
     }
@@ -1453,10 +1492,13 @@
         const isAct = g === activeCategory;
         const item = document.createElement('div');
         item.className = 'cat-option-item' + (isAct ? ' active' : '');
-        item.innerHTML = `
-      <span class="cat-opt-name">${g === 'Semua' ? '📂 Semua Kategori' : g}</span>
-      <span class="cat-opt-count">${countVal}</span>
-    `;
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'cat-opt-name';
+        nameSpan.textContent = g === 'Semua' ? '📂 Semua Kategori' : g;
+        const countSpan = document.createElement('span');
+        countSpan.className = 'cat-opt-count';
+        countSpan.textContent = countVal;
+        item.append(nameSpan, countSpan);
         item.onclick = (e) => {
           e.stopPropagation();
           selectCategory(g);
@@ -1526,7 +1568,7 @@
     function filterChannels() {
       const query = document.getElementById('searchChannel').value.toLowerCase().trim();
       filteredChannels = allChannels.filter(c => {
-        if (c._isDead) return false;
+        if (c._deadUntil && c._deadUntil > Date.now()) return false;
         const matchCat = activeCategory === 'Semua' || (c.group_title || 'Lainnya') === activeCategory;
         const matchQuery = !query || c.name.toLowerCase().includes(query) || (c.group_title || '').toLowerCase().includes(query);
         return matchCat && matchQuery;
@@ -1550,22 +1592,44 @@
         const card = document.createElement('div');
         card.className = 'channel-card' + (isCurrent ? ' active' : '');
 
-        const thumbHtml = ch.logo
-          ? `<img class="channel-thumb" src="${ch.logo}" alt="${ch.name}" onerror="this.outerHTML='<div class=\\'channel-thumb\\'>📺</div>'">`
-          : `<div class="channel-thumb">📺</div>`;
+        const thumb = document.createElement('div');
+        thumb.className = 'channel-thumb';
+        const logoSrc = ch.logo ? safeImgUrl(ch.logo) : '';
+        if (logoSrc) {
+          const img = document.createElement('img');
+          img.className = 'channel-thumb';
+          img.alt = ch.name;
+          img.onerror = () => { thumb.textContent = '📺'; img.replaceWith(thumb); };
+          img.src = logoSrc;
+          card.appendChild(img);
+        } else {
+          thumb.textContent = '📺';
+          card.appendChild(thumb);
+        }
 
-        card.innerHTML = `
-      ${thumbHtml}
-      <div class="channel-info-min">
-        <div class="channel-name-min">${ch.name}</div>
-        <div class="channel-group-min">${ch.group_title || 'Live TV'}</div>
-      </div>
-      <div class="playing-bars">
-        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      </div>
-    `;
+        const info = document.createElement('div');
+        info.className = 'channel-info-min';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'channel-name-min';
+        nameEl.textContent = ch.name;
+        const groupEl = document.createElement('div');
+        groupEl.className = 'channel-group-min';
+        groupEl.textContent = ch.group_title || 'Live TV';
+        info.append(nameEl, groupEl);
+        card.appendChild(info);
 
+        const bars = document.createElement('div');
+        bars.className = 'playing-bars';
+        bars.innerHTML = '<div class="bar"></div><div class="bar"></div><div class="bar"></div>';
+        card.appendChild(bars);
+
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', `Putar ${ch.name}`);
         card.onclick = () => playChannel(ch);
+        card.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playChannel(ch); }
+        };
         listEl.appendChild(card);
       });
     }
@@ -1583,13 +1647,18 @@
     }
 
     // Production Serverless Proxy Base URL for Vercel
-    const DASH_PROXY_BASE_URL = (localStorage.getItem('dash_proxy_base_url') || localStorage.getItem('proxy_base_url') || window.DASH_PROXY_BASE_URL || window.PROXY_BASE_URL || "https://remapermadii-git-main-rema-angger-s-projects.vercel.app").replace(/\/+$/, '');
+    const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    // On a Vercel deployment the proxy lives on the same origin; elsewhere (e.g. GitHub Pages) fall back to the configured Vercel app.
+    const DEFAULT_PROXY_BASE_URL = location.hostname.endsWith('.vercel.app')
+      ? location.origin
+      : "https://remapermadii-git-main-rema-angger-s-projects.vercel.app";
+    const DASH_PROXY_BASE_URL = (lsGet('dash_proxy_base_url') || lsGet('proxy_base_url') || window.DASH_PROXY_BASE_URL || window.PROXY_BASE_URL || DEFAULT_PROXY_BASE_URL).replace(/\/+$/, '');
 
     /**
      * Construct Playable Stream URL (Direct CDN or Backend Proxy)
      */
     function getPlayableUrl(ch, forceDirect = false) {
-      const rawUrl = (ch.stream_url || '').trim();
+      const rawUrl = (ch._activeUrl || ch.stream_url || '').trim();
       if (rawUrl.startsWith('<iframe') || forceDirect) return rawUrl;
 
       const keyStr = (ch.license_key || '').trim();
@@ -1599,10 +1668,12 @@
       const hasCustomHeaders = !!((ch.user_agent || '').trim() || (ch.referer || '').trim() || (ch.origin || '').trim());
 
       const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
-      const customProxyBase = (localStorage.getItem('proxy_base_url') || localStorage.getItem('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
+      const customProxyBase = (lsGet('proxy_base_url') || lsGet('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
 
       // Route through proxy if headers are set OR if ClearKey is specified OR if it is a DASH stream
-      const needsProxy = hasCustomHeaders || isClearKey || isDash;
+      // http:// streams are blocked as mixed content on an https page, so they must go through the (https) proxy
+      const isMixedContent = location.protocol === 'https:' && rawUrl.startsWith('http:');
+      const needsProxy = ch._proxyFor === rawUrl || hasCustomHeaders || isClearKey || isDash || isMixedContent;
 
       if (!needsProxy && !customProxyBase && !isLocal) {
         console.log('[PLAYBACK] Using direct CDN stream URL (no proxy required):', rawUrl);
@@ -1644,12 +1715,16 @@
     let isFallbackAttempt = false;
 
     function playChannel(ch, forceDirect = false, streamIndex = 0) {
+      clearTimeout(skipTimer);
       activeChannel = ch;
+      ch._retried = false;
+      ch._mediaRecovered = false;
+      ch._dashErrors = 0;
 
       const backupList = ch.backup_streams && ch.backup_streams.length ? ch.backup_streams : [ch.stream_url];
       const validIndex = Math.min(streamIndex, backupList.length - 1);
       ch._currentStreamIndex = validIndex;
-      ch.stream_url = backupList[validIndex];
+      ch._activeUrl = backupList[validIndex];
 
       const serverBadge = document.getElementById('serverBadge');
       if (serverBadge) {
@@ -1663,23 +1738,17 @@
 
       if (forceDirect) {
         isFallbackAttempt = true;
-        console.log('[PLAYBACK FALLBACK] Forcing direct stream URL playback:', ch.stream_url);
+        console.log('[PLAYBACK FALLBACK] Forcing direct stream URL playback:', ch._activeUrl);
       } else {
         isFallbackAttempt = false;
       }
 
-      console.log('[CHANNEL OBJECT]', JSON.stringify(ch));
 
       // Update UI Metadata
       document.getElementById('currentTitle').innerText = ch.name;
       document.getElementById('currentGroup').innerText = ch.group_title || 'Live TV';
 
-      const logoEl = document.getElementById('currentLogo');
-      if (ch.logo) {
-        logoEl.innerHTML = `<img src="${ch.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='📺'">`;
-      } else {
-        logoEl.innerText = '📺';
-      }
+      setLogo(document.getElementById('currentLogo'), ch.logo, 10);
 
       renderChannelList();
       updateEPG(ch);
@@ -1687,10 +1756,10 @@
 
       const wrapper = document.getElementById('videoWrapper');
       const video = document.getElementById('videoPlayer');
-      let rawUrl = ch.stream_url.trim();
+      const rawUrl = ch._activeUrl.trim();
 
       // Handle iFrame embed
-      if (rawUrl.startsWith('<iframe') || (rawUrl.includes('embed') && !rawUrl.includes('.m3u8') && !rawUrl.includes('.mpd'))) {
+      if (rawUrl.startsWith('<iframe') || (/^https?:\/\/[^?#]*\/embed(\/|$)/i.test(rawUrl) && !/\.(m3u8|mpd)(\?|#|$)/i.test(rawUrl))) {
         video.style.display = 'none';
         let oldIframe = wrapper.querySelector('iframe');
         if (oldIframe) oldIframe.remove();
@@ -1699,12 +1768,14 @@
         iframe.className = 'iframe-element';
         iframe.allowFullscreen = true;
         iframe.allow = "autoplay; fullscreen";
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
+        iframe.referrerPolicy = 'no-referrer';
 
         if (rawUrl.startsWith('<iframe')) {
           const match = rawUrl.match(/src=["']([^"']+)["']/i);
-          iframe.src = match ? match[1] : rawUrl;
+          iframe.src = safeImgUrl(match ? match[1] : '') || 'about:blank';
         } else {
-          iframe.src = rawUrl;
+          iframe.src = safeImgUrl(rawUrl) || 'about:blank';
         }
         wrapper.appendChild(iframe);
         return;
@@ -1713,6 +1784,8 @@
       video.style.display = 'block';
       let oldIframe = wrapper.querySelector('iframe');
       if (oldIframe) oldIframe.remove();
+
+      video.onplaying = () => { ch._deadUntil = 0; };
 
       currentPlayableUrl = getPlayableUrl(ch, forceDirect);
       const playableUrl = currentPlayableUrl;
@@ -1750,9 +1823,9 @@
           console.log('%c=== [DRM DIAGNOSTICS: CHANNEL LOAD] ===', 'color: #01b4e4; font-weight: bold;');
           console.log('1. Database Channel Name:', ch.name);
           console.log('2. Database license_type:', ch.license_type || '(none)');
-          console.log('3. Database license_key:', ch.license_key || '(none)');
+          console.log('3. Database license_key:', ch.license_key ? '(set, hidden)' : '(none)');
           console.log('4. Database license_server_url:', ch.license_server_url || '(none)');
-          console.log('5. Protection Data Passed to dash.js:', JSON.stringify(protData, null, 2));
+          console.log('5. Protection systems passed to dash.js:', Object.keys(protData));
 
           if (Object.keys(protData).length > 0) {
             dashPlayer.setProtectionData(protData);
@@ -1958,6 +2031,7 @@
           });
 
           dashPlayer.on(dashjs.MediaPlayer.events.ERROR, function (e) {
+            if (activeChannel !== ch) return; // stale event from a previous channel
             handlePlayerError('DASH', e);
           });
         } else {
@@ -2015,17 +2089,70 @@
 
       const code = err.error || err.code;
 
-      if (code === 'key_status_error' || code === 'key_session_created_error' || err.event?.error === 'key_status_error' || (err.error && String(err.error).includes('DRM'))) {
-        showToast('🔑 Error DRM: Siaran ini membutuhkan Kunci ClearKey / License URL yang sesuai.');
-      } else if (err.event && err.event.status === 401) {
-        showToast('🔒 HTTP 401: Token / Akses siaran tidak diizinkan.');
-      } else if (err.event && err.event.status === 403) {
-        showToast('⛔ HTTP 403: Akses stream ditolak oleh server upstream.');
-      } else if (err.event && err.event.status === 404) {
-        showToast('🔍 HTTP 404: Link manifest / segment tidak ditemukan.');
-      } else {
-        showToast('⚠️ Gagal memutar siaran (Cek log konsol atau status DRM).');
+      // Tolerate a few transient segment download errors before giving up
+      if (activeChannel && code === 'download' && (activeChannel._dashErrors = (activeChannel._dashErrors || 0) + 1) <= 3) {
+        return;
       }
+
+      let msg;
+      if (code === 'key_status_error' || code === 'key_session_created_error' || err.event?.error === 'key_status_error' || (err.error && String(err.error).includes('DRM'))) {
+        msg = '🔑 Error DRM: Siaran ini membutuhkan Kunci ClearKey / License URL yang sesuai.';
+      } else if (err.event && err.event.status === 401) {
+        msg = '🔒 HTTP 401: Token / Akses siaran tidak diizinkan.';
+      } else if (err.event && err.event.status === 403) {
+        msg = '⛔ HTTP 403: Akses stream ditolak oleh server upstream.';
+      } else if (err.event && err.event.status === 404) {
+        msg = '🔍 HTTP 404: Link manifest / segment tidak ditemukan.';
+      } else {
+        msg = '⚠️ Gagal memutar siaran (Cek log konsol atau status DRM).';
+      }
+
+      if (tryNextServer(activeChannel)) return;
+
+      // No backup servers left: temporarily hide channel and move on
+      skipDeadChannel(activeChannel, msg);
+    }
+
+    /** Switch to the next backup server of `ch` if one exists. Returns true if switched. */
+    function tryNextServer(ch) {
+      const list = ch.backup_streams || [];
+      const curIdx = ch._currentStreamIndex || 0;
+      if (list.length > 1 && curIdx + 1 < list.length) {
+        const nextIdx = curIdx + 1;
+        console.warn(`⚠️ [AUTO FAILOVER] Server ${curIdx + 1} failed. Switching to Server ${nextIdx + 1}/${list.length}...`);
+        showToast(`🔄 Server ${curIdx + 1} offline. Mengalihkan otomatis ke Server Backup ${nextIdx + 1}...`);
+        playChannel(ch, false, nextIdx);
+        return true;
+      }
+      return false;
+    }
+
+    let skipTimer = null;
+    const DEAD_CHANNEL_TTL_MS = 5 * 60 * 1000;
+
+    /**
+     * Temporarily hide a failed channel (retried after DEAD_CHANNEL_TTL_MS, or as soon as it plays)
+     * and auto-advance to the next channel in the list.
+     */
+    function skipDeadChannel(ch, reason) {
+      if (!ch || ch !== activeChannel) return; // stale error from a channel the user already left
+
+      ch._deadUntil = Date.now() + DEAD_CHANNEL_TTL_MS;
+      const idx = filteredChannels.indexOf(ch);
+      destroyPlayers();
+      filterChannels();
+
+      const nextCh = idx !== -1 ? filteredChannels[Math.min(idx, filteredChannels.length - 1)] : filteredChannels[0];
+      if (!nextCh) {
+        showToast(`${reason} Tidak ada saluran lain yang tersedia.`);
+        return;
+      }
+
+      showToast(`${reason} "${ch.name}" disembunyikan sementara, beralih ke "${nextCh.name}"...`);
+      clearTimeout(skipTimer);
+      skipTimer = setTimeout(() => {
+        if (activeChannel === ch) playChannel(nextCh);
+      }, 1800);
     }
 
     /**
@@ -2034,66 +2161,60 @@
     function handleHlsFatalError(data) {
       console.warn('[HLS Fatal Error]', data);
 
-      const backupList = activeChannel && activeChannel.backup_streams ? activeChannel.backup_streams : [];
-      const curIdx = activeChannel ? (activeChannel._currentStreamIndex || 0) : 0;
+      const ch = activeChannel;
+      if (!ch) return;
+
+      const status = data.response && data.response.code;
+
+      // 0. Transient errors: retry once before treating the server as down
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !status && !ch._retried && hlsPlayer) {
+        ch._retried = true;
+        console.warn('[HLS RETRY] Network error without HTTP status, retrying load once...');
+        hlsPlayer.startLoad();
+        return;
+      }
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !ch._mediaRecovered && hlsPlayer) {
+        ch._mediaRecovered = true;
+        console.warn('[HLS RETRY] Media error, attempting recovery once...');
+        hlsPlayer.recoverMediaError();
+        return;
+      }
+
+      const curIdx = ch._currentStreamIndex || 0;
 
       // 1. Auto-failover to backup server if available
-      if (backupList.length > 1 && curIdx + 1 < backupList.length) {
-        const nextIdx = curIdx + 1;
-        console.warn(`⚠️ [AUTO FAILOVER] Server ${curIdx + 1} failed. Auto switching to Server ${nextIdx + 1}/${backupList.length}...`);
-        showToast(`🔄 Server ${curIdx + 1} offline. Mengalihkan otomatis ke Server Backup ${nextIdx + 1}...`);
-        destroyPlayers();
-        playChannel(activeChannel, false, nextIdx);
+      if (tryNextServer(ch)) return;
+
+      // 1b. 401/403 on a direct URL often means missing headers/geo: retry once through the proxy
+      if ((status === 401 || status === 403) && ch._activeUrl && ch._proxyFor !== ch._activeUrl.trim() && currentPlayableUrl === ch._activeUrl.trim()) {
+        ch._proxyFor = ch._activeUrl.trim();
+        console.warn('[PROXY RETRY] Direct stream returned', status, '- retrying through proxy...');
+        showToast('🔄 Akses langsung ditolak, mencoba lewat proxy...');
+        playChannel(ch, false, curIdx);
         return;
       }
 
       // 2. Automatic Direct Stream Fallback ONLY if proxy endpoint returned 404
-      const is404 = data.response && data.response.code === 404;
-      if (is404 && !isFallbackAttempt && activeChannel && activeChannel.stream_url && currentPlayableUrl !== activeChannel.stream_url.trim()) {
+      if (status === 404 && !isFallbackAttempt && ch._activeUrl && currentPlayableUrl !== ch._activeUrl.trim()) {
         console.warn('⚠️ [PROXY FALLBACK] HLS Proxy returned 404. Retrying playback with direct CDN URL...');
         showToast('🔄 Server proxy 404, mengalihkan ke pemutaran langsung (Direct CDN)...');
-        destroyPlayers();
-        playChannel(activeChannel, true, curIdx);
+        playChannel(ch, true, curIdx);
         return;
       }
 
-      // 3. Auto-play next channel and remove dead channel if all servers for this channel are offline
-      if (activeChannel) {
-        activeChannel._isDead = true;
+      // 3. All servers failed: hide channel temporarily and move to the next one
+      let reason;
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        if (status === 403) reason = '⛔ HTTP 403: Akses ditolak oleh server siaran.';
+        else if (status === 401) reason = '🔒 HTTP 401: Token autentikasi kadaluwarsa.';
+        else if (status === 404) reason = '🔍 HTTP 404: Saluran tidak ditemukan di server.';
+        else reason = '🌐 Network Error: Gagal terhubung ke server streaming.';
+      } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        reason = '🎥 Media Error: Format codec video/audio tidak didukung.';
+      } else {
+        reason = '⚠️ Gagal memutar siaran HLS.';
       }
-      const curListIdx = filteredChannels.findIndex(c => c.name === activeChannel.name);
-      filterChannels(); // Refresh sidebar list to automatically remove dead channel!
-
-      if (filteredChannels.length && curListIdx !== -1) {
-        const nextCh = filteredChannels[Math.min(curListIdx, filteredChannels.length - 1)];
-        showToast(`⚠️ Siaran "${activeChannel.name}" tidak aktif (dihapus dari list). Mengalihkan ke "${nextCh.name}"...`);
-        setTimeout(() => {
-          if (activeChannel && activeChannel.name !== nextCh.name) {
-            playChannel(nextCh);
-          }
-        }, 1800);
-      }
-
-      switch (data.type) {
-        case Hls.ErrorTypes.NETWORK_ERROR:
-          if (data.response && data.response.code === 403) {
-            showToast('⛔ HTTP 403: Akses ditolak oleh server siaran.');
-          } else if (data.response && data.response.code === 401) {
-            showToast('🔒 HTTP 401: Token autentikasi kadaluwarsa.');
-          } else if (data.response && data.response.code === 404) {
-            showToast('🔍 HTTP 404: Saluran tidak ditemukan di server.');
-          } else {
-            showToast('🌐 Network Error: Gagal terhubung ke server streaming.');
-          }
-          break;
-        case Hls.ErrorTypes.MEDIA_ERROR:
-          showToast('🎥 Media Error: Format codec video/audio tidak didukung.');
-          hlsPlayer.recoverMediaError();
-          break;
-        default:
-          showToast('⚠️ Gagal memutar siaran HLS.');
-          break;
-      }
+      skipDeadChannel(ch, reason);
     }
 
     function destroyPlayers() {
@@ -2113,7 +2234,11 @@
     /**
      * EPG Schedule Engine (TVmaze API + Smart Category Broadcast Guide)
      */
-    async function updateEPG(ch) {
+    /**
+     * Now-playing panel. No real schedule source exists for these streams, so show
+     * channel info only instead of invented programme titles and times.
+     */
+    function updateEPG(ch) {
       if (!ch || !ch.name) return;
 
       const titleEl = document.getElementById('epgNowTitle');
@@ -2125,137 +2250,29 @@
       const sourceEl = document.getElementById('epgSourceBadge');
       const listEl = document.getElementById('epgUpcomingList');
 
-      titleEl.innerText = `Memuat siaran ${ch.name}...`;
-      descEl.innerText = `Mencari panduan siaran langsung...`;
-      fillEl.style.width = '10%';
-      startEl.innerText = '--:--';
-      endEl.innerText = '--:--';
+      sourceEl.innerText = 'LIVE';
+      titleEl.innerText = `Siaran langsung ${ch.name}`;
+      descEl.innerText = `Kategori: ${ch.group_title || 'Live TV'}. Panduan acara (EPG) belum tersedia untuk saluran ini.`;
+      setLogo(thumbEl, ch.logo, 8);
+      fillEl.style.width = '100%';
+      startEl.innerText = 'LIVE';
+      endEl.innerText = '';
 
-      // 1. Try TVmaze Search API
-      try {
-        const queryName = ch.name.replace(/(HD|FHD|4K|ID|TV|Channel|Indonesia|Live)/gi, '').trim();
-        const res = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(queryName || ch.name)}&embed=episodes`);
-        if (res.ok) {
-          const showData = await res.json();
-          if (showData) {
-            const imgUrl = showData.image ? (showData.image.medium || showData.image.original) : ch.logo;
-            if (imgUrl) {
-              thumbEl.innerHTML = `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='📺'">`;
-            } else {
-              thumbEl.innerText = '📺';
-            }
-
-            const epList = showData._embedded && showData._embedded.episodes ? showData._embedded.episodes : [];
-            const summaryClean = showData.summary ? showData.summary.replace(/<[^>]*>?/gm, '') : (showData.genres ? `Genre: ${showData.genres.join(', ')}` : `Siaran utama ${ch.name}`);
-
-            sourceEl.innerText = 'TVMAZE EPG';
-            titleEl.innerText = showData.name;
-            descEl.innerText = summaryClean;
-
-            // Calculate current time & broadcast bar
-            const now = new Date();
-            const startMins = now.getHours() * 60 + now.getMinutes();
-            const currentProgress = Math.min(100, Math.max(15, Math.floor((startMins % 60) / 60 * 100)));
-            fillEl.style.width = `${currentProgress}%`;
-
-            const startStr = `${String(now.getHours()).padStart(2, '0')}:00`;
-            const endStr = `${String((now.getHours() + 1) % 24).padStart(2, '0')}:00`;
-            startEl.innerText = startStr;
-            endEl.innerText = endStr;
-
-            // Upcoming episodes / shows
-            listEl.innerHTML = '';
-            if (epList.length) {
-              epList.slice(0, 4).forEach(ep => {
-                const item = document.createElement('div');
-                item.className = 'epg-upcoming-item';
-                item.innerHTML = `
-                  <span class="epg-upcoming-time">${ep.airtime || '19:00'}</span>
-                  <span class="epg-upcoming-name">S${ep.season}E${ep.number} - ${ep.name}</span>
-                `;
-                listEl.appendChild(item);
-              });
-            } else {
-              renderSmartUpcomingGuide(ch, listEl);
-            }
-            return;
-          }
-        }
-      } catch (e) {
-        console.log('[EPG TVmaze lookup skipped]', e);
-      }
-
-      // 2. Smart Category Fallback EPG Guide
-      sourceEl.innerText = 'LIVE BROADCAST';
-      if (ch.logo) {
-        thumbEl.innerHTML = `<img src="${ch.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='📺'">`;
-      } else {
-        thumbEl.innerText = '📺';
-      }
-
-      const now = new Date();
-      const hour = now.getHours();
-      const group = ch.group_title || 'TV';
-
-      let showTitle = `Siaran Siaran Utama ${ch.name}`;
-      let showDesc = `Menayangkan acara siaran langsung ${group} untuk wilayah Anda.`;
-
-      if (group.includes('Berita') || group.includes('News')) {
-        if (hour >= 6 && hour < 12) showTitle = `Pagi Hari: Kabar Utama ${ch.name}`;
-        else if (hour >= 12 && hour < 18) showTitle = `Siang: Laporan Berita Terkini`;
-        else showTitle = `Prime Time News & Analisis Utama`;
-        showDesc = `Siaran berita terkini, wawancara mendalam, dan informasi peristiwa hari ini.`;
-      } else if (group.includes('Olahraga') || group.includes('Sports')) {
-        showTitle = `Live Match & Sorotan Olahraga ${ch.name}`;
-        showDesc = `Penayangan pertandingan langsung, tayangan ulang aksi terbaik, dan ulasan lengkap tim favorit.`;
-      } else if (group.includes('Film') || group.includes('Movies')) {
-        showTitle = `Bioskop Layar Kaca: Special Movie`;
-        showDesc = `Sajian film pilihan terbaik untuk menemani waktu luang Anda.`;
-      } else if (group.includes('Kartun') || group.includes('Anak')) {
-        showTitle = `Panggung Kartun & Animasi Seru`;
-        showDesc = `Tayangan hiburan anak dan animasi favorit keluarga secara nonstop.`;
-      } else if (group.includes('Musik')) {
-        showTitle = `Top Hits & Soundtracks Playlist`;
-        showDesc = `Putaran video klip musik terpopuler dan siaran tangga lagu pilihan.`;
-      }
-
-      titleEl.innerText = showTitle;
-      descEl.innerText = showDesc;
-
-      const progressVal = Math.min(95, Math.max(10, Math.floor((now.getMinutes() / 60) * 100)));
-      fillEl.style.width = `${progressVal}%`;
-
-      const startH = String(hour).padStart(2, '0');
-      const endH = String((hour + 1) % 24).padStart(2, '0');
-      startEl.innerText = `${startH}:00`;
-      endEl.innerText = `${endH}:00`;
-
-      renderSmartUpcomingGuide(ch, listEl);
+      listEl.textContent = '';
+      appendEpgItem(listEl, '--:--', 'Jadwal acara tidak tersedia');
     }
 
-    function renderSmartUpcomingGuide(ch, listEl) {
-      listEl.innerHTML = '';
-      const now = new Date();
-      const curH = now.getHours();
-      const group = ch.group_title || 'Live';
-
-      const upcomingPrograms = [
-        { offset: 1, name: `${group} Live: Program Sore Hari` },
-        { offset: 2, name: `Prime Time Special - ${ch.name}` },
-        { offset: 4, name: `Laporan Malam & Rangkuan Acara` }
-      ];
-
-      upcomingPrograms.forEach(p => {
-        const h = (curH + p.offset) % 24;
-        const timeStr = `${String(h).padStart(2, '0')}:00`;
-        const item = document.createElement('div');
-        item.className = 'epg-upcoming-item';
-        item.innerHTML = `
-          <span class="epg-upcoming-time">${timeStr}</span>
-          <span class="epg-upcoming-name">${p.name}</span>
-        `;
-        listEl.appendChild(item);
-      });
+    function appendEpgItem(listEl, time, name) {
+      const item = document.createElement('div');
+      item.className = 'epg-upcoming-item';
+      const t = document.createElement('span');
+      t.className = 'epg-upcoming-time';
+      t.textContent = time;
+      const n = document.createElement('span');
+      n.className = 'epg-upcoming-name';
+      n.textContent = name;
+      item.append(t, n);
+      listEl.appendChild(item);
     }
 
     /* FULLSCREEN HANDLER FIX */
