@@ -1767,6 +1767,13 @@
       if (rawUrl.includes('.mpd') || ch.stream_type === 'dash') {
         if (window.dashjs) {
           dashPlayer = dashjs.MediaPlayer().create();
+          // Fail fast on dead links so the player can move to the next server/channel
+          dashPlayer.updateSettings({
+            streaming: {
+              retryAttempts: { MPD: 1, MediaSegment: 2, InitializationSegment: 2, IndexSegment: 1 },
+              retryIntervals: { MPD: 500, MediaSegment: 500, InitializationSegment: 500, IndexSegment: 500 }
+            }
+          });
 
           const keyStr = (ch.license_key || '').trim();
           const licType = (ch.license_type || '').trim().toLowerCase();
@@ -2015,7 +2022,15 @@
         if (Hls.isSupported()) {
           hlsPlayer = new Hls({
             enableWorker: true,
-            lowLatencyMode: true
+            lowLatencyMode: true,
+            manifestLoadPolicy: {
+              default: {
+                maxTimeToFirstByteMs: 8000,
+                maxLoadTimeMs: 15000,
+                timeoutRetry: { maxNumRetry: 1, retryDelayMs: 0, maxRetryDelayMs: 0 },
+                errorRetry: { maxNumRetry: 1, retryDelayMs: 500, maxRetryDelayMs: 2000 }
+              }
+            }
           });
           hlsPlayer.loadSource(playableUrl);
           hlsPlayer.attachMedia(video);
