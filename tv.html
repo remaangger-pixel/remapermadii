@@ -1222,37 +1222,9 @@
       el.appendChild(img);
     }
 
-    const IPTV_CACHE_KEY = 'iptv_org_curated_v2';
-    const IPTV_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-
-    /** Curated iptv-org list, pre-reduced by the server (/api/iptv). Cached locally for 12h. */
-    async function fetchIPTVOrgChannels() {
-      try { localStorage.removeItem('iptv_org_curated_v1'); } catch (e) { }
-      try {
-        const cached = localStorage.getItem(IPTV_CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Date.now() - parsed.timestamp < IPTV_CACHE_TTL_MS) return parsed.data;
-        }
-      } catch (e) { /* storage unavailable or corrupt cache: refetch */ }
-
-      try {
-        const res = await fetch(`${epgApiBase()}/api/iptv`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        try {
-          localStorage.setItem(IPTV_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data }));
-        } catch (e) { console.warn('[IPTV-org] Cache skipped (storage full/unavailable):', e.name); }
-        return data;
-      } catch (e) {
-        console.warn('[IPTV-org Error]', e);
-        return [];
-      }
-    }
-
     async function init() {
-      // Start the slow global list now, but do not wait for it to show the page
-      const iptvPromise = fetchIPTVOrgChannels();
+      // Free space used by the removed iptv-org caches
+      try { localStorage.removeItem('iptv_org_curated_v1'); localStorage.removeItem('iptv_org_curated_v2'); } catch (e) { }
 
       const dbPromise = sb.from('Channels').select('*').eq('is_active', true).order('name', { ascending: true })
         .then(r => r, e => ({ data: null, error: e }));
@@ -1295,7 +1267,7 @@
         console.log('Supabase check error:', e);
       }
 
-      // Deduplicate and merge: DB Channels -> M3U Channels -> Verified IPTV-org Channels
+      // Deduplicate and merge: DB Channels -> M3U Channels
       const channelMap = new Map();
 
       const addCh = (ch, isVerified = false) => {
@@ -1315,7 +1287,7 @@
         }
       };
 
-      // 1. Primary Verified Active Channels (Supabase & M3U Playlist)
+      // Verified active channels (Supabase & M3U playlist)
       dbChannels.forEach(c => addCh(c, true));
       m3uChannels.forEach(c => addCh(c, true));
 
@@ -1333,21 +1305,6 @@
         if (found) startCh = found;
       }
       if (startCh) playChannel(startCh);
-
-      // 2. Global channels from IPTV-org arrive later and are merged without interrupting playback
-      const iptvOrgChannels = await iptvPromise;
-      if (iptvOrgChannels.length) {
-        iptvOrgChannels.forEach(c => addCh(c, false));
-        allChannels = Array.from(channelMap.values());
-        buildCategoryUI();
-        filterChannels();
-        if (activeChannel) activeChannel = allChannels.find(c => c.name === activeChannel.name) || activeChannel;
-        // A shared link may point to a global channel that was not loaded yet
-        if (channelName && !(activeChannel && activeChannel.name.toLowerCase() === channelName.toLowerCase())) {
-          const late = allChannels.find(c => c.name.toLowerCase() === channelName.toLowerCase());
-          if (late) playChannel(late);
-        }
-      }
     }
 
     /**
