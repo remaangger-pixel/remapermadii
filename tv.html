@@ -1020,8 +1020,8 @@
       <a href="index.html" class="nav-btn">Beranda</a>
       <a href="movies.html" class="nav-btn">Film</a>
       <a href="series.html" class="nav-btn">Series</a>
-      <a href="tv.html" class="nav-btn active">📺 Live TV</a>
-      <a href="dramapendek.html" class="nav-btn">🎭 Drama Pendek</a>
+      <a href="tv.html" class="nav-btn active">Live TV</a>
+      <a href="dramapendek.html" class="nav-btn">Drama Pendek</a>
       <a href="admin.html" class="nav-btn">Admin</a>
     </div>
   </header>
@@ -1259,6 +1259,7 @@
           if (groupTitle) {
             curated.push({
               name: c.name,
+              tvg_id: c.id,
               group_title: groupTitle,
               logo: c.logo || `https://raw.githubusercontent.com/iptv-org/iptv/master/logos/${c.id}.png`,
               stream_url: streams[0].url,
@@ -1308,6 +1309,7 @@
             if (match) {
               return {
                 ...dbCh,
+                tvg_id: dbCh.tvg_id || match.tvg_id || '',
                 license_type: dbCh.license_type || match.license_type || '',
                 license_key: dbCh.license_key || match.license_key || '',
                 license_server_url: dbCh.license_server_url || match.license_server_url || '',
@@ -1441,11 +1443,13 @@
         } else if (line.startsWith('#EXTINF:')) {
           const logoMatch = line.match(/tvg-logo=["']([^"']+)["']/i);
           const groupMatch = line.match(/group-title=["']([^"']+)["']/i);
+          const idMatch = line.match(/tvg-id=["']([^"']+)["']/i);
           const nameParts = line.split(',');
           const name = nameParts.length > 1 ? nameParts[nameParts.length - 1].trim() : 'Channel';
 
           currentInf = {
             name: name,
+            tvg_id: idMatch ? idMatch[1].trim() : '',
             group_title: groupMatch ? groupMatch[1].trim() : 'Live TV',
             logo: logoMatch ? logoMatch[1].trim() : ''
           };
@@ -1454,6 +1458,7 @@
             const streamUrl = line.trim();
             channels.push({
               name: currentInf.name,
+              tvg_id: currentInf.tvg_id,
               group_title: currentInf.group_title,
               logo: currentInf.logo,
               stream_url: streamUrl,
@@ -2234,32 +2239,104 @@
     /**
      * EPG Schedule Engine (TVmaze API + Smart Category Broadcast Guide)
      */
-    /**
-     * Now-playing panel. No real schedule source exists for these streams, so show
-     * channel info only instead of invented programme titles and times.
-     */
-    function updateEPG(ch) {
-      if (!ch || !ch.name) return;
+    const epgCache = new Map(); // tvg_id -> { at, list }
+    const EPG_CLIENT_TTL_MS = 10 * 60 * 1000;
+    let epgToken = 0;
+    let epgTimer = null;
 
-      const titleEl = document.getElementById('epgNowTitle');
-      const descEl = document.getElementById('epgNowDesc');
-      const thumbEl = document.getElementById('epgNowThumb');
-      const fillEl = document.getElementById('epgProgressFill');
-      const startEl = document.getElementById('epgStartTime');
-      const endEl = document.getElementById('epgEndTime');
-      const sourceEl = document.getElementById('epgSourceBadge');
+    function epgApiBase() {
+      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '[::1]';
+      return isLocal ? location.origin : DASH_PROXY_BASE_URL;
+    }
+
+    async function fetchProgrammes(tvgId) {
+      const hit = epgCache.get(tvgId);
+      if (hit && Date.now() - hit.at < EPG_CLIENT_TTL_MS) return hit.list;
+      const res = await fetch(`${epgApiBase()}/api/epg?ids=${encodeURIComponent(tvgId)}`);
+      if (!res.ok) throw new Error('EPG HTTP ' + res.status);
+      const data = await res.json();
+      const list = data[tvgId] || [];
+      epgCache.set(tvgId, { at: Date.now(), list });
+      return list;
+    }
+
+    function fmtClock(ms) {
+      const d = new Date(ms);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function renderEpgUnavailable(ch) {
+      document.getElementById('epgSourceBadge').innerText = 'LIVE';
+      document.getElementById('epgNowTitle').innerText = `Siaran langsung ${ch.name}`;
+      document.getElementById('epgNowDesc').innerText = `Kategori: ${ch.group_title || 'Live TV'}. Jadwal acara belum tersedia untuk saluran ini.`;
+      setLogo(document.getElementById('epgNowThumb'), ch.logo, 8);
+      document.getElementById('epgProgressFill').style.width = '100%';
+      document.getElementById('epgStartTime').innerText = 'LIVE';
+      document.getElementById('epgEndTime').innerText = '';
       const listEl = document.getElementById('epgUpcomingList');
-
-      sourceEl.innerText = 'LIVE';
-      titleEl.innerText = `Siaran langsung ${ch.name}`;
-      descEl.innerText = `Kategori: ${ch.group_title || 'Live TV'}. Panduan acara (EPG) belum tersedia untuk saluran ini.`;
-      setLogo(thumbEl, ch.logo, 8);
-      fillEl.style.width = '100%';
-      startEl.innerText = 'LIVE';
-      endEl.innerText = '';
-
       listEl.textContent = '';
       appendEpgItem(listEl, '--:--', 'Jadwal acara tidak tersedia');
+    }
+
+    function renderEpg(ch, list) {
+      const now = Date.now();
+      const current = list.find(p => p.s <= now && p.e > now);
+      const upcoming = list.filter(p => p.s > now).slice(0, 4);
+      if (!current && !upcoming.length) return renderEpgUnavailable(ch);
+
+      document.getElementById('epgSourceBadge').innerText = 'JADWAL EPG';
+      setLogo(document.getElementById('epgNowThumb'), ch.logo, 8);
+
+      if (current) {
+        document.getElementById('epgNowTitle').innerText = current.t;
+        document.getElementById('epgNowDesc').innerText = current.d || `Sedang tayang di ${ch.name}.`;
+        document.getElementById('epgProgressFill').style.width = `${Math.min(100, Math.max(0, ((now - current.s) / (current.e - current.s)) * 100))}%`;
+        document.getElementById('epgStartTime').innerText = fmtClock(current.s);
+        document.getElementById('epgEndTime').innerText = fmtClock(current.e);
+      } else {
+        document.getElementById('epgNowTitle').innerText = `Siaran langsung ${ch.name}`;
+        document.getElementById('epgNowDesc').innerText = 'Acara berikutnya akan segera dimulai.';
+        document.getElementById('epgProgressFill').style.width = '0%';
+        document.getElementById('epgStartTime').innerText = '--:--';
+        document.getElementById('epgEndTime').innerText = fmtClock(upcoming[0].s);
+      }
+
+      const listEl = document.getElementById('epgUpcomingList');
+      listEl.textContent = '';
+      if (upcoming.length) {
+        upcoming.forEach(p => appendEpgItem(listEl, fmtClock(p.s), p.t));
+      } else {
+        appendEpgItem(listEl, '--:--', 'Jadwal berikutnya belum tersedia');
+      }
+
+      // Refresh the panel when the current programme ends
+      clearTimeout(epgTimer);
+      const nextChange = current ? current.e : upcoming[0].s;
+      epgTimer = setTimeout(() => {
+        if (activeChannel === ch) renderEpg(ch, list);
+      }, Math.min(Math.max(nextChange - Date.now(), 1000) + 500, 10 * 60 * 1000));
+    }
+
+    /** Now-playing panel backed by the XMLTV guide (/api/epg); falls back to plain channel info. */
+    async function updateEPG(ch) {
+      if (!ch || !ch.name) return;
+      const myToken = ++epgToken;
+      clearTimeout(epgTimer);
+
+      if (!ch.tvg_id) return renderEpgUnavailable(ch);
+
+      document.getElementById('epgNowTitle').innerText = `Memuat jadwal ${ch.name}...`;
+      document.getElementById('epgNowDesc').innerText = '';
+      document.getElementById('epgSourceBadge').innerText = 'LIVE';
+
+      try {
+        const list = await fetchProgrammes(ch.tvg_id);
+        if (myToken !== epgToken) return; // user switched channel while loading
+        renderEpg(ch, list);
+      } catch (e) {
+        console.warn('[EPG] Guide unavailable:', e.message);
+        if (myToken === epgToken) renderEpgUnavailable(ch);
+      }
     }
 
     function appendEpgItem(listEl, time, name) {
