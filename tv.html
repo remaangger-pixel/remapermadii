@@ -1651,7 +1651,7 @@
     // On a Vercel deployment the proxy lives on the same origin; elsewhere (e.g. GitHub Pages) fall back to the configured Vercel app.
     const DEFAULT_PROXY_BASE_URL = location.hostname.endsWith('.vercel.app')
       ? location.origin
-      : "https://remapermadii-git-main-rema-angger-s-projects.vercel.app";
+      : "https://remapermadii.vercel.app";
     const DASH_PROXY_BASE_URL = (lsGet('dash_proxy_base_url') || lsGet('proxy_base_url') || window.DASH_PROXY_BASE_URL || window.PROXY_BASE_URL || DEFAULT_PROXY_BASE_URL).replace(/\/+$/, '');
 
     /**
