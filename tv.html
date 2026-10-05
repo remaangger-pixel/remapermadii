@@ -1180,18 +1180,6 @@
     let hlsPlayer = null;
     let dashPlayer = null;
 
-    const IPTV_CATEGORY_MAP = {
-      'sports': '⚽ Olahraga',
-      'news': '📰 Berita',
-      'movies': '🎬 Film & Drama',
-      'animation': '🧒 Kartun & Anak',
-      'kids': '🧒 Kartun & Anak',
-      'music': '🎶 Musik',
-      'documentary': '🧬 Dokumenter',
-      'religious': '🕌 Religi',
-      'general': '📺 TV Indonesia'
-    };
-
     /** Only allow http(s) image URLs; anything else (javascript:, data:) is dropped. */
     function safeImgUrl(u) {
       try {
@@ -1234,73 +1222,28 @@
       el.appendChild(img);
     }
 
+    const IPTV_CACHE_KEY = 'iptv_org_curated_v2';
+    const IPTV_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+
+    /** Curated iptv-org list, pre-reduced by the server (/api/iptv). Cached locally for 12h. */
     async function fetchIPTVOrgChannels() {
+      try { localStorage.removeItem('iptv_org_curated_v1'); } catch (e) { }
       try {
-        const cacheKey = 'iptv_org_curated_v1';
-        try {
-          const cached = localStorage.getItem(cacheKey);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000) {
-              console.log('[IPTV-org] Loaded curated channels from local cache:', parsed.data.length);
-              return parsed.data;
-            }
-          }
-        } catch (e) { /* storage unavailable or corrupt cache: refetch */ }
-
-        console.log('[IPTV-org] Fetching global channel index...');
-        const [channelsRes, streamsRes] = await Promise.all([
-          fetch("https://iptv-org.github.io/api/channels.json").then(r => r.json()),
-          fetch("https://iptv-org.github.io/api/streams.json").then(r => r.json())
-        ]);
-
-        const streamMap = new Map();
-        streamsRes.forEach(s => {
-          if (s.channel && s.url && !s.url.includes('.mpd')) {
-            if (!streamMap.has(s.channel)) streamMap.set(s.channel, []);
-            streamMap.get(s.channel).push(s);
-          }
-        });
-
-        const curated = [];
-
-        channelsRes.forEach(c => {
-          const streams = streamMap.get(c.id);
-          if (!streams || !streams.length) return;
-
-          const streamUrl = streams[0].url;
-          let groupTitle = null;
-
-          if (c.country === 'ID') {
-            groupTitle = '📺 TV Indonesia';
-          } else if (c.categories && c.categories.length) {
-            const cat = c.categories[0];
-            if (IPTV_CATEGORY_MAP[cat] && IPTV_CATEGORY_MAP[cat] !== '📺 TV Indonesia') {
-              groupTitle = IPTV_CATEGORY_MAP[cat];
-            }
-          }
-
-          if (groupTitle) {
-            curated.push({
-              name: c.name,
-              tvg_id: c.id,
-              group_title: groupTitle,
-              logo: c.logo || `https://raw.githubusercontent.com/iptv-org/iptv/master/logos/${c.id}.png`,
-              stream_url: streams[0].url,
-              backup_streams: streams.map(s => s.url),
-              stream_type: 'hls',
-              is_active: true
-            });
-          }
-        });
-
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: curated }));
-        } catch (e) {
-          console.warn('[IPTV-org] Cache skipped (storage full/unavailable):', e.name);
+        const cached = localStorage.getItem(IPTV_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp < IPTV_CACHE_TTL_MS) return parsed.data;
         }
-        console.log('[IPTV-org] Cached curated global channels:', curated.length);
-        return curated;
+      } catch (e) { /* storage unavailable or corrupt cache: refetch */ }
+
+      try {
+        const res = await fetch(`${epgApiBase()}/api/iptv`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        try {
+          localStorage.setItem(IPTV_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data }));
+        } catch (e) { console.warn('[IPTV-org] Cache skipped (storage full/unavailable):', e.name); }
+        return data;
       } catch (e) {
         console.warn('[IPTV-org Error]', e);
         return [];
@@ -1308,10 +1251,12 @@
     }
 
     async function init() {
-      const [m3uChannels, iptvOrgChannels] = await Promise.all([
-        fetchM3UChannels(),
-        fetchIPTVOrgChannels()
-      ]);
+      // Start the slow global list now, but do not wait for it to show the page
+      const iptvPromise = fetchIPTVOrgChannels();
+
+      const dbPromise = sb.from('Channels').select('*').eq('is_active', true).order('name', { ascending: true })
+        .then(r => r, e => ({ data: null, error: e }));
+      const m3uChannels = await fetchM3UChannels();
 
       const m3uByUrlMap = new Map();
       const m3uByNameMap = new Map();
@@ -1323,7 +1268,7 @@
 
       let dbChannels = [];
       try {
-        const { data, error } = await sb.from('Channels').select('*').eq('is_active', true).order('name', { ascending: true });
+        const { data, error } = await dbPromise;
         if (!error && data && data.length) {
           dbChannels = data.map(dbCh => {
             const streamKey = (dbCh.stream_url || '').trim().toLowerCase();
@@ -1350,14 +1295,6 @@
         console.log('Supabase check error:', e);
       }
 
-      // Clear legacy bloat cache if present
-      try {
-        const cacheRaw = localStorage.getItem('iptv_org_curated_v1');
-        if (cacheRaw && cacheRaw.length > 200000) {
-          localStorage.removeItem('iptv_org_curated_v1');
-        }
-      } catch(e){}
-
       // Deduplicate and merge: DB Channels -> M3U Channels -> Verified IPTV-org Channels
       const channelMap = new Map();
 
@@ -1382,10 +1319,6 @@
       dbChannels.forEach(c => addCh(c, true));
       m3uChannels.forEach(c => addCh(c, true));
 
-      // 2. High-Confidence Active Streams from IPTV-org (ID TV & Multi-Server Streams)
-      const topIptvOrg = iptvOrgChannels.filter(c => c.group_title === '📺 TV Indonesia' || (c.backup_streams && c.backup_streams.length >= 2));
-      topIptvOrg.forEach(c => addCh(c, false));
-
       allChannels = Array.from(channelMap.values());
 
       buildCategoryUI();
@@ -1400,6 +1333,21 @@
         if (found) startCh = found;
       }
       if (startCh) playChannel(startCh);
+
+      // 2. Global channels from IPTV-org arrive later and are merged without interrupting playback
+      const iptvOrgChannels = await iptvPromise;
+      if (iptvOrgChannels.length) {
+        iptvOrgChannels.forEach(c => addCh(c, false));
+        allChannels = Array.from(channelMap.values());
+        buildCategoryUI();
+        filterChannels();
+        if (activeChannel) activeChannel = allChannels.find(c => c.name === activeChannel.name) || activeChannel;
+        // A shared link may point to a global channel that was not loaded yet
+        if (channelName && !(activeChannel && activeChannel.name.toLowerCase() === channelName.toLowerCase())) {
+          const late = allChannels.find(c => c.name.toLowerCase() === channelName.toLowerCase());
+          if (late) playChannel(late);
+        }
+      }
     }
 
     /**
@@ -1585,8 +1533,10 @@
     function handleSearchInput() {
       const query = document.getElementById('searchChannel').value;
       document.getElementById('searchClearBtn').style.display = query ? 'block' : 'none';
-      filterChannels();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(filterChannels, 150);
     }
+    let searchTimer = null;
 
     function clearSearch() {
       document.getElementById('searchChannel').value = '';
@@ -1625,7 +1575,21 @@
         return;
       }
 
-      filteredChannels.forEach(ch => {
+      renderedCount = 0;
+      appendChannelCards();
+    }
+
+    const CARD_CHUNK = 60;
+    let renderedCount = 0;
+
+    /** Render the next chunk of cards; called again when the user scrolls near the bottom. */
+    function appendChannelCards() {
+      const listEl = document.getElementById('channelList');
+      const batch = filteredChannels.slice(renderedCount, renderedCount + CARD_CHUNK);
+      renderedCount += batch.length;
+      const frag = document.createDocumentFragment();
+
+      batch.forEach(ch => {
         const isCurrent = activeChannel && activeChannel.name === ch.name;
         const card = document.createElement('div');
         card.className = 'channel-card' + (isCurrent ? ' active' : '');
@@ -1672,9 +1636,19 @@
         card.onkeydown = (e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playChannel(ch); }
         };
-        listEl.appendChild(card);
+        frag.appendChild(card);
       });
+      listEl.appendChild(frag);
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const listEl = document.getElementById('channelList');
+      listEl.addEventListener('scroll', () => {
+        if (renderedCount < filteredChannels.length && listEl.scrollTop + listEl.clientHeight > listEl.scrollHeight - 400) {
+          appendChannelCards();
+        }
+      }, { passive: true });
+    });
 
     /**
      * Convert HEX string (32 chars) to Base64URL string for W3C ClearKey EME
