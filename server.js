@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { assertSafeTarget, safeLookup, isAllowedOrigin } = require('./api/_safe-url');
 const epg = require('./api/_epg');
+const iptv = require('./api/_iptv');
 
 const PORT = process.env.PORT || 8000;
 const PUBLIC_DIR = __dirname;
@@ -68,6 +69,19 @@ const server = http.createServer((req, res) => {
       console.log('[EPG] ERROR:', err.message);
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'EPG unavailable' }));
+    });
+    return;
+  }
+
+  // ROUTE 1A2: Curated iptv-org channel list (/api/iptv)
+  if (pathname === '/api/iptv') {
+    iptv.getCurated().then((list) => {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+      res.end(JSON.stringify(list));
+    }).catch((err) => {
+      console.log('[IPTV] ERROR:', err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Channel list unavailable' }));
     });
     return;
   }
