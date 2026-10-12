@@ -809,15 +809,15 @@ async function fetchAmayStreamForAdmin(tmdbId, imdbId) {
     if (primaryStream) {
       fill('m_video', primaryStream);
       if (imdbId) {
-        fill('m_video2', `https://streamimdb.ru/embed/movie/${imdbId}`);
+        fill('m_video2', `https://vidsrc.to/embed/movie/${imdbId}`);
       }
       toast('info', 'Stream API Terhubung', `Stream (${data.sources.length} sumber) berhasil dimasukkan ke Server 1.`);
     } else if (imdbId) {
-      fill('m_video', `https://streamimdb.ru/embed/movie/${imdbId}`);
-      fill('m_video2', `https://vidsrcme.ru/embed/movie/${imdbId}`);
+      fill('m_video', `https://vidsrc.to/embed/movie/${imdbId}`);
+      fill('m_video2', `https://multiembed.mov/?video_id=${imdbId}`);
     }
   } catch(e) {
-    if (imdbId) fill('m_video', `https://streamimdb.ru/embed/movie/${imdbId}`);
+    if (imdbId) fill('m_video', `https://vidsrc.to/embed/movie/${imdbId}`);
   } finally {
     if (videoField) videoField.placeholder = "https://... atau <iframe>...</iframe>";
   }
@@ -827,7 +827,7 @@ function autoFillMovieServer() {
   const imdb = document.getElementById('m_imdb').value.trim();
   const videoField = document.getElementById('m_video');
   if (imdb) {
-    const link = `https://streamimdb.ru/embed/movie/${imdb}`;
+    const link = `https://vidsrc.to/embed/movie/${imdb}`;
     videoField.value = link;
     videoField.classList.remove('filled');
     void videoField.offsetWidth;
@@ -1336,7 +1336,7 @@ function autoFillVipServer() {
   if (type !== 'Movies') return;
   const videoField = document.getElementById('v_video');
   if (imdb) {
-    videoField.value = `https://streamimdb.ru/embed/movie/${imdb}`;
+    videoField.value = `https://vidsrc.to/embed/movie/${imdb}`;
     videoField.classList.remove('filled');
     void videoField.offsetWidth;
     videoField.classList.add('filled');
@@ -1808,7 +1808,7 @@ async function startBatchImport() {
 
       // Fallback jika API belum punya direct stream
       if (!streamUrl && imdbId) {
-        streamUrl = `https://streamimdb.ru/embed/movie/${imdbId}`;
+        streamUrl = `https://vidsrc.to/embed/movie/${imdbId}`;
       } else if (!streamUrl) {
         streamUrl = `https://vidsrcme.ru/embed/movie/${movie.id}`;
       }
@@ -1825,7 +1825,7 @@ async function startBatchImport() {
         genre: genreNames,
         description: movie.overview || '',
         video: streamUrl,
-        video2: imdbId ? `https://streamimdb.ru/embed/movie/${imdbId}` : '',
+        video2: imdbId ? `https://vidsrc.to/embed/movie/${imdbId}` : '',
         imdb: imdbId
       };
 
@@ -1840,7 +1840,7 @@ async function startBatchImport() {
           thumb: poster,
           is18: false,
           video: streamUrl,
-          video2: imdbId ? `https://streamimdb.ru/embed/movie/${imdbId}` : ''
+          video2: imdbId ? `https://vidsrc.to/embed/movie/${imdbId}` : ''
         };
         if (payload.genre) retryPayload.genre = payload.genre;
         if (payload.description) retryPayload.description = payload.description;

@@ -133,23 +133,71 @@ header {
 .srv.trailer {
   border-color: rgba(255,200,0,0.3); color: #ffc800;
   display: none; align-items: center; gap: 7px;
+  padding: 9px 14px; border-radius: 8px; height: 38px; white-space: nowrap;
 }
-.srv.trailer.show { display: flex; }
+.srv.trailer.show { display: inline-flex; }
 .srv.trailer:hover { border-color: #ffc800; background: rgba(255,200,0,0.08); }
 .srv.trailer.active { background: #ffc800; border-color: #ffc800; color: #000; }
 .srv.trailer svg { width: 13px; height: 13px; fill: currentColor; }
 
-/* SUBTITLES */
-.sub-wrap { margin-top: 20px; }
+/* KONTROL SERVER & SUBTITLE (DROPDOWN) */
+.player-controls-row {
+  display: flex; flex-wrap: wrap; gap: 16px 28px;
+  margin-top: 20px; align-items: flex-end;
+}
+.control-group {
+  display: flex; flex-direction: column; gap: 7px;
+}
+.control-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text-muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.control-input-wrap {
+  display: flex; align-items: center; gap: 8px;
+}
+.select-wrapper {
+  position: relative; min-width: 220px;
+}
+@media(max-width: 600px) {
+  .player-controls-row {
+    flex-direction: column; align-items: stretch; gap: 14px;
+  }
+  .control-group, .control-input-wrap { width: 100%; }
+  .select-wrapper { flex: 1; min-width: 0; }
+}
+.custom-select {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  background: var(--surface2); border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px; color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 9px 34px 9px 13px; width: 100%; height: 38px;
+  cursor: pointer; transition: all 0.2s ease; outline: none;
+}
+.custom-select:hover { border-color: rgba(0, 210, 255, 0.45); }
+.custom-select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.2); }
+.custom-select option { background: #12121a; color: #ffffff; padding: 8px 12px; }
+.select-arrow {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.select-arrow svg { width: 15px; height: 15px; fill: rgba(255, 255, 255, 0.65); }
+.btn-sub-upload {
+  background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 8px; color: var(--text-dim);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600;
+  padding: 9px 13px; cursor: pointer; white-space: nowrap;
+  transition: all 0.2s ease; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-sub-upload:hover { border-color: var(--cyan); color: #ffffff; background: rgba(0, 210, 255, 0.08); }
+
 .sub-status-badge {
   font-size: 11px; font-weight: 700; text-transform: none; letter-spacing: 0.5px;
   color: var(--cyan); background: rgba(0, 210, 255, 0.12);
   border: 1px solid rgba(0, 210, 255, 0.3); padding: 2px 8px; border-radius: 4px;
 }
-.srv-sub { border-color: rgba(0, 210, 255, 0.25); color: var(--text-dim); }
-.srv-sub:hover { border-color: var(--cyan); color: #fff; }
-.srv-sub.active { background: var(--cyan); border-color: var(--cyan); color: #000; font-weight: 700; }
-.srv-sub.off.active { background: rgba(229, 9, 20, 0.2); border-color: var(--red); color: #ff6b6b; }
 .sub-overlay {
   position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
   max-width: 88%; text-align: center; color: #ffffff;
@@ -299,22 +347,48 @@ header {
         <span class="tag tag-type" id="vType">Video</span>
         <span class="tag tag-quality">HD</span>
       </div>
-      <div class="server-label">Pilih Server</div>
-      <div class="servers" id="srvList">
-        <button class="srv trailer" id="trailerBtn" onclick="playTrailer()">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          Trailer
-        </button>
-      </div>
-
-      <!-- PILIHAN SUBTITLE -->
-      <div class="sub-wrap" id="subWrap" style="display:none">
-        <div class="server-label" style="display:flex;align-items:center;gap:10px">
-          <span>Pilihan Subtitle</span>
-          <span class="sub-status-badge" id="subStatus">Memuat...</span>
+      <!-- KONTROL SERVER & SUBTITLE (DROPDOWN) -->
+      <div class="player-controls-row">
+        <!-- PILIH SERVER -->
+        <div class="control-group">
+          <label class="control-label" for="serverSelect">Pilih Server</label>
+          <div class="control-input-wrap">
+            <div class="select-wrapper">
+              <select id="serverSelect" class="custom-select" onchange="onServerSelectChange(this.value)">
+                <option value="srv-1">Server 1</option>
+              </select>
+              <div class="select-arrow">
+                <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+            </div>
+            <button class="srv trailer" id="trailerBtn" onclick="playTrailer()">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              Trailer
+            </button>
+          </div>
         </div>
-        <div class="servers" id="subList"></div>
-        <input type="file" id="customSubInput" accept=".vtt,.srt" style="display:none" onchange="uploadCustomSubtitle(event)">
+
+        <!-- PILIHAN SUBTITLE -->
+        <div class="control-group" id="subWrap" style="display:none">
+          <label class="control-label" for="subtitleSelect">
+            <span>Pilihan Subtitle</span>
+            <span class="sub-status-badge" id="subStatus">Memuat...</span>
+          </label>
+          <div class="control-input-wrap">
+            <div class="select-wrapper">
+              <select id="subtitleSelect" class="custom-select" onchange="onSubtitleSelectChange(this.value)">
+                <option value="-1">Nonaktif</option>
+              </select>
+              <div class="select-arrow">
+                <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+            </div>
+            <button class="btn-sub-upload" onclick="document.getElementById('customSubInput').click()" title="Unggah file .srt atau .vtt">
+              + Unggah Subtitle
+            </button>
+            <input type="file" id="customSubInput" accept=".vtt,.srt" style="display:none" onchange="uploadCustomSubtitle(event)">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -388,23 +462,25 @@ async function init() {
   document.getElementById('navTitle').innerText = title;
   document.getElementById('vTitle').innerText = title;
 
-  const servers = [{ n: 'Server 1', u: data.video }];
-  if (data.video2) servers.push({ n: 'Server 2', u: data.video2 });
+  const imdbId = movieId ? data.imdb : (data.Series?.imdb_id || data.imdb);
+  const s1Url = sanitizeServerUrl(data.video, imdbId, !!movieId, data.season, data.episode);
+  const s2Url = sanitizeServerUrl(data.video2, imdbId, !!movieId, data.season, data.episode);
 
-  servers.forEach((s, i) => {
-    const b = document.createElement('button');
-    b.className = 'srv' + (i === 0 ? ' active' : '');
-    b.innerText = s.n;
-    b.onclick = () => {
-      play(s.u);
-      document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      document.getElementById('trailerBtn').classList.remove('active');
-    };
-    document.getElementById('srvList').appendChild(b);
-  });
+  allServers = [];
+  if (s1Url) {
+    allServers.push({ id: 'srv-1', name: 'Server 1', url: s1Url });
+  }
+  if (s2Url) {
+    allServers.push({ id: 'srv-2', name: 'Server 2', url: s2Url });
+  }
 
-  play(data.video);
+  currentServerId = allServers[0]?.id || 'srv-1';
+  renderServerDropdown();
+
+  if (allServers.length > 0) {
+    playServer(allServers[0]);
+  }
+
   loadRecs();
   loadTrailer(title, !!movieId);
   initStreamsAndSubtitles(data, !!movieId);
@@ -439,6 +515,62 @@ async function init() {
       const idx = stored.findIndex(i => i.id === cwId);
       if (idx > -1) { stored[idx].progress = prog; localStorage.setItem('anvi_continue', JSON.stringify(stored)); }
     }, 15000);
+  }
+}
+
+let allServers = [];
+let currentServerId = '';
+
+function sanitizeServerUrl(url, imdbId, isMovie = true, season = 1, episode = 1) {
+  if (!url) return '';
+  let u = url.trim();
+  if (u.includes('streamimdb.ru')) {
+    if (imdbId) {
+      return isMovie
+        ? `https://vidsrc.to/embed/movie/${imdbId}`
+        : `https://vidsrc.to/embed/tv/${imdbId}/${season || 1}/${episode || 1}`;
+    } else {
+      return 'https://vidsrc.to';
+    }
+  }
+  return u;
+}
+
+function renderServerDropdown() {
+  const sel = document.getElementById('serverSelect');
+  if (!sel) return;
+
+  sel.innerHTML = '';
+  allServers.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    if (s.id === currentServerId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  if (!currentServerId && allServers.length > 0) {
+    currentServerId = allServers[0].id;
+    sel.value = currentServerId;
+  } else if (currentServerId) {
+    sel.value = currentServerId;
+  }
+}
+
+function onServerSelectChange(serverId) {
+  const s = allServers.find(x => x.id === serverId);
+  if (!s) return;
+  currentServerId = s.id;
+  document.getElementById('trailerBtn')?.classList.remove('active');
+  playServer(s);
+}
+
+function playServer(s) {
+  const u = s.url.trim();
+  if (u.includes('.m3u8') || u.includes('.mp4') || u.includes('shegu.net') || u.includes('hakunaymatata.com')) {
+    playDirectStream(u, u.includes('.m3u8') ? 'hls' : 'mp4');
+  } else {
+    play(u);
   }
 }
 
@@ -613,7 +745,7 @@ function convertToWebVTT(rawText) {
 
 async function applySubtitle(subObj, index) {
   activeSubtitleIndex = index;
-  renderSubtitleButtons();
+  renderSubtitleDropdown();
 
   const overlay = document.getElementById('subOverlay');
   const statusBadge = document.getElementById('subStatus');
@@ -710,43 +842,55 @@ async function applySubtitle(subObj, index) {
   }
 }
 
-function renderSubtitleButtons() {
+function renderSubtitleDropdown() {
   const wrap = document.getElementById('subWrap');
-  const list = document.getElementById('subList');
-  if (!wrap || !list) return;
+  const sel = document.getElementById('subtitleSelect');
+  const statusBadge = document.getElementById('subStatus');
+  if (!wrap || !sel) return;
 
   if (!availableSubtitles.length) {
     wrap.style.display = 'none';
     return;
   }
 
-  wrap.style.display = 'block';
-  list.innerHTML = '';
+  wrap.style.display = 'flex';
+  sel.innerHTML = '';
 
-  const offBtn = document.createElement('button');
-  offBtn.className = 'srv srv-sub' + (activeSubtitleIndex === -1 ? ' off active' : '');
-  offBtn.innerText = 'Nonaktif';
-  offBtn.onclick = () => applySubtitle(null, -1);
-  list.appendChild(offBtn);
-
+  // 1. Subtitles tracks (Indonesia diutamakan di paling atas)
   const langCounts = {};
-  const displayedSubs = availableSubtitles.slice(0, 8);
-  displayedSubs.forEach((sub, idx) => {
+  availableSubtitles.forEach((sub, idx) => {
     langCounts[sub.displayLabel] = (langCounts[sub.displayLabel] || 0) + 1;
-    const btn = document.createElement('button');
-    btn.className = 'srv srv-sub' + (activeSubtitleIndex === idx ? ' active' : '');
-    btn.innerText = `${sub.displayLabel}${langCounts[sub.displayLabel] > 1 ? ' ' + langCounts[sub.displayLabel] : ''}`;
-    btn.onclick = () => applySubtitle(sub, idx);
-    list.appendChild(btn);
+    const countSuffix = langCounts[sub.displayLabel] > 1 ? ' ' + langCounts[sub.displayLabel] : '';
+    const opt = document.createElement('option');
+    opt.value = idx.toString();
+    opt.textContent = `${sub.displayLabel}${countSuffix}`;
+    if (activeSubtitleIndex === idx) opt.selected = true;
+    sel.appendChild(opt);
   });
 
-  const uploadBtn = document.createElement('button');
-  uploadBtn.className = 'srv';
-  uploadBtn.style.borderStyle = 'dashed';
-  uploadBtn.style.opacity = '0.7';
-  uploadBtn.innerText = '+ Unggah Subtitle';
-  uploadBtn.onclick = () => document.getElementById('customSubInput').click();
-  list.appendChild(uploadBtn);
+  // 2. Opsi Nonaktif
+  const offOpt = document.createElement('option');
+  offOpt.value = '-1';
+  offOpt.textContent = 'Nonaktif (Tanpa Subtitle)';
+  if (activeSubtitleIndex === -1) offOpt.selected = true;
+  sel.appendChild(offOpt);
+
+  if (activeSubtitleIndex >= 0 && availableSubtitles[activeSubtitleIndex]) {
+    sel.value = activeSubtitleIndex.toString();
+    if (statusBadge) statusBadge.innerText = 'Aktif: ' + availableSubtitles[activeSubtitleIndex].displayLabel;
+  } else {
+    sel.value = '-1';
+    if (statusBadge) statusBadge.innerText = 'Nonaktif';
+  }
+}
+
+function onSubtitleSelectChange(valStr) {
+  const idx = parseInt(valStr, 10);
+  if (idx === -1) {
+    applySubtitle(null, -1);
+  } else if (availableSubtitles[idx]) {
+    applySubtitle(availableSubtitles[idx], idx);
+  }
 }
 
 function uploadCustomSubtitle(event) {
@@ -760,7 +904,7 @@ function uploadCustomSubtitle(event) {
     const blobUrl = URL.createObjectURL(blob);
     const customSub = {
       label: file.name,
-      displayLabel: 'Kustom',
+      displayLabel: 'Kustom (' + file.name.slice(0, 15) + ')',
       lang: 'id',
       url: blobUrl,
       isIndo: true
@@ -770,6 +914,7 @@ function uploadCustomSubtitle(event) {
   };
   reader.readAsText(file);
 }
+
 
 function playDirectStream(url, type) {
   const loader = document.getElementById('loader');
@@ -1002,7 +1147,7 @@ async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
     // ── 1. Proses Subtitle ──
     if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
       availableSubtitles = categorizeSubtitles(data.subtitles);
-      renderSubtitleButtons();
+      renderSubtitleDropdown();
 
       // Pilih subtitle Bahasa Indonesia sebagai default jika tersedia
       const indoIdx = availableSubtitles.findIndex(s => s.isIndo);
@@ -1016,36 +1161,34 @@ async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
 
     // ── 2. Proses Sumber Streaming ──
     if (data.success && data.sources && data.sources.length) {
-      const srvList = document.getElementById('srvList');
-
-      // Filter reliable sources (febbox, direct mp4/hls)
-      const sourcesToAdd = data.sources.filter(s => !s.url.includes('test.workers.dev')).slice(0, 3);
-      if (!sourcesToAdd.length) sourcesToAdd.push(...data.sources.slice(0, 2));
-
-      // Hapus status active dari server bawaan
-      document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
-
-      const createdButtons = [];
-      sourcesToAdd.forEach((s, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'srv' + (idx === 0 ? ' active' : '');
-        btn.style.borderColor = 'rgba(0, 210, 255, 0.4)';
-        btn.style.color = '#00d2ff';
-        btn.innerHTML = `${s.label || s.source} (${s.quality || 'HD'})`;
-        btn.onclick = () => {
-          playDirectStream(s.url, s.type);
-          document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById('trailerBtn').classList.remove('active');
-        };
-        srvList.insertBefore(btn, srvList.firstChild);
-        createdButtons.push({ btn, source: s });
+      // Filter hanya sumber yang benar-benar aktif & stabil (eliminasi dulo/bluevelvet/workers/streamaggregator)
+      const validSources = data.sources.filter(s => {
+        if (!s || !s.url) return false;
+        const l = (s.label || '').toLowerCase();
+        const src = (s.source || '').toLowerCase();
+        const u = s.url.toLowerCase();
+        if (src.includes('dulo') || l.includes('dulo')) return false;
+        if (u.includes('bluevelvet.space') || u.includes('zstream-proxy')) return false;
+        if (u.includes('test.workers.dev')) return false;
+        if (src.includes('streamaggregator') || u.includes('streamaggregator.in')) return false;
+        if (u.includes('flcwuk.com') || u.includes('hlowxn.com') || u.includes('bhcoxn.com') || u.includes('klcoxn.com') || u.includes('bwcvxn.com') || u.includes('mlcoxn.com')) return false;
+        return true;
       });
 
-      // Otomatis putar stream API teratas sebagai DEFAULT
-      if (createdButtons.length > 0) {
-        playDirectStream(createdButtons[0].source.url, createdButtons[0].source.type);
-      }
+      // Tambahkan ke allServers SETELAH Server 1 dan Server 2
+      validSources.slice(0, 4).forEach((s, idx) => {
+        const label = `${s.label || s.source || 'VIP Stream'} (${s.quality || 'HD'})`;
+        if (!allServers.some(x => x.url === s.url)) {
+          allServers.push({
+            id: 'api-' + idx,
+            name: label,
+            url: s.url,
+            type: s.type || (s.url.includes('.m3u8') ? 'hls' : 'mp4')
+          });
+        }
+      });
+
+      renderServerDropdown();
     }
   } catch(e) {
     console.warn('AmayStream API error:', e.message);
