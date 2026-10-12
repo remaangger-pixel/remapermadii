@@ -404,6 +404,13 @@ function play(url) {
   loader.style.opacity = '1'; loader.style.display = 'flex';
 
   let u = url.trim();
+
+  // Jika input adalah direct stream video (.m3u8 atau .mp4), putar langsung via HTML5 Player
+  if (u.includes('.m3u8') || u.includes('.mp4') || u.includes('shegu.net') || u.includes('hakunaymatata.com')) {
+    playDirectStream(u, u.includes('.m3u8') ? 'hls' : 'mp4');
+    return;
+  }
+
   let iframeHtml = '';
 
   // ── Deteksi apakah input adalah embed code (<iframe ...>) ──
@@ -614,9 +621,13 @@ async function loadApiStreams(tmdbId, isMovie) {
       const sourcesToAdd = data.sources.filter(s => !s.url.includes('test.workers.dev')).slice(0, 3);
       if (!sourcesToAdd.length) sourcesToAdd.push(...data.sources.slice(0, 2));
 
-      sourcesToAdd.forEach((s) => {
+      // Hapus status active dari server bawaan
+      document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
+
+      const createdButtons = [];
+      sourcesToAdd.forEach((s, idx) => {
         const btn = document.createElement('button');
-        btn.className = 'srv';
+        btn.className = 'srv' + (idx === 0 ? ' active' : '');
         btn.style.borderColor = 'rgba(0, 210, 255, 0.4)';
         btn.style.color = '#00d2ff';
         btn.innerHTML = `⚡ ${s.label || s.source} (${s.quality || 'HD'})`;
@@ -626,8 +637,15 @@ async function loadApiStreams(tmdbId, isMovie) {
           btn.classList.add('active');
           document.getElementById('trailerBtn').classList.remove('active');
         };
-        srvList.appendChild(btn);
+        // Masukkan di awal daftar server agar menjadi pilihan teratas
+        srvList.insertBefore(btn, srvList.firstChild);
+        createdButtons.push({ btn, source: s });
       });
+
+      // Otomatis putar stream API teratas sebagai DEFAULT!
+      if (createdButtons.length > 0) {
+        playDirectStream(createdButtons[0].source.url, createdButtons[0].source.type, idSub?.file);
+      }
     }
   } catch(e) {
     console.log('AmayStream API error:', e.message);

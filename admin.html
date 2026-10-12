@@ -189,6 +189,87 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
 .ep-item-title { font-size: 14px; font-weight: 600; }
 .ep-item-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 .ep-item-actions { display: flex; gap: 8px; flex-shrink: 0; margin-left: 20px; }
+
+/* AUTO IMPORT MODAL */
+.btn-batch-import {
+  background: linear-gradient(135deg, #e50914, #ff0055);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(229,9,20,0.3);
+}
+.btn-batch-import:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px); z-index: 1000;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; animation: fadeIn 0.2s; }
+.modal-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; width: 100%; max-width: 900px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8); overflow: hidden;
+}
+.modal-header {
+  padding: 18px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2);
+}
+
+.import-filter-row {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.import-cat-btn {
+  padding: 7px 14px; border-radius: 20px; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--text-dim);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.import-cat-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+.import-cat-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+.import-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px; margin-bottom: 16px; max-height: 380px; overflow-y: auto; padding-right: 4px;
+}
+.import-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; display: flex; gap: 12px;
+  cursor: pointer; transition: all 0.2s; position: relative; user-select: none;
+}
+.import-item:hover { border-color: rgba(255,255,255,0.3); background: var(--surface3); }
+.import-item.selected { border-color: var(--cyan); background: rgba(0,210,255,0.08); }
+.import-thumb { width: 48px; height: 72px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #000; }
+.import-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.import-title { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.import-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: flex; gap: 8px; }
+.import-overview { font-size: 11px; color: var(--text-dim); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.import-check { width: 16px; height: 16px; accent-color: var(--cyan); }
+
+.import-progress-box {
+  background: #000; border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; margin-top: 14px; display: none;
+}
+.import-progress-bar { height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.import-progress-fill { height: 100%; background: var(--cyan); width: 0%; transition: width 0.3s; }
 </style>
 </head>
 <body>
@@ -236,7 +317,12 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
 
   <!-- MOVIES FORM -->
   <div id="form-Movies" class="form-panel active">
-    <div class="form-heading" id="m_head">Tambah Movie</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div class="form-heading" id="m_head" style="margin-bottom:0">Tambah Movie</div>
+      <button type="button" class="btn-batch-import" onclick="openAutoImportModal()">
+        🚀 Auto-Import Film (Batch TMDB + API)
+      </button>
+    </div>
 
     <div class="tmdb-box">
       <div class="tmdb-header">
@@ -665,16 +751,21 @@ async function pickItem(item, type) {
     const genreNames = genreIds.map(id => GENRE_MAP[id]).filter(Boolean).join(', ');
 
     // Fetch IMDB ID dari TMDB external IDs
+    let imdbId = '';
     try {
       const epExt = type === 'movie' ? `movie/${item.id}/external_ids` : `tv/${item.id}/external_ids`;
       const rExt = await fetch(`${TMDB_API}/${epExt}?api_key=${getKey()}`);
       const dExt = await rExt.json();
-      const imdbId = dExt.imdb_id || '';
-      if (imdbId) {
-        fill(px + '_imdb', imdbId);
-        if (type === 'movie') autoFillMovieServer();
-      }
+      imdbId = dExt.imdb_id || '';
+      if (imdbId) fill(px + '_imdb', imdbId);
     } catch(e) { /* IMDB ID tidak tersedia, lewati */ }
+
+    // Jika movie, otomatis ambil direct stream dari AmayStream API
+    if (type === 'movie') {
+      fetchAmayStreamForAdmin(item.id, imdbId);
+    } else if (imdbId) {
+      autoFillMovieServer();
+    }
 
     fill(px + '_title', titleWithYear);
     fill(px + '_desc', desc);
@@ -697,6 +788,41 @@ async function pickItem(item, type) {
 }
 
 /* ── AUTO-FILL SERVER LINKS ── */
+async function fetchAmayStreamForAdmin(tmdbId, imdbId) {
+  const videoField = document.getElementById('m_video');
+  const video2Field = document.getElementById('m_video2');
+  if (videoField) videoField.placeholder = "⚡ Mengambil direct stream dari AmayStream API...";
+
+  try {
+    const apiUrl = `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&cfWorker=https://test.workers.dev`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    let primaryStream = '';
+    if (data.success && data.sources && data.sources.length) {
+      const best = data.sources.find(s => s.source === 'febbox') 
+                || data.sources.find(s => !s.url.includes('test.workers.dev'))
+                || data.sources[0];
+      if (best) primaryStream = best.url;
+    }
+
+    if (primaryStream) {
+      fill('m_video', primaryStream);
+      if (imdbId) {
+        fill('m_video2', `https://streamimdb.ru/embed/movie/${imdbId}`);
+      }
+      toast('info', '⚡ Stream API Terisi Otomatis', `Stream (${data.sources.length} sumber) berhasil dimasukkan ke Server 1.`);
+    } else if (imdbId) {
+      fill('m_video', `https://streamimdb.ru/embed/movie/${imdbId}`);
+      fill('m_video2', `https://vidsrcme.ru/embed/movie/${imdbId}`);
+    }
+  } catch(e) {
+    if (imdbId) fill('m_video', `https://streamimdb.ru/embed/movie/${imdbId}`);
+  } finally {
+    if (videoField) videoField.placeholder = "https://... atau <iframe>...</iframe>";
+  }
+}
+
 function autoFillMovieServer() {
   const imdb = document.getElementById('m_imdb').value.trim();
   const videoField = document.getElementById('m_video');
@@ -1479,7 +1605,282 @@ async function deleteChannelsFromM3U() {
   }
 }
 
+/* ── AUTO-IMPORT MODAL & BATCH LOGIC ── */
+let importList = [];
+let selectedImportIds = new Set();
+let currentImportCategory = 'trending';
+
+function openAutoImportModal() {
+  document.getElementById('autoImportModal').classList.add('open');
+  loadImportCategory('trending');
+}
+
+function closeAutoImportModal() {
+  document.getElementById('autoImportModal').classList.remove('open');
+}
+
+async function loadImportCategory(cat) {
+  currentImportCategory = cat;
+  document.querySelectorAll('.import-cat-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('cat-' + cat);
+  if (btn) btn.classList.add('active');
+
+  const grid = document.getElementById('importGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">Memuat film dari TMDB...</div>';
+  
+  selectedImportIds.clear();
+  updateImportSelectedCount();
+
+  try {
+    let endpoint = '';
+    if (cat === 'trending') endpoint = 'trending/movie/week';
+    else if (cat === 'popular') endpoint = 'movie/popular';
+    else if (cat === 'top_rated') endpoint = 'movie/top_rated';
+    else if (cat === 'now_playing') endpoint = 'movie/now_playing';
+
+    const res = await fetch(`${TMDB_API}/${endpoint}?api_key=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&language=id-ID&page=1`);
+    const data = await res.json();
+    importList = data.results || [];
+    renderImportGrid();
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ff6b6b">Gagal memuat: ${e.message}</div>`;
+  }
+}
+
+async function searchImportMovies() {
+  const q = document.getElementById('importSearchInput').value.trim();
+  if (!q) return;
+
+  document.querySelectorAll('.import-cat-btn').forEach(b => b.classList.remove('active'));
+  const grid = document.getElementById('importGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">Mencari...</div>';
+  
+  selectedImportIds.clear();
+  updateImportSelectedCount();
+
+  try {
+    const res = await fetch(`${TMDB_API}/search/movie?api_key=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&query=${encodeURIComponent(q)}&language=id-ID&page=1`);
+    const data = await res.json();
+    importList = data.results || [];
+    renderImportGrid();
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ff6b6b">Gagal mencari: ${e.message}</div>`;
+  }
+}
+
+function renderImportGrid() {
+  const grid = document.getElementById('importGrid');
+  document.getElementById('importTotalCount').innerText = importList.length;
+  
+  if (!importList.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">Tidak ada film ditemukan.</div>';
+    return;
+  }
+
+  grid.innerHTML = importList.map(m => {
+    const isSelected = selectedImportIds.has(m.id);
+    const poster = m.poster_path ? TMDB_IMG + m.poster_path : '';
+    const year = (m.release_date || '').slice(0, 4);
+    const genreNames = (m.genre_ids || []).map(id => GENRE_MAP[id]).filter(Boolean).slice(0, 2).join(', ');
+
+    return `
+      <div class="import-item ${isSelected ? 'selected' : ''}" id="import-item-${m.id}" onclick="toggleSelectImport(${m.id})">
+        <input type="checkbox" class="import-check import-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectImport(${m.id})">
+        ${poster ? `<img src="${poster}" class="import-thumb" alt="">` : `<div class="import-thumb" style="display:flex;align-items:center;justify-content:center;color:#666">🎬</div>`}
+        <div class="import-info">
+          <div class="import-title">${m.title}</div>
+          <div class="import-meta">
+            <span>📅 ${year || '—'}</span>
+            <span>⭐ ${m.vote_average ? m.vote_average.toFixed(1) : '—'}</span>
+          </div>
+          <div class="import-meta" style="color:var(--cyan)">${genreNames || 'Umum'}</div>
+          <div class="import-overview">${m.overview || 'Sinopsis belum tersedia.'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleSelectImport(id) {
+  if (selectedImportIds.has(id)) {
+    selectedImportIds.delete(id);
+  } else {
+    selectedImportIds.add(id);
+  }
+  const itemEl = document.getElementById('import-item-' + id);
+  if (itemEl) {
+    itemEl.classList.toggle('selected', selectedImportIds.has(id));
+    const chk = itemEl.querySelector('input[type="checkbox"]');
+    if (chk) chk.checked = selectedImportIds.has(id);
+  }
+  updateImportSelectedCount();
+}
+
+function toggleSelectAllImport(checked) {
+  if (checked) {
+    importList.forEach(m => selectedImportIds.add(m.id));
+  } else {
+    selectedImportIds.clear();
+  }
+  renderImportGrid();
+  updateImportSelectedCount();
+}
+
+function updateImportSelectedCount() {
+  const count = selectedImportIds.size;
+  document.getElementById('importSelectedCount').innerText = `${count} Terpilih`;
+  const allChk = document.getElementById('selectAllImport');
+  if (allChk) {
+    allChk.checked = importList.length > 0 && selectedImportIds.size === importList.length;
+  }
+}
+
+async function startBatchImport() {
+  if (!selectedImportIds.size) {
+    toast('warning', 'Pilih Film Terlebih Dahulu', 'Centang minimal satu film yang ingin di-import.');
+    return;
+  }
+
+  const selectedMovies = importList.filter(m => selectedImportIds.has(m.id));
+  const total = selectedMovies.length;
+
+  const btn = document.getElementById('btnDoImport');
+  btn.disabled = true;
+
+  const progressBox = document.getElementById('importProgressBox');
+  const progressFill = document.getElementById('importProgressFill');
+  const progressText = document.getElementById('importProgressText');
+  progressBox.style.display = 'block';
+
+  let successCount = 0;
+
+  for (let i = 0; i < total; i++) {
+    const movie = selectedMovies[i];
+    const pct = Math.round(((i + 1) / total) * 100);
+    progressFill.style.width = pct + '%';
+    progressText.innerHTML = `<span>[${i + 1}/${total}] Mengimpor: <b>${movie.title}</b>...</span><span>${pct}%</span>`;
+
+    try {
+      // 1. Fetch detail & external ID (IMDB)
+      let imdbId = '';
+      try {
+        const extRes = await fetch(`${TMDB_API}/movie/${movie.id}/external_ids?api_key=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}`);
+        const extData = await extRes.json();
+        imdbId = extData.imdb_id || '';
+      } catch(e) {}
+
+      // 2. Fetch direct streams dari AmayStream API
+      let streamUrl = '';
+      try {
+        const apiRes = await fetch(`https://amaystream.vercel.app/api/v1/movie?id=${movie.id}&tmdbApiKey=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&cfWorker=https://test.workers.dev`);
+        const apiData = await apiRes.json();
+        if (apiData.success && apiData.sources && apiData.sources.length) {
+          const best = apiData.sources.find(s => s.source === 'febbox') 
+                    || apiData.sources.find(s => !s.url.includes('test.workers.dev'))
+                    || apiData.sources[0];
+          if (best) streamUrl = best.url;
+        }
+      } catch(e) {}
+
+      // Fallback jika API belum punya direct stream
+      if (!streamUrl && imdbId) {
+        streamUrl = `https://streamimdb.ru/embed/movie/${imdbId}`;
+      } else if (!streamUrl) {
+        streamUrl = `https://vidsrcme.ru/embed/movie/${movie.id}`;
+      }
+
+      const year = (movie.release_date || '').slice(0, 4);
+      const titleWithYear = year ? `${movie.title} (${year})` : movie.title;
+      const genreNames = (movie.genre_ids || []).map(id => GENRE_MAP[id]).filter(Boolean).join(', ');
+      const poster = movie.poster_path ? TMDB_IMG + movie.poster_path : '';
+
+      const payload = {
+        title: titleWithYear,
+        thumb: poster,
+        is18: false,
+        genre: genreNames,
+        description: movie.overview || '',
+        video: streamUrl,
+        video2: imdbId ? `https://streamimdb.ru/embed/movie/${imdbId}` : '',
+        imdb_id: imdbId
+      };
+
+      const { error } = await sb.from('Movies').insert([payload]);
+      if (!error) {
+        successCount++;
+      } else if (error.code === '42703') {
+        // Fallback jika kolom genre/description tidak ada
+        delete payload.genre;
+        delete payload.description;
+        await sb.from('Movies').insert([payload]);
+        successCount++;
+      }
+    } catch(err) {
+      console.error('Import error for movie:', movie.title, err);
+    }
+  }
+
+  btn.disabled = false;
+  progressBox.style.display = 'none';
+  closeAutoImportModal();
+
+  toast('success', 'Auto-Import Selesai! 🎉', `Berhasil menambahkan ${successCount} dari ${total} film ke database.`);
+  loadData();
+}
+
 checkAuth();
 </script>
+
+<!-- MODAL AUTO IMPORT -->
+<div class="modal-overlay" id="autoImportModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span>🚀 Auto-Import Film (TMDB + AmayStream API)</span>
+      </div>
+      <button class="btn-clear" onclick="closeAutoImportModal()" style="font-size:20px">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-filter-row">
+        <button class="import-cat-btn active" id="cat-trending" onclick="loadImportCategory('trending')">🔥 Trending Minggu Ini</button>
+        <button class="import-cat-btn" id="cat-popular" onclick="loadImportCategory('popular')">⭐ Populer</button>
+        <button class="import-cat-btn" id="cat-top_rated" onclick="loadImportCategory('top_rated')">🏆 Rating Tertinggi</button>
+        <button class="import-cat-btn" id="cat-now_playing" onclick="loadImportCategory('now_playing')">🍿 Tayang Bioskop</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <input type="text" id="importSearchInput" placeholder="Atau cari judul/kata kunci (contoh: Marvel, Action, Naruto)..." style="flex:1" onkeydown="if(event.key==='Enter') searchImportMovies()">
+        <button class="btn-tmdb" onclick="searchImportMovies()">🔍 Cari</button>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <label style="margin:0;cursor:pointer;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="selectAllImport" onchange="toggleSelectAllImport(this.checked)" class="import-check">
+          <span>Pilih Semua (<span id="importTotalCount">0</span> film)</span>
+        </label>
+        <span style="font-size:12px;color:var(--cyan);font-weight:700" id="importSelectedCount">0 Terpilih</span>
+      </div>
+
+      <div class="import-grid" id="importGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">Memuat daftar film...</div>
+      </div>
+
+      <div class="import-progress-box" id="importProgressBox">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700" id="importProgressText">
+          <span>Mengimpor film...</span>
+          <span id="importProgressPercent">0%</span>
+        </div>
+        <div class="import-progress-bar">
+          <div class="import-progress-fill" id="importProgressFill"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-clear" onclick="closeAutoImportModal()" style="font-size:13px;color:var(--text-dim)">Batal</button>
+      <button class="btn-batch-import" id="btnDoImport" onclick="startBatchImport()">
+        📥 Upload & Simpan Terpilih ke Database
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
