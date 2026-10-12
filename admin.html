@@ -280,8 +280,8 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
     <span class="admin-label">Admin Panel</span>
   </div>
   <div class="header-actions">
-    <a href="stream-test.html" class="hbtn" style="border-color:rgba(0,210,255,0.4);color:#00d2ff">⚡ Test Stream API</a>
-    <a href="dashboard.html" class="hbtn">📊 Dashboard</a>
+    <a href="stream-test.html" class="hbtn" style="border-color:rgba(0,210,255,0.4);color:#00d2ff">Stream API Tester</a>
+    <a href="dashboard.html" class="hbtn">Dashboard</a>
     <a href="index.html" class="hbtn">← Beranda</a>
     <button class="hbtn" onclick="logout()">Logout</button>
   </div>
@@ -308,11 +308,11 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
 
   <!-- TABS -->
   <div class="tabs">
-    <button id="tab-Movies" class="tab active" onclick="switchTab('Movies')">🎬 Movies</button>
-    <button id="tab-Series" class="tab" onclick="switchTab('Series')">📺 Series</button>
-    <button id="tab-Episodes" class="tab" onclick="switchTab('Episodes')">🎞 Episodes</button>
-    <button id="tab-Channels" class="tab" onclick="switchTab('Channels')">📡 Live TV</button>
-    <button id="tab-VIP" class="tab vip" onclick="switchTab('VIP')">✦ VIP</button>
+    <button id="tab-Movies" class="tab active" onclick="switchTab('Movies')">Movies</button>
+    <button id="tab-Series" class="tab" onclick="switchTab('Series')">Series</button>
+    <button id="tab-Episodes" class="tab" onclick="switchTab('Episodes')">Episodes</button>
+    <button id="tab-Channels" class="tab" onclick="switchTab('Channels')">Live TV</button>
+    <button id="tab-VIP" class="tab vip" onclick="switchTab('VIP')">VIP</button>
   </div>
 
   <!-- MOVIES FORM -->
@@ -320,7 +320,7 @@ input.filled, textarea.filled { border-color: rgba(1,180,228,0.4); background: r
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div class="form-heading" id="m_head" style="margin-bottom:0">Tambah Movie</div>
       <button type="button" class="btn-batch-import" onclick="openAutoImportModal()">
-        🚀 Auto-Import Film (Batch TMDB + API)
+        Auto-Import Film (TMDB)
       </button>
     </div>
 
@@ -791,7 +791,7 @@ async function pickItem(item, type) {
 async function fetchAmayStreamForAdmin(tmdbId, imdbId) {
   const videoField = document.getElementById('m_video');
   const video2Field = document.getElementById('m_video2');
-  if (videoField) videoField.placeholder = "⚡ Mengambil direct stream dari AmayStream API...";
+  if (videoField) videoField.placeholder = "Mengambil direct stream dari API...";
 
   try {
     const apiUrl = `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&cfWorker=https://test.workers.dev`;
@@ -811,7 +811,7 @@ async function fetchAmayStreamForAdmin(tmdbId, imdbId) {
       if (imdbId) {
         fill('m_video2', `https://streamimdb.ru/embed/movie/${imdbId}`);
       }
-      toast('info', '⚡ Stream API Terisi Otomatis', `Stream (${data.sources.length} sumber) berhasil dimasukkan ke Server 1.`);
+      toast('info', 'Stream API Terhubung', `Stream (${data.sources.length} sumber) berhasil dimasukkan ke Server 1.`);
     } else if (imdbId) {
       fill('m_video', `https://streamimdb.ru/embed/movie/${imdbId}`);
       fill('m_video2', `https://vidsrcme.ru/embed/movie/${imdbId}`);
@@ -1686,12 +1686,12 @@ function renderImportGrid() {
     return `
       <div class="import-item ${isSelected ? 'selected' : ''}" id="import-item-${m.id}" onclick="toggleSelectImport(${m.id})">
         <input type="checkbox" class="import-check import-checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectImport(${m.id})">
-        ${poster ? `<img src="${poster}" class="import-thumb" alt="">` : `<div class="import-thumb" style="display:flex;align-items:center;justify-content:center;color:#666">🎬</div>`}
+        ${poster ? `<img src="${poster}" class="import-thumb" alt="">` : `<div class="import-thumb" style="display:flex;align-items:center;justify-content:center;color:#666;font-size:10px">NO POSTER</div>`}
         <div class="import-info">
           <div class="import-title">${m.title}</div>
           <div class="import-meta">
-            <span>📅 ${year || '—'}</span>
-            <span>⭐ ${m.vote_average ? m.vote_average.toFixed(1) : '—'}</span>
+            <span>Tahun: ${year || '—'}</span>
+            <span>Rating: ${m.vote_average ? m.vote_average.toFixed(1) : '—'}</span>
           </div>
           <div class="import-meta" style="color:var(--cyan)">${genreNames || 'Umum'}</div>
           <div class="import-overview">${m.overview || 'Sinopsis belum tersedia.'}</div>
@@ -1824,7 +1824,7 @@ async function startBatchImport() {
   progressBox.style.display = 'none';
   closeAutoImportModal();
 
-  toast('success', 'Auto-Import Selesai! 🎉', `Berhasil menambahkan ${successCount} dari ${total} film ke database.`);
+  toast('success', 'Auto-Import Selesai', `Berhasil menambahkan ${successCount} dari ${total} film ke database.`);
   loadData();
 }
 
@@ -1836,20 +1836,20 @@ checkAuth();
   <div class="modal-card">
     <div class="modal-header">
       <div class="modal-title">
-        <span>🚀 Auto-Import Film (TMDB + AmayStream API)</span>
+        <span>Auto-Import Film (TMDB & Stream API)</span>
       </div>
       <button class="btn-clear" onclick="closeAutoImportModal()" style="font-size:20px">✕</button>
     </div>
     <div class="modal-body">
       <div class="import-filter-row">
-        <button class="import-cat-btn active" id="cat-trending" onclick="loadImportCategory('trending')">🔥 Trending Minggu Ini</button>
-        <button class="import-cat-btn" id="cat-popular" onclick="loadImportCategory('popular')">⭐ Populer</button>
-        <button class="import-cat-btn" id="cat-top_rated" onclick="loadImportCategory('top_rated')">🏆 Rating Tertinggi</button>
-        <button class="import-cat-btn" id="cat-now_playing" onclick="loadImportCategory('now_playing')">🍿 Tayang Bioskop</button>
+        <button class="import-cat-btn active" id="cat-trending" onclick="loadImportCategory('trending')">Trending Minggu Ini</button>
+        <button class="import-cat-btn" id="cat-popular" onclick="loadImportCategory('popular')">Populer</button>
+        <button class="import-cat-btn" id="cat-top_rated" onclick="loadImportCategory('top_rated')">Rating Tertinggi</button>
+        <button class="import-cat-btn" id="cat-now_playing" onclick="loadImportCategory('now_playing')">Tayang Bioskop</button>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:16px">
         <input type="text" id="importSearchInput" placeholder="Atau cari judul/kata kunci (contoh: Marvel, Action, Naruto)..." style="flex:1" onkeydown="if(event.key==='Enter') searchImportMovies()">
-        <button class="btn-tmdb" onclick="searchImportMovies()">🔍 Cari</button>
+        <button class="btn-tmdb" onclick="searchImportMovies()">Cari</button>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -1877,7 +1877,7 @@ checkAuth();
     <div class="modal-footer">
       <button class="btn-clear" onclick="closeAutoImportModal()" style="font-size:13px;color:var(--text-dim)">Batal</button>
       <button class="btn-batch-import" id="btnDoImport" onclick="startBatchImport()">
-        📥 Upload & Simpan Terpilih ke Database
+        Simpan Film Terpilih ke Database
       </button>
     </div>
   </div>

@@ -630,7 +630,7 @@ async function loadApiStreams(tmdbId, isMovie) {
         btn.className = 'srv' + (idx === 0 ? ' active' : '');
         btn.style.borderColor = 'rgba(0, 210, 255, 0.4)';
         btn.style.color = '#00d2ff';
-        btn.innerHTML = `⚡ ${s.label || s.source} (${s.quality || 'HD'})`;
+        btn.innerHTML = `${s.label || s.source} (${s.quality || 'HD'})`;
         btn.onclick = () => {
           playDirectStream(s.url, s.type, idSub?.file);
           document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
