@@ -139,6 +139,43 @@ header {
 .srv.trailer.active { background: #ffc800; border-color: #ffc800; color: #000; }
 .srv.trailer svg { width: 13px; height: 13px; fill: currentColor; }
 
+/* SUBTITLES */
+.sub-wrap { margin-top: 20px; }
+.sub-status-badge {
+  font-size: 11px; font-weight: 700; text-transform: none; letter-spacing: 0.5px;
+  color: var(--cyan); background: rgba(0, 210, 255, 0.12);
+  border: 1px solid rgba(0, 210, 255, 0.3); padding: 2px 8px; border-radius: 4px;
+}
+.srv-sub { border-color: rgba(0, 210, 255, 0.25); color: var(--text-dim); }
+.srv-sub:hover { border-color: var(--cyan); color: #fff; }
+.srv-sub.active { background: var(--cyan); border-color: var(--cyan); color: #000; font-weight: 700; }
+.srv-sub.off.active { background: rgba(229, 9, 20, 0.2); border-color: var(--red); color: #ff6b6b; }
+.sub-overlay {
+  position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+  max-width: 88%; text-align: center; color: #ffffff;
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  font-size: clamp(14px, 2.2vw, 21px); font-weight: 600; line-height: 1.4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 4px #000;
+  background: rgba(0, 0, 0, 0.75); padding: 4px 14px; border-radius: 6px;
+  pointer-events: none; z-index: 9; display: none;
+}
+::cue, video::cue {
+  background-color: transparent !important;
+  color: transparent !important;
+  text-shadow: none !important;
+}
+:fullscreen ::cue, video:fullscreen::cue, :-webkit-full-screen ::cue, video:-webkit-full-screen::cue {
+  background-color: rgba(0, 0, 0, 0.78) !important;
+  color: #ffffff !important;
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 2px #000 !important;
+  padding: 4px 14px !important;
+  border-radius: 4px !important;
+}
+
 /* DETAIL */
 .detail-wrap {
   max-width: 1280px; margin: 0 auto;
@@ -250,6 +287,7 @@ header {
       <div class="video-frame">
         <div class="loader" id="loader"><div class="spin"></div></div>
         <div id="playerFrame"></div>
+        <div id="subOverlay" class="sub-overlay"></div>
       </div>
     </div>
   </div>
@@ -267,6 +305,16 @@ header {
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           Trailer
         </button>
+      </div>
+
+      <!-- PILIHAN SUBTITLE -->
+      <div class="sub-wrap" id="subWrap" style="display:none">
+        <div class="server-label" style="display:flex;align-items:center;gap:10px">
+          <span>Pilihan Subtitle</span>
+          <span class="sub-status-badge" id="subStatus">Memuat...</span>
+        </div>
+        <div class="servers" id="subList"></div>
+        <input type="file" id="customSubInput" accept=".vtt,.srt" style="display:none" onchange="uploadCustomSubtitle(event)">
       </div>
     </div>
   </div>
@@ -326,7 +374,7 @@ async function init() {
     const r = await sb.from('Movies').select('*').eq('id', movieId).single();
     if (r.data) { data = r.data; title = r.data.title; document.getElementById('vType').innerText = 'Film'; }
   } else if (episodeId) {
-    const r = await sb.from('Episodes').select('*, Series(id, title, thumb)').eq('id', episodeId).single();
+    const r = await sb.from('Episodes').select('*, Series(id, title, thumb, imdb_id)').eq('id', episodeId).single();
     if (r.data) { data = r.data; title = `${r.data.Series.title} — Eps ${r.data.episode}`; document.getElementById('vType').innerText = 'Series'; }
   }
 
@@ -359,6 +407,7 @@ async function init() {
   play(data.video);
   loadRecs();
   loadTrailer(title, !!movieId);
+  initStreamsAndSubtitles(data, !!movieId);
 
   // ── Increment view_count via RPC (bypass RLS) ──
   if (movieId) {
@@ -458,7 +507,271 @@ function play(url) {
   }, 1800);
 }
 
-function playDirectStream(url, type, subUrl) {
+let availableSubtitles = [];
+let activeSubtitleIndex = -1;
+let currentSubBlobUrl = null;
+let currentSubCues = [];
+let streamsLoaded = false;
+
+function categorizeSubtitles(subsList) {
+  if (!Array.isArray(subsList)) return [];
+  const categorized = [];
+  const seenUrls = new Set();
+
+  subsList.forEach(s => {
+    if (!s || !s.file || seenUrls.has(s.file)) return;
+    seenUrls.add(s.file);
+
+    const label = (s.label || '').trim();
+    const l = (label + ' ' + (s.lang || '')).toLowerCase();
+
+    let langName = 'Lainnya';
+    let langCode = 'xx';
+    let isIndo = false;
+
+    if (s.isIndonesian || l.includes('indonesia') || l === 'ind' || l.startsWith('ind') || l.includes('indonesian')) {
+      langName = 'Indonesia';
+      langCode = 'id';
+      isIndo = true;
+    } else if (l.includes('english') || l === 'eng' || l.startsWith('eng') || l.includes('(sdh)')) {
+      langName = 'English';
+      langCode = 'en';
+    } else if (l.includes('bengali') || l === 'ben') {
+      langName = 'Bengali';
+      langCode = 'bn';
+    } else if (l.includes('spanish') || l === 'spa') {
+      langName = 'Spanish';
+      langCode = 'es';
+    } else if (l.includes('arabic') || l === 'ara') {
+      langName = 'Arabic';
+      langCode = 'ar';
+    } else {
+      langName = label || 'Subtitle';
+    }
+
+    categorized.push({
+      label: label || langName,
+      displayLabel: langName,
+      lang: langCode,
+      url: s.file,
+      isIndo
+    });
+  });
+
+  categorized.sort((a, b) => {
+    if (a.isIndo && !b.isIndo) return -1;
+    if (!a.isIndo && b.isIndo) return 1;
+    if (a.lang === 'en' && b.lang !== 'en') return -1;
+    if (a.lang !== 'en' && b.lang === 'en') return 1;
+    return 0;
+  });
+
+  return categorized;
+}
+
+function parseTimestamp(t) {
+  const clean = t.trim().split(' ')[0];
+  const p = clean.split(':');
+  if (p.length === 3) {
+    return parseFloat(p[0]) * 3600 + parseFloat(p[1]) * 60 + parseFloat(p[2].replace(',', '.'));
+  } else if (p.length === 2) {
+    return parseFloat(p[0]) * 60 + parseFloat(p[1].replace(',', '.'));
+  }
+  return NaN;
+}
+
+function parseSubtitleCues(rawText) {
+  const cues = [];
+  const normalized = rawText.replace(/\r\n|\r/g, '\n');
+  const blocks = normalized.split(/\n\s*\n/);
+
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    const timeLine = lines.find(l => l.includes('-->'));
+    if (!timeLine) continue;
+    const parts = timeLine.split('-->');
+    const start = parseTimestamp(parts[0].trim());
+    const end = parseTimestamp(parts[1].trim());
+    const timeIdx = lines.indexOf(timeLine);
+    const cueText = lines.slice(timeIdx + 1).join('<br>').replace(/<font[^>]*>/gi, '').replace(/<\/font>/gi, '').trim();
+    if (cueText && !isNaN(start) && !isNaN(end)) {
+      cues.push({ start, end, text: cueText });
+    }
+  }
+  return cues;
+}
+
+function convertToWebVTT(rawText) {
+  if (!rawText) return '';
+  let clean = rawText.trim().replace(/\r\n|\r/g, '\n');
+  if (clean.startsWith('WEBVTT')) return clean;
+
+  return 'WEBVTT\n\n' + clean
+    .replace(/(\d{1,2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
+    .replace(/(\d{1,2}:\d{2}),(\d{3})/g, '$1.$2');
+}
+
+async function applySubtitle(subObj, index) {
+  activeSubtitleIndex = index;
+  renderSubtitleButtons();
+
+  const overlay = document.getElementById('subOverlay');
+  const statusBadge = document.getElementById('subStatus');
+
+  if (currentSubBlobUrl && currentSubBlobUrl.startsWith('blob:')) {
+    try { URL.revokeObjectURL(currentSubBlobUrl); } catch(e) {}
+    currentSubBlobUrl = null;
+  }
+  currentSubCues = [];
+  if (overlay) overlay.style.display = 'none';
+
+  const video = document.getElementById('nativePlayer');
+  if (video) {
+    const existingTracks = video.querySelectorAll('track');
+    existingTracks.forEach(t => t.remove());
+
+    if (video.textTracks) {
+      for (let i = 0; i < video.textTracks.length; i++) {
+        video.textTracks[i].mode = 'disabled';
+      }
+    }
+  }
+
+  if (!subObj) {
+    if (statusBadge) statusBadge.innerText = 'Nonaktif';
+    return;
+  }
+
+  if (statusBadge) statusBadge.innerText = 'Memuat ' + subObj.displayLabel + '...';
+
+  try {
+    let rawText = '';
+    try {
+      const res = await fetch(subObj.url);
+      if (!res.ok) throw new Error('Status ' + res.status);
+      rawText = await res.text();
+    } catch(err) {
+      const proxyRes = await fetch('https://corsproxy.io/?' + encodeURIComponent(subObj.url));
+      rawText = await proxyRes.text();
+    }
+
+    if (rawText) {
+      currentSubCues = parseSubtitleCues(rawText);
+
+      const vtt = convertToWebVTT(rawText);
+      const blob = new Blob([vtt], { type: 'text/vtt;charset=utf-8' });
+      currentSubBlobUrl = URL.createObjectURL(blob);
+
+      const vid = document.getElementById('nativePlayer');
+      if (vid) {
+        const track = document.createElement('track');
+        track.kind = 'subtitles';
+        track.label = subObj.displayLabel;
+        track.srclang = subObj.lang || 'id';
+        track.src = currentSubBlobUrl;
+        track.default = true;
+
+        track.onload = () => {
+          if (vid.textTracks && vid.textTracks.length > 0) {
+            for (let i = 0; i < vid.textTracks.length; i++) {
+              if (vid.textTracks[i].label === subObj.displayLabel) {
+                vid.textTracks[i].mode = 'showing';
+              } else {
+                vid.textTracks[i].mode = 'disabled';
+              }
+            }
+          }
+        };
+
+        vid.appendChild(track);
+
+        setTimeout(() => {
+          if (vid.textTracks && vid.textTracks.length > 0) {
+            vid.textTracks[0].mode = 'showing';
+          }
+        }, 150);
+
+        // Langsung cek cue pada currentTime saat ini
+        if (overlay && currentSubCues.length > 0) {
+          const cur = vid.currentTime || 0;
+          const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
+          if (active) {
+            overlay.innerHTML = active.text;
+            overlay.style.display = 'block';
+          }
+        }
+      }
+
+      if (statusBadge) statusBadge.innerText = 'Aktif: ' + subObj.displayLabel;
+    }
+  } catch(err) {
+    console.error('Gagal memuat subtitle:', err);
+    if (statusBadge) statusBadge.innerText = 'Gagal memuat';
+  }
+}
+
+function renderSubtitleButtons() {
+  const wrap = document.getElementById('subWrap');
+  const list = document.getElementById('subList');
+  if (!wrap || !list) return;
+
+  if (!availableSubtitles.length) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  list.innerHTML = '';
+
+  const offBtn = document.createElement('button');
+  offBtn.className = 'srv srv-sub' + (activeSubtitleIndex === -1 ? ' off active' : '');
+  offBtn.innerText = 'Nonaktif';
+  offBtn.onclick = () => applySubtitle(null, -1);
+  list.appendChild(offBtn);
+
+  const langCounts = {};
+  const displayedSubs = availableSubtitles.slice(0, 8);
+  displayedSubs.forEach((sub, idx) => {
+    langCounts[sub.displayLabel] = (langCounts[sub.displayLabel] || 0) + 1;
+    const btn = document.createElement('button');
+    btn.className = 'srv srv-sub' + (activeSubtitleIndex === idx ? ' active' : '');
+    btn.innerText = `${sub.displayLabel}${langCounts[sub.displayLabel] > 1 ? ' ' + langCounts[sub.displayLabel] : ''}`;
+    btn.onclick = () => applySubtitle(sub, idx);
+    list.appendChild(btn);
+  });
+
+  const uploadBtn = document.createElement('button');
+  uploadBtn.className = 'srv';
+  uploadBtn.style.borderStyle = 'dashed';
+  uploadBtn.style.opacity = '0.7';
+  uploadBtn.innerText = '+ Unggah Subtitle';
+  uploadBtn.onclick = () => document.getElementById('customSubInput').click();
+  list.appendChild(uploadBtn);
+}
+
+function uploadCustomSubtitle(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const vtt = convertToWebVTT(text);
+    const blob = new Blob([vtt], { type: 'text/vtt;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const customSub = {
+      label: file.name,
+      displayLabel: 'Kustom',
+      lang: 'id',
+      url: blobUrl,
+      isIndo: true
+    };
+    availableSubtitles.unshift(customSub);
+    applySubtitle(customSub, 0);
+  };
+  reader.readAsText(file);
+}
+
+function playDirectStream(url, type) {
   const loader = document.getElementById('loader');
   loader.style.opacity = '1'; loader.style.display = 'flex';
 
@@ -476,11 +789,34 @@ function playDirectStream(url, type, subUrl) {
   container.innerHTML = `
     <video id="nativePlayer" controls autoplay playsinline crossorigin="anonymous"
       style="position:absolute;inset:0;width:100%;height:100%;background:#000;border-radius:6px">
-      ${subUrl ? `<track kind="subtitles" label="Bahasa Indonesia" srclang="id" src="${subUrl}" default>` : ''}
     </video>
   `;
 
   const video = document.getElementById('nativePlayer');
+
+  // Pasang timeupdate listener untuk subtitle overlay
+  video.ontimeupdate = () => {
+    const overlay = document.getElementById('subOverlay');
+    if (!overlay) return;
+    if (activeSubtitleIndex === -1 || !currentSubCues.length) {
+      overlay.style.display = 'none';
+      return;
+    }
+    const cur = video.currentTime;
+    const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
+    if (active) {
+      overlay.innerHTML = active.text;
+      overlay.style.display = 'block';
+    } else {
+      overlay.style.display = 'none';
+    }
+  };
+
+  // Terapkan subtitle aktif jika sudah terpilih
+  if (activeSubtitleIndex > -1 && availableSubtitles[activeSubtitleIndex]) {
+    applySubtitle(availableSubtitles[activeSubtitleIndex], activeSubtitleIndex);
+  }
+
   const isHls = type === 'hls' || type === 'm3u8' || targetUrl.includes('.m3u8');
 
   if (isHls && window.Hls && Hls.isSupported()) {
@@ -536,8 +872,10 @@ async function loadTrailer(title, isMovie) {
     const first = sData.results?.[0];
     if (!first) return;
 
-    // Load direct streaming sources from AmayStream API
-    loadApiStreams(first.id, isMovie);
+    // Load direct streaming sources and subtitles from AmayStream API
+    if (!streamsLoaded) {
+      loadApiStreams(first.id, isMovie);
+    }
 
     // Fetch detail + credits + videos sekaligus
     const [detailRes, creditsRes, videosRes] = await Promise.all([
@@ -576,7 +914,7 @@ async function loadTrailer(title, isMovie) {
         ${releaseY ? `<div class="meta-row"><span class="meta-label">Tahun</span><span class="meta-value">${releaseY}</span></div>` : ''}
         ${genres ? `<div class="meta-row"><span class="meta-label">Genre</span><div class="genre-tags">${genres.split(', ').map(g=>`<span class="genre-tag">${g}</span>`).join('')}</div></div>` : ''}
         <div class="meta-row"><span class="meta-label">Durasi</span><span class="meta-value">${runtime}</span></div>
-        <div class="meta-row"><span class="meta-label">Rating</span><span class="meta-value">⭐ ${rating}</span></div>
+        <div class="meta-row"><span class="meta-label">Rating</span><span class="meta-value">${rating}</span></div>
         ${director !== '—' ? `<div class="meta-row"><span class="meta-label">Sutradara</span><span class="meta-value">${director}</span></div>` : ''}
       `;
     }
@@ -591,7 +929,7 @@ async function loadTrailer(title, isMovie) {
           <div class="cast-card" style="animation-delay:${i*0.04}s">
             ${photo
               ? `<img class="cast-photo" src="${photo}" loading="lazy" alt="${c.name}">`
-              : `<div class="cast-placeholder">👤</div>`}
+              : `<div class="cast-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" opacity="0.35"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>`}
             <div class="cast-name">${c.name}</div>
             <div class="cast-char">${c.character || ''}</div>
           </div>`;
@@ -600,24 +938,87 @@ async function loadTrailer(title, isMovie) {
     }
 
   } catch(e) {
-    console.log('TMDB error:', e.message);
+    console.warn('TMDB error:', e.message);
   }
 }
 
-async function loadApiStreams(tmdbId, isMovie) {
+async function initStreamsAndSubtitles(itemData, isMovie) {
+  try {
+    let tmdbId = null;
+    let season = 1;
+    let episode = 1;
+
+    if (!isMovie) {
+      season = itemData.season || 1;
+      episode = itemData.episode || 1;
+    }
+
+    const imdbId = isMovie ? itemData.imdb : (itemData.Series?.imdb_id || itemData.imdb);
+    if (imdbId) {
+      try {
+        const findRes = await fetch(`${TMDB_API}/find/${imdbId}?api_key=${TMDB_KEY}&external_source=imdb_id`);
+        const findData = await findRes.json();
+        const results = isMovie ? findData.movie_results : findData.tv_results;
+        if (results && results.length > 0) {
+          tmdbId = results[0].id;
+        }
+      } catch (err) {
+        console.warn('Find by IMDB error:', err);
+      }
+    }
+
+    if (!tmdbId) {
+      const rawTitle = isMovie ? itemData.title : (itemData.Series?.title || itemData.title || '');
+      const cleanTitle = rawTitle.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+      const year = (rawTitle.match(/\((\d{4})\)/) || [])[1] || '';
+      const type = isMovie ? 'movie' : 'tv';
+      const sRes = await fetch(`${TMDB_API}/search/${type}?api_key=${TMDB_KEY}&query=${encodeURIComponent(cleanTitle)}${year ? '&year='+year : ''}`);
+      const sData = await sRes.json();
+      if (sData.results && sData.results.length > 0) {
+        tmdbId = sData.results[0].id;
+      }
+    }
+
+    if (tmdbId) {
+      await loadApiStreams(tmdbId, isMovie, season, episode);
+    }
+  } catch (err) {
+    console.error('initStreamsAndSubtitles error:', err);
+  }
+}
+
+async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
+  if (streamsLoaded) return;
+  streamsLoaded = true;
+
   try {
     const endpoint = isMovie
       ? `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${TMDB_KEY}&cfWorker=https://test.workers.dev`
-      : `https://amaystream.vercel.app/api/v1/tv?id=${tmdbId}&season=1&episode=1&tmdbApiKey=${TMDB_KEY}&cfWorker=https://test.workers.dev`;
+      : `https://amaystream.vercel.app/api/v1/tv?id=${tmdbId}&season=${season}&episode=${episode}&tmdbApiKey=${TMDB_KEY}&cfWorker=https://test.workers.dev`;
 
     const res = await fetch(endpoint);
     const data = await res.json();
 
+    // ── 1. Proses Subtitle ──
+    if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+      availableSubtitles = categorizeSubtitles(data.subtitles);
+      renderSubtitleButtons();
+
+      // Pilih subtitle Bahasa Indonesia sebagai default jika tersedia
+      const indoIdx = availableSubtitles.findIndex(s => s.isIndo);
+      const defaultIdx = indoIdx !== -1 ? indoIdx : 0;
+      activeSubtitleIndex = defaultIdx;
+      applySubtitle(availableSubtitles[defaultIdx], defaultIdx);
+    } else {
+      const statusBadge = document.getElementById('subStatus');
+      if (statusBadge) statusBadge.innerText = 'Tidak tersedia';
+    }
+
+    // ── 2. Proses Sumber Streaming ──
     if (data.success && data.sources && data.sources.length) {
       const srvList = document.getElementById('srvList');
-      const idSub = (data.subtitles || []).find(s => s.isIndonesian || (s.label && s.label.toLowerCase().includes('indonesia')));
 
-      // Filter reliable sources (febbox, direct mp4, etc.)
+      // Filter reliable sources (febbox, direct mp4/hls)
       const sourcesToAdd = data.sources.filter(s => !s.url.includes('test.workers.dev')).slice(0, 3);
       if (!sourcesToAdd.length) sourcesToAdd.push(...data.sources.slice(0, 2));
 
@@ -632,23 +1033,22 @@ async function loadApiStreams(tmdbId, isMovie) {
         btn.style.color = '#00d2ff';
         btn.innerHTML = `${s.label || s.source} (${s.quality || 'HD'})`;
         btn.onclick = () => {
-          playDirectStream(s.url, s.type, idSub?.file);
+          playDirectStream(s.url, s.type);
           document.querySelectorAll('.srv').forEach(x => x.classList.remove('active'));
           btn.classList.add('active');
           document.getElementById('trailerBtn').classList.remove('active');
         };
-        // Masukkan di awal daftar server agar menjadi pilihan teratas
         srvList.insertBefore(btn, srvList.firstChild);
         createdButtons.push({ btn, source: s });
       });
 
-      // Otomatis putar stream API teratas sebagai DEFAULT!
+      // Otomatis putar stream API teratas sebagai DEFAULT
       if (createdButtons.length > 0) {
-        playDirectStream(createdButtons[0].source.url, createdButtons[0].source.type, idSub?.file);
+        playDirectStream(createdButtons[0].source.url, createdButtons[0].source.type);
       }
     }
   } catch(e) {
-    console.log('AmayStream API error:', e.message);
+    console.warn('AmayStream API error:', e.message);
   }
 }
 
