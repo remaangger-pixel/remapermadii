@@ -431,6 +431,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TMDB_KEY = '7bb2587bb70323fa478264264f16fcc7';
 const TMDB_API = 'https://api.themoviedb.org/3';
+const CF_WORKER = 'https://falling-credit-63e8.anvibot.workers.dev';
 let trailerKey = null; // YouTube video key dari TMDB
 const params = new URLSearchParams(location.search);
 
@@ -1138,8 +1139,8 @@ async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
 
   try {
     const endpoint = isMovie
-      ? `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${TMDB_KEY}&cfWorker=https://test.workers.dev`
-      : `https://amaystream.vercel.app/api/v1/tv?id=${tmdbId}&season=${season}&episode=${episode}&tmdbApiKey=${TMDB_KEY}&cfWorker=https://test.workers.dev`;
+      ? `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${TMDB_KEY}&cfWorker=${CF_WORKER}`
+      : `https://amaystream.vercel.app/api/v1/tv?id=${tmdbId}&season=${season}&episode=${episode}&tmdbApiKey=${TMDB_KEY}&cfWorker=${CF_WORKER}`;
 
     const res = await fetch(endpoint);
     const data = await res.json();

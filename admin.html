@@ -794,7 +794,8 @@ async function fetchAmayStreamForAdmin(tmdbId, imdbId) {
   if (videoField) videoField.placeholder = "Mengambil direct stream dari API...";
 
   try {
-    const apiUrl = `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&cfWorker=https://test.workers.dev`;
+    const cfWorker = 'https://falling-credit-63e8.anvibot.workers.dev';
+    const apiUrl = `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${getKey() || '7bb2587bb70323fa478264264f16fcc7'}&cfWorker=${cfWorker}`;
     const res = await fetch(apiUrl);
     const data = await res.json();
 
@@ -1794,7 +1795,8 @@ async function startBatchImport() {
       // 2. Fetch direct streams dari AmayStream API
       let streamUrl = '';
       try {
-        const apiRes = await fetch(`https://amaystream.vercel.app/api/v1/movie?id=${movie.id}&tmdbApiKey=${getKey()}&cfWorker=https://test.workers.dev`);
+        const cfWorker = 'https://falling-credit-63e8.anvibot.workers.dev';
+        const apiRes = await fetch(`https://amaystream.vercel.app/api/v1/movie?id=${movie.id}&tmdbApiKey=${getKey()}&cfWorker=${cfWorker}`);
         if (apiRes.ok) {
           const apiData = await apiRes.json();
           if (apiData.success && apiData.sources && apiData.sources.length) {
