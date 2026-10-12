@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stream Movie API Tester — Anvi Create</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --surface3: #282828;
+  --red: #e50914;
+  --red-glow: rgba(229, 9, 20, 0.35);
+  --cyan: #00d2ff;
+  --green: #22c55e;
+  --gold: #f5c518;
+  --text: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 64px;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4%;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: var(--red);
+}
+.badge-api {
+  background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(0,210,255,0.05));
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-link {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.nav-link:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.25);
+  background: var(--surface2);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 4%;
+}
+
+/* SEARCH & CHIPS */
+.search-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.search-row {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+.search-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 15px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input:focus {
+  border-color: var(--cyan);
+}
+.btn-primary {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  background: #ff1a26;
+  box-shadow: 0 4px 16px var(--red-glow);
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 50;
+  display: none;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.8);
+}
+.suggestions.open { display: block; }
+.sug-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s;
+}
+.sug-item:hover { background: var(--surface3); }
+.sug-poster {
+  width: 32px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #000;
+}
+.sug-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.sug-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* PRESET CHIPS */
+.preset-wrap {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.preset-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 4px;
+}
+.chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chip:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+  background: var(--surface3);
+}
+.chip.active {
+  background: rgba(229, 9, 20, 0.15);
+  border-color: var(--red);
+  color: #fff;
+}
+
+/* PLAYER SECTION */
+.player-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) {
+  .player-grid { grid-template-columns: 1fr; }
+}
+
+.player-box {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 */
+  background: #000;
+}
+.video-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.video-status-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  text-align: center;
+  z-index: 10;
+  transition: opacity 0.3s;
+}
+.video-status-overlay.hidden { display: none; }
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+/* SIDE PANEL */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.panel-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface2);
+  color: var(--cyan);
+}
+
+/* STREAM LIST */
+.stream-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.stream-list::-webkit-scrollbar { width: 4px; }
+.stream-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+.stream-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.stream-item:hover {
+  border-color: rgba(255,255,255,0.3);
+  background: var(--surface3);
+}
+.stream-item.active {
+  border-color: var(--cyan);
+  background: rgba(0, 210, 255, 0.1);
+}
+.stream-item.active .stream-source-name {
+  color: var(--cyan);
+  font-weight: 700;
+}
+.stream-info-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stream-source-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.stream-meta-type {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.stream-quality-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  color: var(--gold);
+}
+.stream-item.active .stream-quality-pill {
+  background: var(--cyan);
+  color: #000;
+}
+
+/* SUBTITLES */
+.subs-select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+/* MOVIE DETAILS */
+.movie-meta-card {
+  display: flex;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.movie-meta-poster {
+  width: 110px;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #000;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+}
+.movie-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.movie-meta-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.movie-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tag-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.tag-badge.rating {
+  color: var(--gold);
+  border-color: rgba(245, 197, 24, 0.3);
+}
+.movie-meta-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* JSON DRAWER */
+.debug-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.debug-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.debug-code {
+  margin-top: 14px;
+  background: #070707;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #a5f3fc;
+  max-height: 280px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  display: none;
+}
+.debug-code.open { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <a href="index.html" class="logo">ANVI</a>
+    <span class="badge-api">⚡ Movie API Stream</span>
+  </div>
+  <div class="nav-links">
+    <a href="movies.html" class="nav-link">🎬 Semua Film</a>
+    <a href="admin.html" class="nav-link">⚙️ Admin</a>
+    <a href="index.html" class="nav-link">← Beranda</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- SEARCH & PRESETS -->
+  <div class="search-card">
+    <div class="search-row">
+      <input type="text" class="search-input" id="searchMovie" placeholder="Cari judul film apa saja (contoh: Inception, Oppenheimer, Avatar)..." autocomplete="off" oninput="onSearchInput(this.value)">
+      <button class="btn-primary" onclick="doManualSearch()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Cari & Stream
+      </button>
+      <div class="suggestions" id="suggestionsBox"></div>
+    </div>
+
+    <!-- Quick Chips -->
+    <div class="preset-wrap">
+      <span class="preset-label">Contoh Populer:</span>
+      <button class="chip active" onclick="loadMovie(27205, 'Inception')">🎬 Inception (2010)</button>
+      <button class="chip" onclick="loadMovie(872585, 'Oppenheimer')">⚛️ Oppenheimer (2023)</button>
+      <button class="chip" onclick="loadMovie(634649, 'Spider-Man: No Way Home')">🕸️ Spider-Man (2021)</button>
+      <button class="chip" onclick="loadMovie(157336, 'Interstellar')">🚀 Interstellar (2014)</button>
+      <button class="chip" onclick="loadMovie(76600, 'Avatar: The Way of Water')">🌊 Avatar 2 (2022)</button>
+      <button class="chip" onclick="loadMovie(533535, 'Deadpool & Wolverine')">⚔️ Deadpool 3 (2024)</button>
+    </div>
+  </div>
+
+  <!-- MOVIE INFO -->
+  <div class="movie-meta-card" id="movieCard">
+    <img id="mPoster" class="movie-meta-poster" src="https://image.tmdb.org/t/p/w300/o0733qP4QD6J0u3gT5q3bU49fXv.jpg" alt="Poster">
+    <div class="movie-meta-info">
+      <div class="movie-meta-title" id="mTitle">Inception (2010)</div>
+      <div class="movie-meta-row" id="mTags">
+        <span class="tag-badge rating" id="mRating">⭐ 8.4 / 10</span>
+        <span class="tag-badge" id="mYear">2010</span>
+        <span class="tag-badge" id="mTmdbId">TMDB ID: 27205</span>
+        <span class="tag-badge" id="mStreamsCount">13 Stream Sources</span>
+      </div>
+      <div class="movie-meta-desc" id="mDesc">
+        Dom Cobb adalah pencuri terampil yang ahli dalam seni ekstraksi mencuri rahasia berharga dari alam bawah sadar saat seseorang bermimpi.
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER & SOURCE LIST -->
+  <div class="player-grid">
+    
+    <!-- Player -->
+    <div class="player-box">
+      <div class="video-container">
+        <video id="videoEl" class="video-player" controls playsinline crossorigin="anonymous"></video>
+        <div class="video-status-overlay" id="videoOverlay">
+          <div class="spinner"></div>
+          <div class="status-text" id="statusMsg">Menghubungkan ke AmayStream API...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side Panel -->
+    <div class="side-panel">
+      <!-- Streams -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>Pilihan Stream API</span>
+          <span class="panel-badge" id="sourceCountBadge">0 Sumber</span>
+        </div>
+        <div class="stream-list" id="streamList">
+          <div style="font-size:12px;color:var(--text-muted);padding:8px">Memuat stream...</div>
+        </div>
+      </div>
+
+      <!-- Subtitles -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>Subtitle (Teks Terjemahan)</span>
+          <span class="panel-badge" id="subCountBadge">0 Teks</span>
+        </div>
+        <select class="subs-select" id="subsSelect" onchange="onSubChange(this.value)">
+          <option value="">Nonaktif (Tanpa Subtitle)</option>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JSON INSPECTOR -->
+  <div class="debug-section">
+    <div class="debug-header" onclick="toggleDebug()">
+      <span class="debug-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Data Respons API AmayStream (JSON Asli)
+      </span>
+      <span style="font-size:12px;color:var(--cyan)">Lihat Payload ▾</span>
+    </div>
+    <pre class="debug-code" id="debugCode">// Respons API akan ditampilkan di sini...</pre>
+  </div>
+
+</div>
+
+<script>
+const TMDB_KEY = '7bb2587bb70323fa478264264f16fcc7';
+const TMDB_API = 'https://api.themoviedb.org/3';
+const AMAY_API = 'https://amaystream.vercel.app/api/v1/movie';
+const PROXY_WORKER = 'https://test.workers.dev';
+
+let currentHls = null;
+let currentMovieData = null;
+let availableSources = [];
+let availableSubs = [];
+let activeSource = null;
+let searchDebounceTimer = null;
+
+const videoEl = document.getElementById('videoEl');
+const videoOverlay = document.getElementById('videoOverlay');
+const statusMsg = document.getElementById('statusMsg');
+
+// Initial Load: Inception (27205)
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const qId = urlParams.get('id') || 27205;
+  const qTitle = urlParams.get('title') || 'Inception';
+  loadMovie(qId, qTitle);
+});
+
+// TMDB Search Input with Suggestions
+function onSearchInput(val) {
+  clearTimeout(searchDebounceTimer);
+  const box = document.getElementById('suggestionsBox');
+  if (!val.trim()) {
+    box.classList.remove('open');
+    return;
+  }
+  searchDebounceTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${TMDB_API}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(val)}&language=id-ID`);
+      const data = await res.json();
+      const results = (data.results || []).slice(0, 6);
+      if (!results.length) {
+        box.innerHTML = `<div style="padding:12px;font-size:13px;color:var(--text-muted)">Tidak ditemukan hasil</div>`;
+        box.classList.add('open');
+        return;
+      }
+      box.innerHTML = results.map(m => {
+        const poster = m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : '';
+        const year = (m.release_date || '').slice(0, 4);
+        return `
+          <div class="sug-item" onclick="pickSuggestion(${m.id}, '${m.title.replace(/'/g, "\\'")}')">
+            ${poster ? `<img src="${poster}" class="sug-poster" alt="">` : `<div class="sug-poster" style="display:flex;align-items:center;justify-content:center;color:#666">🎬</div>`}
+            <div>
+              <div class="sug-title">${m.title}</div>
+              <div class="sug-meta">${year} • ⭐ ${m.vote_average ? m.vote_average.toFixed(1) : '—'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      box.classList.add('open');
+    } catch(e) {
+      console.error(e);
+    }
+  }, 300);
+}
+
+function pickSuggestion(id, title) {
+  document.getElementById('suggestionsBox').classList.remove('open');
+  document.getElementById('searchMovie').value = title;
+  loadMovie(id, title);
+}
+
+function doManualSearch() {
+  const val = document.getElementById('searchMovie').value.trim();
+  if (val) onSearchInput(val);
+}
+
+// Close suggestion on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-row')) {
+    document.getElementById('suggestionsBox')?.classList.remove('open');
+  }
+});
+
+// LOAD MOVIE & EXTRACT API STREAM
+async function loadMovie(tmdbId, titleHint = '') {
+  // Update Chips UI
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('active', c.getAttribute('onclick')?.includes(String(tmdbId)));
+  });
+
+  // Reset Player
+  if (currentHls) {
+    currentHls.destroy();
+    currentHls = null;
+  }
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load();
+
+  // Clear existing tracks
+  while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
+
+  videoOverlay.classList.remove('hidden');
+  statusMsg.innerHTML = `Mengambil metadata film & link stream dari AmayStream API...`;
+
+  // Fetch TMDB Detail
+  try {
+    const tmdbRes = await fetch(`${TMDB_API}/movie/${tmdbId}?api_key=${TMDB_KEY}&language=id-ID`);
+    const tmdbData = await tmdbRes.json();
+    if (tmdbData.id) {
+      document.getElementById('mTitle').innerText = `${tmdbData.title} (${(tmdbData.release_date||'').slice(0,4)})`;
+      document.getElementById('mPoster').src = tmdbData.poster_path ? `https://image.tmdb.org/t/p/w300${tmdbData.poster_path}` : '';
+      document.getElementById('mYear').innerText = (tmdbData.release_date||'').slice(0,4) || '—';
+      document.getElementById('mRating').innerText = `⭐ ${(tmdbData.vote_average||0).toFixed(1)} / 10`;
+      document.getElementById('mTmdbId').innerText = `TMDB ID: ${tmdbData.id}`;
+      document.getElementById('mDesc').innerText = tmdbData.overview || 'Sinopsis belum tersedia.';
+    }
+  } catch(e) {
+    console.error('TMDB detail error:', e);
+  }
+
+  // Fetch Streams from AmayStream API
+  try {
+    statusMsg.innerHTML = `Memanggil <code>/api/v1/movie?id=${tmdbId}</code>...`;
+    const apiUrl = `${AMAY_API}?id=${tmdbId}&tmdbApiKey=${TMDB_KEY}&cfWorker=${encodeURIComponent(PROXY_WORKER)}`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+    currentMovieData = data;
+
+    // Display in JSON Drawer
+    document.getElementById('debugCode').innerText = JSON.stringify(data, null, 2);
+
+    if (!data.success || !data.sources || !data.sources.length) {
+      statusMsg.innerHTML = `<span style="color:var(--red)">❌ Tidak ada link stream aktif dari API untuk film ini.</span>`;
+      document.getElementById('streamList').innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px">Stream tidak ditemukan.</div>`;
+      return;
+    }
+
+    availableSources = data.sources;
+    availableSubs = data.subtitles || [];
+
+    document.getElementById('mStreamsCount').innerText = `${availableSources.length} Stream Sources`;
+    document.getElementById('sourceCountBadge').innerText = `${availableSources.length} Sumber`;
+    document.getElementById('subCountBadge').innerText = `${availableSubs.length} Teks`;
+
+    // Populate Stream List
+    renderStreamList();
+
+    // Populate Subtitles
+    renderSubtitles();
+
+    // Auto-play primary stream: prefer febbox (HLS direct) or vidlink direct
+    let bestSource = availableSources.find(s => s.source === 'febbox') 
+                  || availableSources.find(s => s.source === 'vidlink' && s.url.startsWith('http') && !s.url.includes('test.workers.dev'))
+                  || availableSources.find(s => s.url.startsWith('http') && !s.url.includes('test.workers.dev'))
+                  || availableSources[0];
+
+    playSource(bestSource);
+
+  } catch(err) {
+    console.error('API Fetch Error:', err);
+    statusMsg.innerHTML = `<span style="color:var(--red)">Gagal terhubung ke API: ${err.message}</span>`;
+  }
+}
+
+function renderStreamList() {
+  const container = document.getElementById('streamList');
+  container.innerHTML = availableSources.map((s, idx) => {
+    const isM3U8 = s.type === 'hls' || s.type === 'm3u8' || s.url.includes('.m3u8');
+    const badgeType = isM3U8 ? 'HLS Live' : (s.type || 'MP4').toUpperCase();
+    return `
+      <div class="stream-item ${activeSource === s ? 'active' : ''}" id="stream-item-${idx}" onclick="selectSource(${idx})">
+        <div class="stream-info-left">
+          <div class="stream-source-name">${s.label || s.source}</div>
+          <div class="stream-meta-type">${badgeType} • Server: ${s.source}</div>
+        </div>
+        <div class="stream-quality-pill">${s.quality || 'Auto'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderSubtitles() {
+  const select = document.getElementById('subsSelect');
+  select.innerHTML = `<option value="">Nonaktif (Tanpa Subtitle)</option>`;
+
+  // Filter for Indonesian first
+  const idSubs = availableSubs.filter(s => s.isIndonesian || (s.label && s.label.toLowerCase().includes('indonesia')));
+  const otherSubs = availableSubs.filter(s => !idSubs.includes(s));
+
+  if (idSubs.length) {
+    idSubs.forEach((s, i) => {
+      select.innerHTML += `<option value="${s.file}" data-lang="id" ${i===0 ? 'selected' : ''}>🇮🇩 Bahasa Indonesia (${s.source || s.label})</option>`;
+    });
+  }
+
+  otherSubs.forEach(s => {
+    select.innerHTML += `<option value="${s.file}">${s.label || 'Subtitle'} (${s.source || ''})</option>`;
+  });
+
+  // If Indonesian is auto-selected, attach it
+  if (idSubs.length && select.value) {
+    attachSubtitle(select.value, 'id', 'Bahasa Indonesia');
+  }
+}
+
+function selectSource(idx) {
+  const s = availableSources[idx];
+  if (s) playSource(s);
+}
+
+function playSource(source) {
+  activeSource = source;
+  renderStreamList();
+
+  let targetUrl = source.url;
+
+  // Handle /api/proxy relative URL
+  if (targetUrl.startsWith('/api/proxy')) {
+    targetUrl = 'https://amaystream.vercel.app' + targetUrl;
+  }
+
+  videoOverlay.classList.remove('hidden');
+  statusMsg.innerHTML = `Memuat stream <b>${source.label || source.source}</b>...`;
+
+  if (currentHls) {
+    currentHls.destroy();
+    currentHls = null;
+  }
+
+  const isHls = source.type === 'hls' || source.type === 'm3u8' || targetUrl.includes('.m3u8');
+
+  if (isHls && Hls.isSupported()) {
+    currentHls = new Hls({
+      enableWorker: true,
+      lowLatencyMode: false,
+      backBufferLength: 90
+    });
+    currentHls.loadSource(targetUrl);
+    currentHls.attachMedia(videoEl);
+
+    currentHls.on(Hls.Events.MANIFEST_PARSED, () => {
+      videoOverlay.classList.add('hidden');
+      videoEl.play().catch(e => console.log('Autoplay blocked:', e));
+    });
+
+    currentHls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        console.warn('HLS Fatal Error:', data);
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            statusMsg.innerHTML = `<span style="color:var(--red)">Kendala jaringan stream. Mencoba memulihkan...</span>`;
+            currentHls.startLoad();
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            currentHls.recoverMediaError();
+            break;
+          default:
+            statusMsg.innerHTML = `<span style="color:var(--red)">Stream gagal diputar. Silakan pilih sumber lain di sebelah kanan.</span>`;
+            currentHls.destroy();
+            break;
+        }
+      }
+    });
+
+  } else {
+    // Direct MP4 or native HLS (Safari)
+    videoEl.src = targetUrl;
+    videoEl.onloadeddata = () => {
+      videoOverlay.classList.add('hidden');
+      videoEl.play().catch(e => console.log('Autoplay blocked:', e));
+    };
+    videoEl.onerror = () => {
+      statusMsg.innerHTML = `<span style="color:var(--red)">Gagal memuat file video langsung. Coba sumber stream lain.</span>`;
+    };
+  }
+}
+
+// Subtitles Handling
+function onSubChange(url) {
+  while (videoEl.firstChild) videoEl.removeChild(videoEl.firstChild);
+  if (!url) return;
+  const opt = document.getElementById('subsSelect').selectedOptions[0];
+  const label = opt ? opt.innerText : 'Subtitle';
+  attachSubtitle(url, 'id', label);
+}
+
+function attachSubtitle(url, lang = 'id', label = 'Bahasa Indonesia') {
+  // Remove existing track elements
+  const existing = videoEl.querySelectorAll('track');
+  existing.forEach(t => t.remove());
+
+  const track = document.createElement('track');
+  track.kind = 'subtitles';
+  track.label = label;
+  track.srclang = lang;
+  track.src = url;
+  track.default = true;
+  videoEl.appendChild(track);
+
+  // Force subtitle track active
+  setTimeout(() => {
+    for (let i = 0; i < videoEl.textTracks.length; i++) {
+      videoEl.textTracks[i].mode = 'showing';
+    }
+  }, 500);
+}
+
+function toggleDebug() {
+  document.getElementById('debugCode').classList.toggle('open');
+}
+</script>
+</body>
+</html>
