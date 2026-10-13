@@ -1671,7 +1671,13 @@
      */
     function getPlayableUrl(ch, forceDirect = false) {
       const rawUrl = (ch._activeUrl || ch.stream_url || '').trim();
-      if (rawUrl.startsWith('<iframe') || forceDirect) return rawUrl;
+      if (rawUrl.startsWith('<iframe')) return rawUrl;
+
+      // forceDirect ("proxy returned 404, try direct") can't actually bypass the proxy for an
+      // http:// stream on this https page — the browser blocks that as mixed content regardless,
+      // so that fallback would be guaranteed to fail. Keep proxying it in that one case.
+      const isMixedContentUrl = location.protocol === 'https:' && rawUrl.startsWith('http:');
+      if (forceDirect && !isMixedContentUrl) return rawUrl;
 
       const keyStr = (ch.license_key || '').trim();
       const licType = (ch.license_type || '').trim().toLowerCase();
@@ -1683,9 +1689,8 @@
       const customProxyBase = (lsGet('proxy_base_url') || lsGet('dash_proxy_base_url') || window.PROXY_BASE_URL || window.DASH_PROXY_BASE_URL || '').trim();
 
       // Route through proxy if headers are set OR if ClearKey is specified OR if it is a DASH stream
-      // http:// streams are blocked as mixed content on an https page, so they must go through the (https) proxy
-      const isMixedContent = location.protocol === 'https:' && rawUrl.startsWith('http:');
-      const needsProxy = ch._proxyFor === rawUrl || hasCustomHeaders || isClearKey || isDash || isMixedContent;
+      // or http:// on this https page (see isMixedContentUrl above)
+      const needsProxy = ch._proxyFor === rawUrl || hasCustomHeaders || isClearKey || isDash || isMixedContentUrl;
 
       if (!needsProxy && !customProxyBase && !isLocal) {
         console.log('[PLAYBACK] Using direct CDN stream URL (no proxy required):', rawUrl);
@@ -1705,20 +1710,6 @@
 
     let currentDrmState = 'INITIALIZING';
     let activeKeySystem = null;
-
-    function showPlayOverlay(videoEl) {
-      if (videoEl) {
-        videoEl.play().catch(() => {
-          videoEl.muted = true;
-          videoEl.play().catch(() => {});
-        });
-      }
-    }
-
-    function hidePlayOverlay() {
-      const overlay = document.getElementById('playOverlay');
-      if (overlay) overlay.remove();
-    }
 
     /**
      * Main Playback Engine (DASH + ClearKey & HLS + Detailed Diagnostics)
@@ -1818,7 +1809,6 @@
           const licType = (ch.license_type || '').trim().toLowerCase();
           const widevineLicenseUrl = (ch.license_server_url || ch.license_url || (keyStr.startsWith('http') ? keyStr : '')).trim();
 
-          const isFubo = (ch.name || '').toUpperCase().includes('FUBO');
 
           const protData = {};
 
@@ -1834,7 +1824,7 @@
               priority: 0
             };
           } else if (widevineLicenseUrl) {
-            console.log('[DRM Debug] Configured Widevine License Server URL:', widevineLicenseUrl);
+            console.log('[DRM Debug] Widevine license server configured:', widevineLicenseUrl ? '(set, hidden)' : '(none)');
             protData["com.widevine.alpha"] = { "serverURL": widevineLicenseUrl };
             protData["com.microsoft.playready"] = { "serverURL": widevineLicenseUrl };
           }
@@ -1843,105 +1833,14 @@
           console.log('1. Database Channel Name:', ch.name);
           console.log('2. Database license_type:', ch.license_type || '(none)');
           console.log('3. Database license_key:', ch.license_key ? '(set, hidden)' : '(none)');
-          console.log('4. Database license_server_url:', ch.license_server_url || '(none)');
+          console.log('4. Database license_server_url:', ch.license_server_url ? '(set, hidden)' : '(none)');
           console.log('5. Protection systems passed to dash.js:', Object.keys(protData));
 
           if (Object.keys(protData).length > 0) {
             dashPlayer.setProtectionData(protData);
           }
 
-          /**
-           * Read-only ISO BMFF PSSH Box Parser for EME initData inspection
-           */
-          function parseIsoBmffPssh(initData) {
-            if (!initData) return;
-            const buffer = initData.buffer ? initData.buffer.slice(initData.byteOffset, initData.byteOffset + initData.byteLength) : initData;
-            const view = new DataView(buffer);
-            let offset = 0;
-            let boxIndex = 1;
-
-            const drmMap = {
-              "9a04f079-9840-4286-ab92-e65be0885f95": "PlayReady",
-              "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed": "Widevine",
-              "e2719d58-a985-b3c9-781a-b030af78d30e": "ClearKey",
-              "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b": "Common PSSH"
-            };
-
-            const containerTypes = new Set(["moov", "moof", "trak", "mdia", "minf", "stbl", "stsd", "sinf", "schi"]);
-
-            while (offset + 8 <= view.byteLength) {
-              let size = view.getUint32(offset);
-              const typeInt = view.getUint32(offset + 4);
-              const typeStr = String.fromCharCode(
-                (typeInt >> 24) & 0xff,
-                (typeInt >> 16) & 0xff,
-                (typeInt >> 8) & 0xff,
-                typeInt & 0xff
-              );
-
-              let headerSize = 8;
-              if (size === 1 && offset + 16 <= view.byteLength) {
-                const high = view.getUint32(offset + 8);
-                const low = view.getUint32(offset + 12);
-                size = (high * 0x100000000) + low;
-                headerSize = 16;
-              } else if (size === 0) {
-                size = view.byteLength - offset;
-              }
-
-              if (size < 8 || offset + size > view.byteLength) break;
-
-              if (typeStr === "pssh" && offset + 28 <= view.byteLength) {
-                const version = view.getUint8(offset + 8);
-
-                let sysIdHex = '';
-                for (let i = 0; i < 16; i++) {
-                  sysIdHex += view.getUint8(offset + 12 + i).toString(16).padStart(2, '0');
-                }
-
-                const uuid = [
-                  sysIdHex.slice(0, 8),
-                  sysIdHex.slice(8, 12),
-                  sysIdHex.slice(12, 16),
-                  sysIdHex.slice(16, 20),
-                  sysIdHex.slice(20, 32)
-                ].join('-');
-
-                const drmName = drmMap[uuid.toLowerCase()] || "Unknown System ID";
-                console.log(`[FUBO PSSH] #${boxIndex} systemId=${uuid} (${drmName}) size=${size} version=${version}`);
-                boxIndex++;
-                offset += size;
-              } else if (containerTypes.has(typeStr)) {
-                offset += headerSize;
-              } else {
-                offset += size;
-              }
-            }
-          }
-
-          // Native EME encrypted event listener for FUBO raw EME inspection
-          video.addEventListener("encrypted", async (e) => {
-            if (isFubo) {
-              console.log("[FUBO RAW EME] initDataType:", e.initDataType);
-              console.log("[FUBO RAW EME] initData byteLength:", e.initData ? e.initData.byteLength : 0);
-              if (e.initData) {
-                parseIsoBmffPssh(e.initData);
-              }
-            }
-          });
-
           dashPlayer.initialize(video, playableUrl, true);
-
-          // Media element readyState & error diagnostics for FUBO
-          video.onloadeddata = () => {
-            if (isFubo) console.log('[FUBO DIAGNOSTICS] video.readyState onloadeddata:', video.readyState);
-          };
-          video.oncanplay = () => {
-            if (isFubo) console.log('[FUBO DIAGNOSTICS] video.readyState oncanplay:', video.readyState);
-          };
-          video.onerror = () => {
-            if (isFubo) console.warn('[FUBO DIAGNOSTICS] video.error:', video.error);
-          };
 
           dashPlayer.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function (e) {
             const schemes = [];
@@ -1985,13 +1884,6 @@
               if (hasWidevinePssh) console.log('🔍 System ID in initData: Widevine (edef8ba9-79d6-4ace-a3c8-27dcd51d21ed)');
               if (hasClearkeyPssh) console.log('🔍 System ID in initData: W3C ClearKey (1077efec-c0b2-4d02-ace3-3c1e52e2fb4b)');
               if (hasPlayreadyPssh) console.log('🔍 System ID in initData: PlayReady (9a04f079-9840-4286-ab92-e65be0885f95)');
-
-              if (isFubo) {
-                console.log('[FUBO RAW ENCRYPTED EVENT] initDataType:', initDataType, '| PlayReady:', hasPlayreadyPssh, '| Widevine:', hasWidevinePssh, '| Common PSSH:', hasClearkeyPssh);
-                if ((hasPlayreadyPssh || hasWidevinePssh) && !hasClearkeyPssh) {
-                  console.warn('⚠️ [BROWSER_CLEARKEY_INITDATA_UNAVAILABLE]: playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
-                }
-              }
             });
           }
 
@@ -2012,7 +1904,7 @@
             if (activeKeySystem === 'org.w3.clearkey') {
               console.log('✅ CLEARKEY SELECTED: dash.js configured and initialized org.w3.clearkey successfully.');
             } else if (activeKeySystem === 'com.widevine.alpha' || activeKeySystem === 'com.microsoft.playready') {
-              if (isFubo && !widevineLicenseUrl && (licType === 'org.w3.clearkey' || keyStr.includes(':'))) {
+              if (!widevineLicenseUrl && (licType === 'org.w3.clearkey' || keyStr.includes(':'))) {
                 currentDrmState = 'BROWSER_CLEARKEY_INITDATA_UNAVAILABLE';
                 console.warn('⚠️ BROWSER_CLEARKEY_INITDATA_UNAVAILABLE: Playlist metadata specifies ClearKey, but media initialization data exposes PlayReady/Widevine only.');
                 showToast('🔒 Siaran ini hanya kompatibel dengan Player Native (TiviMate/Kodi) atau memerlukan source yang kompatibel dengan browser.');
@@ -2033,13 +1925,11 @@
           if (dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED) {
             dashPlayer.on(dashjs.MediaPlayer.events.KEY_STATUSES_CHANGED, function (e) {
               console.log('[DRM KEY_STATUSES_CHANGED]:', e.data);
-              if (isFubo) console.log('[FUBO TEST RESULT] KEY_STATUSES_CHANGED:', e.data);
             });
           }
 
           dashPlayer.on(dashjs.MediaPlayer.events.KEY_SESSION_CREATED, function (e) {
             const keyId = e.data?.keyId || e.keyId || (e.data?.session?.keyId);
-            if (isFubo) console.log('[FUBO TEST RESULT] KEY_SESSION_CREATED:', e.data);
 
             if (activeKeySystem === 'org.w3.clearkey' && keyId && String(keyId) !== 'undefined') {
               currentDrmState = 'CLEARKEY_OK';
@@ -2245,7 +2135,6 @@
     }
 
     function destroyPlayers() {
-      hidePlayOverlay();
       currentDrmState = 'INITIALIZING';
       activeKeySystem = null;
       if (hlsPlayer) {

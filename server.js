@@ -7,6 +7,7 @@ const { assertSafeTarget, safeLookup, isAllowedOrigin } = require('./api/_safe-u
 const epg = require('./api/_epg');
 
 const PORT = process.env.PORT || 8000;
+const MAX_MANIFEST_BYTES = 5 * 1024 * 1024; // same cap as api/dash-proxy.js
 const PUBLIC_DIR = __dirname;
 
 const MIME_TYPES = {
@@ -320,10 +321,6 @@ function fetchUpstream(targetUrlStr, clientReq, customHeaders, redirectCount, ca
   if (clientReq.headers['range']) {
     reqHeaders['Range'] = clientReq.headers['range'];
   }
-  if (clientReq.headers['authorization']) {
-    reqHeaders['Authorization'] = clientReq.headers['authorization'];
-  }
-
   const options = {
     hostname: parsedUrl.hostname,
     port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
@@ -331,8 +328,7 @@ function fetchUpstream(targetUrlStr, clientReq, customHeaders, redirectCount, ca
     method: clientReq.method || 'GET',
     headers: reqHeaders,
     timeout: 12000,
-    lookup: safeLookup,
-    rejectUnauthorized: false
+    lookup: safeLookup
   };
 
   const upstreamReq = lib.request(options, (upstreamRes) => {
@@ -347,7 +343,15 @@ function fetchUpstream(targetUrlStr, clientReq, customHeaders, redirectCount, ca
 
     if (isManifest || upstreamRes.statusCode >= 400) {
       const chunks = [];
-      upstreamRes.on('data', chunk => chunks.push(chunk));
+      let total = 0;
+      upstreamRes.on('data', chunk => {
+        total += chunk.length;
+        if (total > MAX_MANIFEST_BYTES) {
+          upstreamRes.destroy(new Error('Upstream response too large'));
+          return;
+        }
+        chunks.push(chunk);
+      });
       upstreamRes.on('end', () => {
         const bodyBuffer = Buffer.concat(chunks);
         safeCallback(null, upstreamRes, targetUrlStr, bodyBuffer);

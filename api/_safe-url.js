@@ -28,9 +28,11 @@ function isPrivateIP(ip) {
   if (net.isIPv4(ip)) return isPrivateIPv4(ip);
   if (net.isIPv6(ip)) {
     const l = ip.toLowerCase();
-    const mapped = l.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isPrivateIPv4(mapped[1]);
-    const hex = l.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    // Covers both IPv4-mapped (::ffff:a.b.c.d) and the older IPv4-compatible (::a.b.c.d) forms
+    const dotted = l.match(/^::(?:ffff:)?(\d+\.\d+\.\d+\.\d+)$/);
+    if (dotted) return isPrivateIPv4(dotted[1]);
+    // Same two forms written as hex groups instead of a dotted quad, e.g. ::ffff:7f00:1 or ::7f00:1
+    const hex = l.match(/^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
     if (hex) {
       const hi = parseInt(hex[1], 16), lo = parseInt(hex[2], 16);
       return isPrivateIPv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
@@ -38,6 +40,7 @@ function isPrivateIP(ip) {
     return (
       l === '::' ||
       l === '::1' ||
+      l.startsWith('64:ff9b:') || // NAT64 well-known prefix, also embeds an IPv4 address
       l.startsWith('fc') ||
       l.startsWith('fd') ||
       l.startsWith('fe8') ||
@@ -93,7 +96,10 @@ function safeLookup(hostname, options, callback) {
   });
 }
 
-const ALLOWED_ORIGIN_RE = /^(localhost|127\.0\.0\.1|\[::1\]|anvicreate\.web\.id|([a-z0-9-]+\.)*vercel\.app)$/i;
+// Scoped to this project's own Vercel deployments (production + its preview aliases, which all
+// start with "remapermadii"), not every *.vercel.app site — a bare wildcard would let any other
+// Vercel-hosted site use this proxy as a free, SSRF-guarded fetch relay.
+const ALLOWED_ORIGIN_RE = /^(localhost|127\.0\.0\.1|\[::1\]|anvicreate\.web\.id|remapermadii(-[a-z0-9-]+)?\.vercel\.app)$/i;
 
 /** True if a browser Origin header may use the proxy. Missing Origin (native players, curl) is allowed. */
 function isAllowedOrigin(origin, requestHost) {
