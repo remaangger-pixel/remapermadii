@@ -1,62 +1,722 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live Sports – Remapermadii</title>
-  <meta name="description" content="Live sports streaming page powered by AmayStream integration." />
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: #0d0d0d;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    header {
-      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-      padding: 1rem 2rem;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    h1 { margin: 0; font-size: 2rem; }
-    .iframe-wrapper {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
-    }
-    iframe {
-      border: none;
-      width: 100%;
-      max-width: 1200px;
-      height: 80vh;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    }
-    footer {
-      text-align: center;
-      padding: 0.5rem;
-      font-size: 0.9rem;
-      background: #111;
-    }
-    a { color: #60a5fa; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Live Sports – Anvi</title>
+<meta name="description" content="Tonton pertandingan olahraga live secara gratis. Sepak bola, basket, F1, tinju, dan banyak lagi."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0a0a;
+  --surface:#141414;
+  --surface2:#1c1c1c;
+  --surface3:#252525;
+  --red:#e50914;
+  --red-hover:#f40612;
+  --green:#22c55e;
+  --blue:#3b82f6;
+  --text:#ffffff;
+  --text-dim:rgba(255,255,255,0.65);
+  --text-muted:rgba(255,255,255,0.35);
+  --border:rgba(255,255,255,0.08);
+  --sport-accent:#f97316;
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  overflow-x:hidden;
+  opacity:0;animation:bodyIn 0.5s ease 0.05s forwards;
+}
+@keyframes bodyIn{to{opacity:1;}}
+
+/* ── HEADER ── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:900;
+  height:68px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 4%;
+  background:rgba(10,10,10,0.95);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:32px;letter-spacing:2px;color:var(--red);
+  cursor:pointer;user-select:none;
+  text-shadow:0 0 30px rgba(229,9,20,0.4);
+  text-decoration:none;
+}
+.logo span{color:var(--sport-accent);}
+.header-nav{display:flex;align-items:center;gap:8px;}
+.nav-btn{
+  background:transparent;border:none;
+  color:var(--text-dim);font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:13px;font-weight:500;
+  padding:8px 16px;border-radius:4px;
+  cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;
+}
+.nav-btn:hover{color:var(--text);background:rgba(255,255,255,0.06);}
+.nav-btn.active{color:#fff;background:rgba(249,115,22,0.15);color:var(--sport-accent);}
+
+/* ── HERO BANNER ── */
+.sport-hero{
+  margin-top:68px;
+  background:linear-gradient(135deg,#0f0f1a 0%,#1a0a0a 50%,#0a0f0a 100%);
+  padding:60px 4% 50px;
+  position:relative;overflow:hidden;
+  border-bottom:1px solid var(--border);
+}
+.sport-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(249,115,22,0.12) 0%,transparent 60%),
+              radial-gradient(ellipse 50% 80% at 80% 50%,rgba(229,9,20,0.08) 0%,transparent 60%);
+}
+.hero-inner{position:relative;z-index:2;max-width:700px;}
+.live-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);
+  color:var(--green);border-radius:20px;
+  padding:5px 14px;font-size:12px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:18px;
+}
+.live-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--green);
+  animation:pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,0.4);}50%{opacity:0.8;box-shadow:0 0 0 6px rgba(34,197,94,0);}}
+.hero-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(48px,7vw,80px);line-height:0.95;letter-spacing:2px;
+  margin-bottom:14px;
+}
+.hero-title span{color:var(--sport-accent);}
+.hero-sub{
+  color:var(--text-dim);font-size:15px;line-height:1.6;
+  max-width:480px;margin-bottom:0;
+}
+.hero-stats{
+  display:flex;gap:28px;margin-top:28px;
+}
+.stat{display:flex;flex-direction:column;gap:3px;}
+.stat-num{font-size:26px;font-weight:800;color:var(--sport-accent);}
+.stat-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* ── FILTER BAR ── */
+.filter-bar{
+  position:sticky;top:68px;z-index:800;
+  background:rgba(10,10,10,0.97);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:0 4%;
+  display:flex;align-items:center;gap:8px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  height:56px;
+}
+.filter-bar::-webkit-scrollbar{display:none;}
+.filter-chip{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 16px;border-radius:20px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text-dim);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:13px;font-weight:600;
+  cursor:pointer;transition:all 0.2s;
+  white-space:nowrap;flex-shrink:0;
+}
+.filter-chip:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.filter-chip.active{
+  background:var(--sport-accent);
+  border-color:var(--sport-accent);
+  color:#fff;
+  box-shadow:0 0 16px rgba(249,115,22,0.35);
+}
+.chip-emoji{font-size:15px;}
+
+/* ── MAIN CONTENT ── */
+.main{padding:32px 4% 80px;}
+
+/* ── SECTION HEADER ── */
+.section-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;
+}
+.section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;letter-spacing:1px;
+}
+.count-badge{
+  background:var(--surface3);
+  color:var(--text-muted);
+  font-size:12px;font-weight:700;
+  padding:3px 10px;border-radius:10px;
+}
+
+/* ── MATCH GRID ── */
+.match-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:16px;
+  margin-bottom:48px;
+}
+
+/* ── MATCH CARD ── */
+.match-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  cursor:pointer;
+  transition:all 0.25s;
+  position:relative;
+}
+.match-card:hover{
+  border-color:rgba(249,115,22,0.4);
+  transform:translateY(-3px);
+  box-shadow:0 12px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(249,115,22,0.1);
+}
+.match-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--sport-accent),var(--red));
+  opacity:0;transition:opacity 0.25s;
+}
+.match-card:hover::before{opacity:1;}
+
+.card-sport-tag{
+  padding:10px 14px 0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sport-label{
+  font-size:11px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--sport-accent);
+  display:flex;align-items:center;gap:6px;
+}
+.live-tag{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);
+  color:var(--green);border-radius:10px;
+  padding:3px 9px;font-size:11px;font-weight:700;
+}
+.live-tag .live-dot{width:6px;height:6px;}
+
+.card-body{padding:14px 14px 16px;}
+.teams{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;margin-bottom:12px;
+}
+.team{
+  display:flex;flex-direction:column;align-items:center;
+  gap:8px;flex:1;text-align:center;
+}
+.team-badge{
+  width:50px;height:50px;border-radius:50%;
+  background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;border:2px solid var(--border);
+  overflow:hidden;
+}
+.team-badge img{width:100%;height:100%;object-fit:contain;border-radius:50%;}
+.team-name{
+  font-size:13px;font-weight:700;line-height:1.2;
+  max-width:90px;
+}
+.vs-block{
+  display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;
+}
+.vs-text{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;color:var(--text-muted);letter-spacing:1px;
+}
+.match-time{
+  font-size:11px;color:var(--text-muted);white-space:nowrap;
+}
+
+.card-footer{
+  padding:10px 14px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.source-info{
+  font-size:11px;color:var(--text-muted);
+  display:flex;align-items:center;gap:5px;
+}
+.watch-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--sport-accent);color:#fff;
+  border:none;border-radius:6px;
+  padding:7px 14px;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all 0.2s;font-family:'Plus Jakarta Sans',sans-serif;
+}
+.watch-btn:hover{background:#ea6c10;transform:scale(1.03);}
+.watch-btn svg{width:13px;height:13px;fill:#fff;}
+
+/* ── UPCOMING SECTION ── */
+.upcoming-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+  display:flex;align-items:center;gap:16px;
+  cursor:default;transition:background 0.2s;
+}
+.upcoming-card:hover{background:var(--surface2);}
+.upcoming-time-col{
+  min-width:70px;text-align:center;flex-shrink:0;
+}
+.upcoming-time{font-weight:800;font-size:16px;color:var(--sport-accent);}
+.upcoming-date{font-size:11px;color:var(--text-muted);}
+.upcoming-divider{width:1px;height:40px;background:var(--border);}
+.upcoming-info{flex:1;}
+.upcoming-sport{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
+.upcoming-teams{font-size:14px;font-weight:700;}
+.upcoming-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:48px;}
+
+/* ── PLAYER OVERLAY ── */
+.player-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.95);
+  backdrop-filter:blur(8px);
+  display:none;flex-direction:column;
+  animation:fadeIn 0.25s ease;
+}
+.player-overlay.open{display:flex;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.player-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(10,10,10,0.9);
+  flex-shrink:0;
+}
+.player-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;}
+.player-close{
+  background:var(--surface2);border:none;color:#fff;
+  width:36px;height:36px;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.player-close:hover{background:var(--red);}
+.player-close svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;}
+.player-sources{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(10,10,10,0.7);
+  overflow-x:auto;flex-shrink:0;
+}
+.source-btn{
+  padding:7px 16px;border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--surface2);color:var(--text-dim);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;
+  transition:all 0.2s;white-space:nowrap;
+}
+.source-btn:hover{border-color:var(--sport-accent);color:var(--text);}
+.source-btn.active{background:var(--sport-accent);border-color:var(--sport-accent);color:#fff;}
+.player-body{flex:1;display:flex;position:relative;}
+.player-iframe{width:100%;height:100%;border:none;}
+.player-loading{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;color:var(--text-muted);
+}
+.spinner{
+  width:44px;height:44px;border:3px solid var(--surface3);
+  border-top-color:var(--sport-accent);border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── EMPTY / ERROR ── */
+.empty-state{
+  text-align:center;padding:80px 20px;color:var(--text-muted);
+}
+.empty-state .icon{font-size:56px;margin-bottom:16px;}
+.empty-state h3{font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text-dim);}
+.empty-state p{font-size:14px;line-height:1.6;}
+.retry-btn{
+  margin-top:20px;padding:10px 24px;
+  background:var(--sport-accent);color:#fff;
+  border:none;border-radius:6px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:background 0.2s;
+}
+.retry-btn:hover{background:#ea6c10;}
+
+/* ── SKELETON ── */
+.skeleton{
+  background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;
+  border-radius:8px;
+}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.skel-card{height:180px;border-radius:12px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .match-grid{grid-template-columns:1fr;}
+  .hero-stats{gap:20px;}
+  .stat-num{font-size:22px;}
+  .header-nav .nav-btn:not(.active){display:none;}
+}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Live Sports</h1>
-  </header>
-  <div class="iframe-wrapper">
-    <!-- Embed AmayStream sports page -->
-    <iframe src="https://amaystream.vercel.app/sports" loading="lazy" allowfullscreen></iframe>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" class="logo">ANVI <span>SPORTS</span></a>
+  <div class="header-nav">
+    <a href="index.html" class="nav-btn">Beranda</a>
+    <a href="movies.html" class="nav-btn">Film</a>
+    <a href="tv.html" class="nav-btn">Live TV</a>
+    <a href="sports.html" class="nav-btn active">Sports</a>
   </div>
-  <footer>
-    <p>Powered by <a href="https://amaystream.vercel.app" target="_blank" rel="noopener">AmayStream</a>.</p>
-  </footer>
+</header>
+
+<!-- HERO -->
+<section class="sport-hero">
+  <div class="hero-inner">
+    <div class="live-pill"><span class="live-dot"></span> LIVE SEKARANG</div>
+    <h1 class="hero-title">Live <span>Sports</span><br>Streaming</h1>
+    <p class="hero-sub">Tonton pertandingan favorit kamu secara langsung. Sepak bola, basket, F1, tinju, dan olahraga lainnya.</p>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num" id="liveCount">–</span><span class="stat-label">Live Sekarang</span></div>
+      <div class="stat"><span class="stat-num" id="sportsCount">–</span><span class="stat-label">Kategori</span></div>
+      <div class="stat"><span class="stat-num" id="upcomingCount">–</span><span class="stat-label">Segera</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" id="filterBar">
+  <button class="filter-chip active" data-sport="all" onclick="filterSport('all',this)">
+    <span class="chip-emoji">🏆</span> Semua
+  </button>
+  <!-- chips injected by JS -->
+</div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- LIVE NOW -->
+  <div class="section-header">
+    <h2 class="section-title">🔴 Live Sekarang</h2>
+    <span class="count-badge" id="liveBadge">0</span>
+  </div>
+  <div class="match-grid" id="liveGrid">
+    <!-- skeletons -->
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+  </div>
+
+  <!-- UPCOMING -->
+  <div class="section-header" id="upcomingHeader" style="display:none;">
+    <h2 class="section-title">📅 Segera Berlangsung</h2>
+    <span class="count-badge" id="upcomingBadge">0</span>
+  </div>
+  <div class="upcoming-grid" id="upcomingGrid"></div>
+
+</main>
+
+<!-- PLAYER OVERLAY -->
+<div class="player-overlay" id="playerOverlay">
+  <div class="player-header">
+    <div class="player-title" id="playerTitle">Live Sports</div>
+    <button class="player-close" onclick="closePlayer()">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="player-sources" id="playerSources"></div>
+  <div class="player-body">
+    <div class="player-loading" id="playerLoading">
+      <div class="spinner"></div>
+      <span>Memuat stream...</span>
+    </div>
+    <iframe class="player-iframe" id="playerIframe" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const STREAMED_BASE = 'https://streamed.su';
+const EMBED_BASE    = 'https://embedstreams.top/embed';
+
+// sport emoji map
+const SPORT_EMOJI = {
+  football:'⚽',soccer:'⚽',basketball:'🏀',tennis:'🎾',
+  baseball:'⚾',hockey:'🏒',rugby:'🏉',cricket:'🏏',
+  'american-football':'🏈',golf:'⛳',boxing:'🥊',mma:'🥋',
+  wrestling:'🤼',cycling:'🚴',motorsport:'🏎️',f1:'🏎️',
+  volleyball:'🏐',swimming:'🏊',athletics:'🏃',
+};
+function getSportEmoji(sport=''){
+  return SPORT_EMOJI[sport.toLowerCase()] || '🏆';
+}
+function capFirst(s=''){return s.charAt(0).toUpperCase()+s.slice(1).replace(/-/g,' ');}
+
+// ── STATE ──
+let allLive     = [];
+let allUpcoming = [];
+let activeFilter = 'all';
+
+// ── FETCH LIVE MATCHES ──
+async function fetchMatches(){
+  const endpoints = [
+    `${STREAMED_BASE}/api/matches/live/popular`,
+    `${STREAMED_BASE}/api/matches/all`,
+  ];
+  // try both endpoints
+  for(const url of endpoints){
+    try{
+      const r = await fetch(url,{signal:AbortSignal.timeout(8000)});
+      if(!r.ok) continue;
+      const data = await r.json();
+      return Array.isArray(data) ? data : [];
+    }catch(_){}
+  }
+  return null;
+}
+
+// ── RENDER ──
+function buildSportChips(matches){
+  const sports = [...new Set(matches.map(m=>m.sport||m.category||'').filter(Boolean))];
+  const bar = document.getElementById('filterBar');
+  sports.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className='filter-chip';
+    btn.dataset.sport=s;
+    btn.innerHTML=`<span class="chip-emoji">${getSportEmoji(s)}</span> ${capFirst(s)}`;
+    btn.onclick=()=>filterSport(s,btn);
+    bar.appendChild(btn);
+  });
+  document.getElementById('sportsCount').textContent = sports.length || '–';
+}
+
+function teamBadgeHtml(team={}){
+  if(team.badge||team.logo||team.image){
+    const src = team.badge||team.logo||team.image;
+    return `<div class="team-badge"><img src="${src}" alt="${team.name||''}" onerror="this.parentElement.textContent='${getSportEmoji()}'"/></div>`;
+  }
+  const emoji = getSportEmoji();
+  return `<div class="team-badge">${emoji}</div>`;
+}
+
+function matchTimeHtml(match){
+  if(match.date||match.time){
+    const d = new Date((match.date||match.time)*1000);
+    return d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'})+' WIB';
+  }
+  return 'Sedang Live';
+}
+
+function renderLiveCard(match){
+  const home = match.teams?.home || match.home || {name: match.title||'Home'};
+  const away = match.teams?.away || match.away || {name:'Away'};
+  const sport = match.sport||match.category||'sport';
+  const hasStreams = match.sources?.length || match.streams?.length || match.id;
+
+  const card = document.createElement('div');
+  card.className='match-card';
+  card.dataset.sport=sport;
+  card.innerHTML=`
+    <div class="card-sport-tag">
+      <span class="sport-label">${getSportEmoji(sport)} ${capFirst(sport)}</span>
+      <span class="live-tag"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div class="card-body">
+      <div class="teams">
+        <div class="team">
+          ${teamBadgeHtml(home)}
+          <span class="team-name">${home.name||'Home'}</span>
+        </div>
+        <div class="vs-block">
+          <span class="vs-text">VS</span>
+          <span class="match-time">${matchTimeHtml(match)}</span>
+        </div>
+        <div class="team">
+          ${teamBadgeHtml(away)}
+          <span class="team-name">${away.name||'Away'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <span class="source-info">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+        ${match.sources?.length||match.streams?.length||1} sumber
+      </span>
+      ${hasStreams?`<button class="watch-btn" onclick="openMatch(event,'${match.id}','${escape(home.name||'Home')} vs ${escape(away.name||'Away')}','${sport}')">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> Tonton
+      </button>`:'<span style="font-size:12px;color:var(--text-muted)">Belum tersedia</span>'}
+  `;
+  return card;
+}
+
+function renderUpcomingCard(match){
+  const home = match.teams?.home||match.home||{name:match.title||'TBA'};
+  const away = match.teams?.away||match.away||{name:'TBA'};
+  const sport = match.sport||match.category||'sport';
+  const d = match.date||match.time ? new Date((match.date||match.time)*1000) : null;
+
+  const card = document.createElement('div');
+  card.className='upcoming-card';
+  card.dataset.sport=sport;
+  card.innerHTML=`
+    <div class="upcoming-time-col">
+      <div class="upcoming-time">${d?d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jakarta'}):'TBA'}</div>
+      <div class="upcoming-date">${d?d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',timeZone:'Asia/Jakarta'}):'–'}</div>
+    </div>
+    <div class="upcoming-divider"></div>
+    <div class="upcoming-info">
+      <div class="upcoming-sport">${getSportEmoji(sport)} ${capFirst(sport)}</div>
+      <div class="upcoming-teams">${home.name||'Home'} vs ${away.name||'Away'}</div>
+    </div>
+  `;
+  return card;
+}
+
+function filterSport(sport, el){
+  activeFilter = sport;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+
+  const liveCards = document.querySelectorAll('#liveGrid .match-card');
+  liveCards.forEach(c=>{
+    c.style.display = (sport==='all'||c.dataset.sport===sport) ? '' : 'none';
+  });
+  const upCards = document.querySelectorAll('#upcomingGrid .upcoming-card');
+  upCards.forEach(c=>{
+    c.style.display = (sport==='all'||c.dataset.sport===sport) ? '' : 'none';
+  });
+}
+
+async function init(){
+  const data = await fetchMatches();
+
+  const liveGrid = document.getElementById('liveGrid');
+  const upcomingGrid = document.getElementById('upcomingGrid');
+  liveGrid.innerHTML='';
+
+  if(!data){
+    liveGrid.innerHTML=`
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">📡</div>
+        <h3>Gagal Memuat</h3>
+        <p>Tidak dapat mengambil data pertandingan.<br>Coba refresh halaman.</p>
+        <button class="retry-btn" onclick="init()">↺ Coba Lagi</button>
+      </div>`;
+    return;
+  }
+
+  const now = Date.now()/1000;
+  const live = data.filter(m=>m.popular||m.live||(m.status==='live')||(m.date&&m.date<=now+300&&(!m.endDate||m.endDate>now)));
+  const upcoming = data.filter(m=>!live.includes(m)&&m.date&&m.date>now).slice(0,12);
+
+  allLive = live.length ? live : data.slice(0,12);
+  allUpcoming = upcoming;
+
+  // stats
+  document.getElementById('liveCount').textContent = allLive.length;
+  document.getElementById('upcomingCount').textContent = upcoming.length||'–';
+  document.getElementById('liveBadge').textContent = allLive.length;
+  document.getElementById('upcomingBadge').textContent = upcoming.length;
+
+  if(allLive.length===0){
+    liveGrid.innerHTML=`
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">⏸️</div>
+        <h3>Tidak Ada Pertandingan Live</h3>
+        <p>Saat ini tidak ada pertandingan yang sedang berlangsung.<br>Cek bagian "Segera Berlangsung" di bawah.</p>
+      </div>`;
+  } else {
+    allLive.forEach(m=>liveGrid.appendChild(renderLiveCard(m)));
+  }
+
+  if(upcoming.length){
+    document.getElementById('upcomingHeader').style.display='flex';
+    upcoming.forEach(m=>upcomingGrid.appendChild(renderUpcomingCard(m)));
+  }
+
+  buildSportChips([...allLive,...allUpcoming]);
+}
+
+// ── PLAYER ──
+async function openMatch(e, matchId, title, sport){
+  e.stopPropagation();
+  document.getElementById('playerTitle').textContent = unescape(title);
+  document.getElementById('playerOverlay').classList.add('open');
+  document.getElementById('playerLoading').style.display='flex';
+  document.getElementById('playerIframe').src='';
+  document.getElementById('playerSources').innerHTML='';
+  document.body.style.overflow='hidden';
+
+  // fetch match detail for sources
+  let sources = [];
+  try{
+    const r = await fetch(`${STREAMED_BASE}/api/matches/${matchId}`,{signal:AbortSignal.timeout(6000)});
+    if(r.ok){
+      const d = await r.json();
+      sources = d.sources||d.streams||[];
+    }
+  }catch(_){}
+
+  // fallback: build one default source
+  if(!sources.length){
+    sources=[{id:matchId,source:'streamed',streamNo:1}];
+  }
+
+  const bar = document.getElementById('playerSources');
+  sources.forEach((s,i)=>{
+    const name = s.source||`Sumber ${i+1}`;
+    const btn = document.createElement('button');
+    btn.className='source-btn'+(i===0?' active':'');
+    btn.textContent=name.charAt(0).toUpperCase()+name.slice(1);
+    btn.onclick=()=>loadStream(s,btn,matchId);
+    bar.appendChild(btn);
+  });
+
+  loadStream(sources[0], bar.firstChild, matchId);
+}
+
+function loadStream(source, btn, matchId){
+  document.querySelectorAll('.source-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('playerLoading').style.display='flex';
+
+  const id   = source.id || matchId;
+  const src  = source.source || 'streamed';
+  const num  = source.streamNo || 1;
+
+  // Embed URL pattern from streamed.su
+  const embedUrl = `${EMBED_BASE}/${src}/${id}/${num}`;
+
+  const iframe = document.getElementById('playerIframe');
+  iframe.onload = ()=>{ document.getElementById('playerLoading').style.display='none'; };
+  iframe.src = embedUrl;
+}
+
+function closePlayer(){
+  document.getElementById('playerOverlay').classList.remove('open');
+  document.getElementById('playerIframe').src='';
+  document.body.style.overflow='';
+}
+
+// close on ESC
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePlayer(); });
+
+// ── BOOT ──
+init();
+</script>
 </body>
 </html>
