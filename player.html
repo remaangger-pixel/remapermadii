@@ -914,6 +914,103 @@ let activeSubtitleIndex = -1;
 let currentSubBlobUrl = null;
 let currentSubCues = [];
 let streamsLoaded = false;
+let subFetchToken = 0;   // guards against a slower, superseded subtitle fetch overwriting a newer selection
+let fsTrackEl = null;    // native <track> element, only attached while in fullscreen
+
+function isFullscreenNow() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+/**
+ * Draw the currently active cue (if any) into the custom overlay.
+ * Hidden whenever fullscreen is active — fullscreen uses the native track instead,
+ * since our overlay div lives outside the fullscreened <video> and can't render there.
+ */
+function renderSubtitleOverlay(video) {
+  const overlay = document.getElementById('subOverlay');
+  if (!overlay || !video) return;
+
+  if (isFullscreenNow() || activeSubtitleIndex === -1 || !currentSubCues.length) {
+    overlay.classList.remove('visible');
+    overlay.style.display = 'none';
+    overlay.textContent = '';
+    return;
+  }
+
+  const cur = video.currentTime;
+  const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
+  if (!active) {
+    overlay.classList.remove('visible');
+    setTimeout(() => { if (!overlay.classList.contains('visible')) { overlay.style.display = 'none'; overlay.textContent = ''; } }, 180);
+    return;
+  }
+
+  const lines = active.text
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
+
+  overlay.textContent = '';
+  lines.forEach(l => {
+    const span = document.createElement('span');
+    span.className = 'sub-line';
+    span.textContent = l; // textContent, not innerHTML — subtitle text comes from an external, untrusted source
+    overlay.appendChild(span);
+  });
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+}
+
+/** Remove the native track (if any), disable native rendering, and clear the custom overlay. */
+function teardownSubtitleRendering(video) {
+  if (fsTrackEl) { fsTrackEl.remove(); fsTrackEl = null; }
+  if (video && video.textTracks) {
+    for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = 'disabled';
+  }
+  const overlay = document.getElementById('subOverlay');
+  if (overlay) { overlay.classList.remove('visible'); overlay.style.display = 'none'; overlay.textContent = ''; }
+}
+
+/**
+ * Switch rendering strategy based on fullscreen state:
+ *  - Fullscreen: attach a native <track> in 'showing' mode (styled by the :fullscreen ::cue CSS)
+ *    and hide the custom overlay, since it can't render outside the fullscreened <video>.
+ *  - Normal view: no native track at all (avoids racing the browser's own default-track
+ *    rendering), the custom overlay handles everything via renderSubtitleOverlay().
+ */
+function syncFullscreenSubtitleTrack() {
+  const video = document.getElementById('nativePlayer');
+  if (!video) return;
+
+  if (isFullscreenNow() && activeSubtitleIndex > -1 && currentSubBlobUrl) {
+    if (!fsTrackEl || !video.contains(fsTrackEl)) {
+      video.querySelectorAll('track').forEach(t => t.remove());
+      fsTrackEl = document.createElement('track');
+      fsTrackEl.kind = 'subtitles';
+      const sub = availableSubtitles[activeSubtitleIndex];
+      fsTrackEl.label = sub ? sub.displayLabel : 'Subtitle';
+      fsTrackEl.srclang = (sub && sub.lang) || 'id';
+      fsTrackEl.src = currentSubBlobUrl;
+      video.appendChild(fsTrackEl);
+      const showTrack = () => {
+        if (video.textTracks) for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = 'showing';
+      };
+      fsTrackEl.addEventListener('load', showTrack);
+      setTimeout(showTrack, 150); // fallback: <track> load/error events are unreliable for blob: URLs on some browsers
+    }
+    const overlay = document.getElementById('subOverlay');
+    if (overlay) { overlay.classList.remove('visible'); overlay.style.display = 'none'; overlay.textContent = ''; }
+  } else {
+    if (fsTrackEl) { fsTrackEl.remove(); fsTrackEl = null; }
+    if (video.textTracks) for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = 'disabled';
+    renderSubtitleOverlay(video);
+  }
+}
+
+document.addEventListener('fullscreenchange', syncFullscreenSubtitleTrack);
+document.addEventListener('webkitfullscreenchange', syncFullscreenSubtitleTrack);
 
 function categorizeSubtitles(subsList) {
   if (!Array.isArray(subsList)) return [];
@@ -1014,30 +1111,19 @@ function convertToWebVTT(rawText) {
 }
 
 async function applySubtitle(subObj, index) {
+  const myToken = ++subFetchToken; // invalidates any still-in-flight fetch from an earlier selection
   activeSubtitleIndex = index;
   renderSubtitleDropdown();
 
-  const overlay = document.getElementById('subOverlay');
   const statusBadge = document.getElementById('subStatus');
+  const video = document.getElementById('nativePlayer');
 
   if (currentSubBlobUrl && currentSubBlobUrl.startsWith('blob:')) {
     try { URL.revokeObjectURL(currentSubBlobUrl); } catch(e) {}
-    currentSubBlobUrl = null;
   }
+  currentSubBlobUrl = null;
   currentSubCues = [];
-  if (overlay) overlay.style.display = 'none';
-
-  const video = document.getElementById('nativePlayer');
-  if (video) {
-    const existingTracks = video.querySelectorAll('track');
-    existingTracks.forEach(t => t.remove());
-
-    if (video.textTracks) {
-      for (let i = 0; i < video.textTracks.length; i++) {
-        video.textTracks[i].mode = 'disabled';
-      }
-    }
-  }
+  teardownSubtitleRendering(video);
 
   if (!subObj) {
     if (statusBadge) statusBadge.innerText = 'Nonaktif';
@@ -1057,6 +1143,8 @@ async function applySubtitle(subObj, index) {
       rawText = await proxyRes.text();
     }
 
+    if (myToken !== subFetchToken) return; // a newer subtitle selection has already taken over
+
     if (rawText) {
       currentSubCues = parseSubtitleCues(rawText);
 
@@ -1064,56 +1152,13 @@ async function applySubtitle(subObj, index) {
       const blob = new Blob([vtt], { type: 'text/vtt;charset=utf-8' });
       currentSubBlobUrl = URL.createObjectURL(blob);
 
-      const vid = document.getElementById('nativePlayer');
-      if (vid) {
-        const track = document.createElement('track');
-        track.kind = 'subtitles';
-        track.label = subObj.displayLabel;
-        track.srclang = subObj.lang || 'id';
-        track.src = currentSubBlobUrl;
-        track.default = true;
-
-        track.onload = () => {
-          if (vid.textTracks && vid.textTracks.length > 0) {
-            for (let i = 0; i < vid.textTracks.length; i++) {
-              if (vid.textTracks[i].label === subObj.displayLabel) {
-                vid.textTracks[i].mode = 'showing';
-              } else {
-                vid.textTracks[i].mode = 'disabled';
-              }
-            }
-          }
-        };
-
-        vid.appendChild(track);
-
-        setTimeout(() => {
-          if (vid.textTracks && vid.textTracks.length > 0) {
-            vid.textTracks[0].mode = 'showing';
-          }
-        }, 150);
-
-        // Langsung cek cue pada currentTime saat ini
-        if (overlay && currentSubCues.length > 0) {
-          const cur = vid.currentTime || 0;
-          const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
-          if (active) {
-            const lines = active.text
-              .replace(/<br\s*\/?>/gi, '\n')
-              .replace(/<[^>]+>/g, '')
-              .split('\n')
-              .map(l => l.trim())
-              .filter(l => l.length > 0);
-            overlay.innerHTML = lines.map(l => `<span class="sub-line">${l}</span>`).join('');
-            overlay.style.display = 'flex';
-            requestAnimationFrame(() => overlay.classList.add('visible'));
-          }
-        }
-      }
+      syncFullscreenSubtitleTrack(); // attaches the native track only if currently fullscreen
+      if (video) renderSubtitleOverlay(video); // shows immediately when not fullscreen
 
       if (statusBadge) statusBadge.innerText = 'Aktif: ' + subObj.displayLabel;
     }
   } catch(err) {
+    if (myToken !== subFetchToken) return;
     console.error('Gagal memuat subtitle:', err);
     if (statusBadge) statusBadge.innerText = 'Gagal memuat';
   }
@@ -1187,7 +1232,7 @@ function uploadCustomSubtitle(event) {
       isIndo: true
     };
     availableSubtitles.unshift(customSub);
-    applySubtitle(customSub, 0);
+    applySubtitle(customSub, 0); // re-fetches the blob URL, which also runs it through the same parse/track path as remote subtitles
   };
   reader.readAsText(file);
 }
@@ -1201,6 +1246,7 @@ function playDirectStream(url, type) {
     playerHls.destroy();
     playerHls = null;
   }
+  fsTrackEl = null; // the <video> below is freshly created; any previous track element is gone with it
 
   let targetUrl = resolveStreamUrl(url);
 
@@ -1213,33 +1259,8 @@ function playDirectStream(url, type) {
 
   const video = document.getElementById('nativePlayer');
 
-  // Pasang timeupdate listener untuk subtitle overlay
-  video.ontimeupdate = () => {
-    const overlay = document.getElementById('subOverlay');
-    if (!overlay) return;
-    if (activeSubtitleIndex === -1 || !currentSubCues.length) {
-      overlay.classList.remove('visible');
-      overlay.style.display = 'none';
-      return;
-    }
-    const cur = video.currentTime;
-    const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
-    if (active) {
-      // Render tiap baris cue sebagai elemen .sub-line terpisah agar lebih rapi
-      const lines = active.text
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 0);
-      overlay.innerHTML = lines.map(l => `<span class="sub-line">${l}</span>`).join('');
-      overlay.style.display = 'flex';
-      requestAnimationFrame(() => overlay.classList.add('visible'));
-    } else {
-      overlay.classList.remove('visible');
-      setTimeout(() => { if (!overlay.classList.contains('visible')) overlay.style.display = 'none'; }, 180);
-    }
-  };
+  // Pasang timeupdate listener untuk subtitle overlay (no-op while fullscreen; native track takes over then)
+  video.ontimeupdate = () => renderSubtitleOverlay(video);
 
   // Terapkan subtitle aktif jika sudah terpilih
   if (activeSubtitleIndex > -1 && availableSubtitles[activeSubtitleIndex]) {
