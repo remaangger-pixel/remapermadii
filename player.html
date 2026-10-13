@@ -515,64 +515,7 @@ async function init() {
   const season  = data.season  || 1;
   const episode = data.episode || 1;
 
-  // Dapatkan TMDB ID dari data atau IMDB ID
-  const tmdbId = data.tmdb_id || data.id;
-
   allServers = [];
-
-  // ── Fetch FebBox HLS langsung dari AmayStream API (360/720/1080p) ──
-  try {
-    const amayEndpoint = isMovie
-      ? `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${TMDB_KEY}&cfWorker=${encodeURIComponent(CF_WORKER)}`
-      : `https://amaystream.vercel.app/api/v1/tv?id=${tmdbId}&s=${season}&e=${episode}&tmdbApiKey=${TMDB_KEY}&cfWorker=${encodeURIComponent(CF_WORKER)}`;
-
-    const amayRes = await fetch(amayEndpoint);
-    if (amayRes.ok) {
-      const amayData = await amayRes.json();
-      if (amayData.success && amayData.sources && amayData.sources.length) {
-        // Ambil semua source FebBox, urutkan kualitas tertinggi dulu
-        const qualityOrder = ['1080', '720', '480', '360'];
-        const febboxSources = amayData.sources
-          .filter(src => src.source === 'febbox')
-          .sort((a, b) => {
-            const qa = qualityOrder.findIndex(q => String(a.quality || '').includes(q));
-            const qb = qualityOrder.findIndex(q => String(b.quality || '').includes(q));
-            return (qa === -1 ? 99 : qa) - (qb === -1 ? 99 : qb);
-          });
-
-        if (febboxSources.length > 0) {
-          febboxSources.forEach((src, idx) => {
-            const qLabel = src.quality ? ` ${src.quality}` : (idx === 0 ? ' 1080p' : '');
-            allServers.push({
-              id: `febbox-${idx}`,
-              name: `FebBox${qLabel}`,
-              url: src.url,
-              type: src.type || 'hls'
-            });
-          });
-        } else {
-          // Fallback: ambil source non-febbox terbaik jika ada
-          const bestNonFebbox = amayData.sources.find(s => !s.url.includes('test.workers.dev')) || amayData.sources[0];
-          if (bestNonFebbox) {
-            allServers.push({
-              id: 'amay-best',
-              name: getProviderName(bestNonFebbox.url),
-              url: bestNonFebbox.url,
-              type: bestNonFebbox.type || 'hls'
-            });
-          }
-        }
-
-        // Ambil subtitle dari AmayStream API juga jika belum ada
-        if (amayData.subtitles && amayData.subtitles.length && !availableSubtitles.length) {
-          availableSubtitles = categorizeSubtitles(amayData.subtitles);
-          renderSubtitleDropdown();
-        }
-      }
-    }
-  } catch(e) {
-    console.warn('[FebBox] AmayStream API gagal:', e.message);
-  }
 
   // ── Server dari database (nama otomatis dari URL provider) ──
   if (s1Url) {
@@ -1506,7 +1449,6 @@ async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
 
     // ── 2. Proses Sumber Streaming ──
     if (data.success && data.sources && data.sources.length) {
-      // Filter hanya sumber yang benar-benar aktif & stabil (eliminasi dulo/bluevelvet/workers/streamaggregator)
       const validSources = data.sources.filter(s => {
         if (!s || !s.url) return false;
         const l = (s.label || '').toLowerCase();
@@ -1520,12 +1462,13 @@ async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
         return true;
       });
 
-      // Tambahkan ke allServers SETELAH Server 1 dan Server 2
+      // ── Sisipkan FebBox & VIP sources di PALING ATAS allServers ──
+      const newTopServers = [];
       validSources.slice(0, 4).forEach((s, idx) => {
         const label = `${s.label || s.source || 'VIP Stream'} (${s.quality || 'HD'})`;
         const resolved = resolveStreamUrl(s.url);
         if (!allServers.some(x => x.url === resolved || x.url === s.url)) {
-          allServers.push({
+          newTopServers.push({
             id: 'api-' + idx,
             name: label,
             url: resolved,
@@ -1534,7 +1477,17 @@ async function loadApiStreams(tmdbId, isMovie, season = 1, episode = 1) {
         }
       });
 
-      renderServerDropdown();
+      // Sisipkan di posisi 0 (paling atas)
+      allServers.unshift(...newTopServers);
+
+      // Update server aktif ke yang pertama (FebBox)
+      if (newTopServers.length > 0) {
+        currentServerId = allServers[0].id;
+        renderServerDropdown();
+        playServer(allServers[0]);
+      } else {
+        renderServerDropdown();
+      }
     }
   } catch(e) {
     console.warn('AmayStream API error:', e.message);
