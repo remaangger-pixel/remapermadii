@@ -14,6 +14,12 @@
   --red: #e50914; --text: #fff;
   --text-dim: rgba(255,255,255,0.65); --text-muted: rgba(255,255,255,0.35);
   --border: rgba(255,255,255,0.08);
+  /* Subtitle appearance — overridden at runtime by applySubStyle() from the user's saved preference */
+  --sub-scale: 1;
+  --sub-color: #ffffff;
+  --sub-bg: rgba(0, 0, 0, 0.72);
+  --sub-shadow: 0 0 6px rgba(0,0,0,1), 0 2px 6px rgba(0,0,0,0.95), -1px -1px 0 rgba(0,0,0,0.8), 1px -1px 0 rgba(0,0,0,0.8), -1px 1px 0 rgba(0,0,0,0.8), 1px 1px 0 rgba(0,0,0,0.8);
+  --sub-font: 'Plus Jakarta Sans', -apple-system, sans-serif;
 }
 body {
   background: var(--bg); color: var(--text);
@@ -221,20 +227,14 @@ header {
 }
 .sub-line {
   display: inline-block;
-  color: #ffffff;
-  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-  font-size: clamp(16px, 2.6vw, 26px);
+  color: var(--sub-color);
+  font-family: var(--sub-font);
+  font-size: calc(clamp(16px, 2.6vw, 26px) * var(--sub-scale));
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: 0.01em;
-  text-shadow:
-    0 0 6px rgba(0,0,0,1),
-    0 2px 6px rgba(0,0,0,0.95),
-    -1px -1px 0 rgba(0,0,0,0.8),
-     1px -1px 0 rgba(0,0,0,0.8),
-    -1px  1px 0 rgba(0,0,0,0.8),
-     1px  1px 0 rgba(0,0,0,0.8);
-  background: rgba(0, 0, 0, 0.72);
+  text-shadow: var(--sub-shadow);
+  background: var(--sub-bg);
   padding: 5px 18px;
   border-radius: 6px;
   backdrop-filter: blur(2px);
@@ -252,20 +252,68 @@ header {
 }
 :fullscreen .sub-line,
 :-webkit-full-screen .sub-line {
-  font-size: clamp(20px, 3.2vw, 36px) !important;
+  font-size: calc(clamp(20px, 3.2vw, 36px) * var(--sub-scale)) !important;
   padding: 7px 24px !important;
 }
 :fullscreen ::cue, video:fullscreen::cue,
 :-webkit-full-screen ::cue, video:-webkit-full-screen::cue {
-  background-color: rgba(0, 0, 0, 0.78) !important;
-  color: #ffffff !important;
-  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-  font-size: 1.5rem !important;
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-color) !important;
+  font-family: var(--sub-font) !important;
+  font-size: calc(1.5rem * var(--sub-scale)) !important;
   font-weight: 700 !important;
   line-height: 1.45 !important;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.98), 0 0 3px #000 !important;
+  text-shadow: var(--sub-shadow) !important;
   padding: 6px 18px !important;
   border-radius: 5px !important;
+}
+
+/* ── SUBTITLE STYLE PANEL ── */
+.btn-sub-style {
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px; color: var(--text-dim);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 600;
+  width: 38px; height: 38px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s ease;
+}
+.btn-sub-style:hover, .btn-sub-style.open { border-color: var(--cyan); color: #ffffff; background: rgba(0, 210, 255, 0.08); }
+.sub-style-wrap { position: relative; }
+.sub-style-panel {
+  display: none;
+  position: absolute; z-index: 40; bottom: calc(100% + 8px); right: 0;
+  width: 272px; max-width: calc(100vw - 32px);
+  background: #181818; border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px; padding: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.sub-style-panel.open { display: block; }
+.sub-style-group { margin-bottom: 12px; }
+.sub-style-group:last-of-type { margin-bottom: 0; }
+.sub-style-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 7px; display: block;
+}
+.sub-style-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.sub-style-opt {
+  flex: 1; min-width: 0; background: var(--surface2); border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-dim); border-radius: 7px; padding: 7px 6px; font-size: 11.5px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s ease; text-align: center; white-space: nowrap;
+}
+.sub-style-opt:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+.sub-style-opt.active { background: var(--cyan); border-color: var(--cyan); color: #04151a; }
+.sub-style-swatch { width: 15px; height: 15px; border-radius: 50%; display: inline-block; vertical-align: -2px; margin-right: 5px; border: 1px solid rgba(255,255,255,0.3); }
+.sub-style-preview {
+  background: #000; border-radius: 7px; padding: 14px 8px; text-align: center; margin-bottom: 12px;
+  background-image: linear-gradient(135deg, #1a1a2e, #0a0a0a);
+}
+.sub-style-reset {
+  width: 100%; background: none; border: 1px dashed rgba(255,255,255,0.25); color: var(--text-muted);
+  border-radius: 7px; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 12px;
+  transition: all 0.15s ease;
+}
+.sub-style-reset:hover { border-color: #ff6b6b; color: #ff6b6b; }
+@media (max-width: 600px) {
+  .sub-style-panel { right: auto; left: 0; }
 }
 
 /* DETAIL */
@@ -431,6 +479,51 @@ header {
               + Unggah Subtitle
             </button>
             <input type="file" id="customSubInput" accept=".vtt,.srt" style="display:none" onchange="uploadCustomSubtitle(event)">
+
+            <div class="sub-style-wrap">
+              <button class="btn-sub-style" id="subStyleBtn" onclick="toggleSubStylePanel(event)" title="Pengaturan tampilan subtitle" aria-haspopup="true" aria-expanded="false">Aa</button>
+              <div class="sub-style-panel" id="subStylePanel">
+                <div class="sub-style-preview"><span class="sub-line" id="subStylePreviewLine">Contoh teks subtitle</span></div>
+
+                <div class="sub-style-group">
+                  <label class="sub-style-label">Ukuran</label>
+                  <div class="sub-style-row" data-group="size">
+                    <button class="sub-style-opt" data-value="sm" onclick="setSubStyle('size','sm')">Kecil</button>
+                    <button class="sub-style-opt" data-value="md" onclick="setSubStyle('size','md')">Sedang</button>
+                    <button class="sub-style-opt" data-value="lg" onclick="setSubStyle('size','lg')">Besar</button>
+                    <button class="sub-style-opt" data-value="xl" onclick="setSubStyle('size','xl')">Ekstra</button>
+                  </div>
+                </div>
+
+                <div class="sub-style-group">
+                  <label class="sub-style-label">Warna Teks</label>
+                  <div class="sub-style-row" data-group="color">
+                    <button class="sub-style-opt" data-value="white" onclick="setSubStyle('color','white')"><span class="sub-style-swatch" style="background:#ffffff"></span>Putih</button>
+                    <button class="sub-style-opt" data-value="yellow" onclick="setSubStyle('color','yellow')"><span class="sub-style-swatch" style="background:#ffd60a"></span>Kuning</button>
+                    <button class="sub-style-opt" data-value="cyan" onclick="setSubStyle('color','cyan')"><span class="sub-style-swatch" style="background:#5de4ff"></span>Cyan</button>
+                  </div>
+                </div>
+
+                <div class="sub-style-group">
+                  <label class="sub-style-label">Latar Belakang</label>
+                  <div class="sub-style-row" data-group="bg">
+                    <button class="sub-style-opt" data-value="box" onclick="setSubStyle('bg','box')">Kotak</button>
+                    <button class="sub-style-opt" data-value="transparent" onclick="setSubStyle('bg','transparent')">Transparan</button>
+                    <button class="sub-style-opt" data-value="outline" onclick="setSubStyle('bg','outline')">Outline</button>
+                  </div>
+                </div>
+
+                <div class="sub-style-group">
+                  <label class="sub-style-label">Font</label>
+                  <div class="sub-style-row" data-group="font">
+                    <button class="sub-style-opt" data-value="default" onclick="setSubStyle('font','default')">Default</button>
+                    <button class="sub-style-opt" data-value="classic" onclick="setSubStyle('font','classic')">Klasik</button>
+                  </div>
+                </div>
+
+                <button class="sub-style-reset" onclick="resetSubStyle()">Reset ke Default</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1011,6 +1104,84 @@ function syncFullscreenSubtitleTrack() {
 
 document.addEventListener('fullscreenchange', syncFullscreenSubtitleTrack);
 document.addEventListener('webkitfullscreenchange', syncFullscreenSubtitleTrack);
+
+/* ── SUBTITLE STYLE SETTINGS (size, color, background, font) ──
+ * Applied via CSS custom properties, shared by the custom overlay (.sub-line) and the
+ * native track used in fullscreen (:fullscreen ::cue) so both stay in sync. */
+const SUB_STYLE_KEY = 'subtitle_style_v1';
+const DEFAULT_SUB_STYLE = { size: 'md', color: 'white', bg: 'box', font: 'default' };
+
+const SUB_STYLE_SIZES = { sm: 0.75, md: 1, lg: 1.3, xl: 1.6 };
+const SUB_STYLE_COLORS = { white: '#ffffff', yellow: '#ffd60a', cyan: '#5de4ff' };
+const SUB_STYLE_FONTS = {
+  default: "'Plus Jakarta Sans', -apple-system, sans-serif",
+  classic: "Arial, Helvetica, sans-serif"
+};
+const SUB_STYLE_SHADOW_STROKE = '0 0 6px rgba(0,0,0,1), 0 2px 6px rgba(0,0,0,0.95), -1px -1px 0 rgba(0,0,0,0.8), 1px -1px 0 rgba(0,0,0,0.8), -1px 1px 0 rgba(0,0,0,0.8), 1px 1px 0 rgba(0,0,0,0.8)';
+const SUB_STYLE_SHADOW_OUTLINE = '0 0 4px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.9), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 2px 10px rgba(0,0,0,0.9)';
+const SUB_STYLE_BGS = {
+  box: 'rgba(0, 0, 0, 0.72)',
+  transparent: 'transparent',
+  outline: 'transparent'
+};
+
+function loadSubStyle() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SUB_STYLE_KEY) || '{}');
+    return { ...DEFAULT_SUB_STYLE, ...saved };
+  } catch (e) {
+    return { ...DEFAULT_SUB_STYLE };
+  }
+}
+
+function applySubStyle(style) {
+  const root = document.documentElement.style;
+  root.setProperty('--sub-scale', SUB_STYLE_SIZES[style.size] ?? 1);
+  root.setProperty('--sub-color', SUB_STYLE_COLORS[style.color] || SUB_STYLE_COLORS.white);
+  root.setProperty('--sub-bg', SUB_STYLE_BGS[style.bg] ?? SUB_STYLE_BGS.box);
+  root.setProperty('--sub-shadow', style.bg === 'box' ? SUB_STYLE_SHADOW_STROKE : SUB_STYLE_SHADOW_OUTLINE);
+  root.setProperty('--sub-font', SUB_STYLE_FONTS[style.font] || SUB_STYLE_FONTS.default);
+
+  document.querySelectorAll('.sub-style-row').forEach(row => {
+    const group = row.dataset.group;
+    row.querySelectorAll('.sub-style-opt').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === style[group]);
+    });
+  });
+}
+
+function setSubStyle(key, value) {
+  const style = { ...loadSubStyle(), [key]: value };
+  try { localStorage.setItem(SUB_STYLE_KEY, JSON.stringify(style)); } catch (e) { /* storage full/unavailable: applies for this session only */ }
+  applySubStyle(style);
+}
+
+function resetSubStyle() {
+  try { localStorage.removeItem(SUB_STYLE_KEY); } catch (e) { /* ignore */ }
+  applySubStyle(DEFAULT_SUB_STYLE);
+}
+
+function toggleSubStylePanel(e) {
+  e.stopPropagation();
+  const panel = document.getElementById('subStylePanel');
+  const btn = document.getElementById('subStyleBtn');
+  const willOpen = !panel.classList.contains('open');
+  panel.classList.toggle('open', willOpen);
+  btn.classList.toggle('open', willOpen);
+  btn.setAttribute('aria-expanded', String(willOpen));
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('subStylePanel');
+  const wrap = document.querySelector('.sub-style-wrap');
+  if (panel && panel.classList.contains('open') && wrap && !wrap.contains(e.target)) {
+    panel.classList.remove('open');
+    document.getElementById('subStyleBtn')?.classList.remove('open');
+    document.getElementById('subStyleBtn')?.setAttribute('aria-expanded', 'false');
+  }
+});
+
+applySubStyle(loadSubStyle());
 
 function categorizeSubtitles(subsList) {
   if (!Array.isArray(subsList)) return [];
