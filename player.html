@@ -199,29 +199,73 @@ header {
   border: 1px solid rgba(0, 210, 255, 0.3); padding: 2px 8px; border-radius: 4px;
 }
 .sub-overlay {
-  position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
-  max-width: 88%; text-align: center; color: #ffffff;
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90%;
+  width: max-content;
+  text-align: center;
+  pointer-events: none;
+  z-index: 9;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.sub-overlay.visible {
+  display: flex;
+  opacity: 1;
+}
+.sub-line {
+  display: inline-block;
+  color: #ffffff;
   font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-  font-size: clamp(14px, 2.2vw, 21px); font-weight: 600; line-height: 1.4;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 4px #000;
-  background: rgba(0, 0, 0, 0.75); padding: 4px 14px; border-radius: 6px;
-  pointer-events: none; z-index: 9; display: none;
+  font-size: clamp(16px, 2.6vw, 26px);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-shadow:
+    0 0 6px rgba(0,0,0,1),
+    0 2px 6px rgba(0,0,0,0.95),
+    -1px -1px 0 rgba(0,0,0,0.8),
+     1px -1px 0 rgba(0,0,0,0.8),
+    -1px  1px 0 rgba(0,0,0,0.8),
+     1px  1px 0 rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.72);
+  padding: 5px 18px;
+  border-radius: 6px;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  max-width: 100%;
 }
 ::cue, video::cue {
   background-color: transparent !important;
   color: transparent !important;
   text-shadow: none !important;
 }
-:fullscreen ::cue, video:fullscreen::cue, :-webkit-full-screen ::cue, video:-webkit-full-screen::cue {
+:fullscreen .sub-overlay,
+:-webkit-full-screen .sub-overlay {
+  bottom: 88px;
+}
+:fullscreen .sub-line,
+:-webkit-full-screen .sub-line {
+  font-size: clamp(20px, 3.2vw, 36px) !important;
+  padding: 7px 24px !important;
+}
+:fullscreen ::cue, video:fullscreen::cue,
+:-webkit-full-screen ::cue, video:-webkit-full-screen::cue {
   background-color: rgba(0, 0, 0, 0.78) !important;
   color: #ffffff !important;
   font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-  font-size: 1.25rem !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 2px #000 !important;
-  padding: 4px 14px !important;
-  border-radius: 4px !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.98), 0 0 3px #000 !important;
+  padding: 6px 18px !important;
+  border-radius: 5px !important;
 }
 
 /* DETAIL */
@@ -1042,8 +1086,15 @@ async function applySubtitle(subObj, index) {
           const cur = vid.currentTime || 0;
           const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
           if (active) {
-            overlay.innerHTML = active.text;
-            overlay.style.display = 'block';
+            const lines = active.text
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/<[^>]+>/g, '')
+              .split('\n')
+              .map(l => l.trim())
+              .filter(l => l.length > 0);
+            overlay.innerHTML = lines.map(l => `<span class="sub-line">${l}</span>`).join('');
+            overlay.style.display = 'flex';
+            requestAnimationFrame(() => overlay.classList.add('visible'));
           }
         }
       }
@@ -1155,16 +1206,26 @@ function playDirectStream(url, type) {
     const overlay = document.getElementById('subOverlay');
     if (!overlay) return;
     if (activeSubtitleIndex === -1 || !currentSubCues.length) {
+      overlay.classList.remove('visible');
       overlay.style.display = 'none';
       return;
     }
     const cur = video.currentTime;
     const active = currentSubCues.find(c => cur >= c.start && cur <= c.end);
     if (active) {
-      overlay.innerHTML = active.text;
-      overlay.style.display = 'block';
+      // Render tiap baris cue sebagai elemen .sub-line terpisah agar lebih rapi
+      const lines = active.text
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+      overlay.innerHTML = lines.map(l => `<span class="sub-line">${l}</span>`).join('');
+      overlay.style.display = 'flex';
+      requestAnimationFrame(() => overlay.classList.add('visible'));
     } else {
-      overlay.style.display = 'none';
+      overlay.classList.remove('visible');
+      setTimeout(() => { if (!overlay.classList.contains('visible')) overlay.style.display = 'none'; }, 180);
     }
   };
 
