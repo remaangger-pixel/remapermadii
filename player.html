@@ -515,11 +515,74 @@ async function init() {
   const season  = data.season  || 1;
   const episode = data.episode || 1;
 
+  // Dapatkan TMDB ID dari data atau IMDB ID
+  const tmdbId = data.tmdb_id || data.id;
+
   allServers = [];
 
+  // ── Fetch FebBox HLS langsung dari AmayStream API (360/720/1080p) ──
+  try {
+    const amayEndpoint = isMovie
+      ? `https://amaystream.vercel.app/api/v1/movie?id=${tmdbId}&tmdbApiKey=${TMDB_KEY}&cfWorker=${encodeURIComponent(CF_WORKER)}`
+      : `https://amaystream.vercel.app/api/v1/tv?id=${tmdbId}&s=${season}&e=${episode}&tmdbApiKey=${TMDB_KEY}&cfWorker=${encodeURIComponent(CF_WORKER)}`;
+
+    const amayRes = await fetch(amayEndpoint);
+    if (amayRes.ok) {
+      const amayData = await amayRes.json();
+      if (amayData.success && amayData.sources && amayData.sources.length) {
+        // Ambil semua source FebBox, urutkan kualitas tertinggi dulu
+        const qualityOrder = ['1080', '720', '480', '360'];
+        const febboxSources = amayData.sources
+          .filter(src => src.source === 'febbox')
+          .sort((a, b) => {
+            const qa = qualityOrder.findIndex(q => String(a.quality || '').includes(q));
+            const qb = qualityOrder.findIndex(q => String(b.quality || '').includes(q));
+            return (qa === -1 ? 99 : qa) - (qb === -1 ? 99 : qb);
+          });
+
+        if (febboxSources.length > 0) {
+          febboxSources.forEach((src, idx) => {
+            const qLabel = src.quality ? ` ${src.quality}` : (idx === 0 ? ' 1080p' : '');
+            allServers.push({
+              id: `febbox-${idx}`,
+              name: `FebBox${qLabel}`,
+              url: src.url,
+              type: src.type || 'hls'
+            });
+          });
+        } else {
+          // Fallback: ambil source non-febbox terbaik jika ada
+          const bestNonFebbox = amayData.sources.find(s => !s.url.includes('test.workers.dev')) || amayData.sources[0];
+          if (bestNonFebbox) {
+            allServers.push({
+              id: 'amay-best',
+              name: getProviderName(bestNonFebbox.url),
+              url: bestNonFebbox.url,
+              type: bestNonFebbox.type || 'hls'
+            });
+          }
+        }
+
+        // Ambil subtitle dari AmayStream API juga jika belum ada
+        if (amayData.subtitles && amayData.subtitles.length && !availableSubtitles.length) {
+          availableSubtitles = categorizeSubtitles(amayData.subtitles);
+          renderSubtitleDropdown();
+        }
+      }
+    }
+  } catch(e) {
+    console.warn('[FebBox] AmayStream API gagal:', e.message);
+  }
+
   // ── Server dari database (nama otomatis dari URL provider) ──
-  if (s1Url) allServers.push({ id: 'srv-db-1', name: getProviderName(s1Url), url: s1Url });
-  if (s2Url && s2Url !== s1Url) allServers.push({ id: 'srv-db-2', name: getProviderName(s2Url), url: s2Url });
+  if (s1Url) {
+    const n1 = getProviderName(s1Url);
+    if (!allServers.some(x => x.url === s1Url)) allServers.push({ id: 'srv-db-1', name: n1, url: s1Url });
+  }
+  if (s2Url && s2Url !== s1Url) {
+    const n2 = getProviderName(s2Url);
+    if (!allServers.some(x => x.url === s2Url)) allServers.push({ id: 'srv-db-2', name: n2, url: s2Url });
+  }
 
   // ── Server embed publik berdasarkan IMDB ID ──
   if (effectiveImdb) {
@@ -528,7 +591,6 @@ async function init() {
     const e   = episode;
 
     const embedServers = isMovie ? [
-      { id: 'febbox',        name: 'FebBox',         url: `https://www.febbox.com/embed/movie/${id}` },
       { id: 'vidsrc-to',     name: 'VidSrc',         url: `https://vidsrc.to/embed/movie/${id}` },
       { id: 'vidsrc-me',     name: 'VidSrc Pro',     url: `https://vidsrc.me/embed/movie?imdb=${id}` },
       { id: 'vidsrc-xyz',    name: 'VidSrc XYZ',     url: `https://vidsrc.xyz/embed/movie?imdb=${id}` },
@@ -542,7 +604,6 @@ async function init() {
       { id: 'nontongo',      name: 'NontonGo',       url: `https://nontongo.win/embed/movie/${id}` },
       { id: 'rive',          name: 'Rive',           url: `https://rivestream.live/embed?type=movie&id=${id}` },
     ] : [
-      { id: 'febbox',        name: 'FebBox',         url: `https://www.febbox.com/embed/tv/${id}/${s}/${e}` },
       { id: 'vidsrc-to',     name: 'VidSrc',         url: `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
       { id: 'vidsrc-me',     name: 'VidSrc Pro',     url: `https://vidsrc.me/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
       { id: 'vidsrc-xyz',    name: 'VidSrc XYZ',     url: `https://vidsrc.xyz/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
@@ -563,6 +624,8 @@ async function init() {
       }
     });
   }
+
+
 
   currentServerId = allServers[0]?.id || '';
   renderServerDropdown();
@@ -806,12 +869,18 @@ function onServerSelectChange(serverId) {
 function playServer(s) {
   clearAutoSwitchTimer();
   const u = resolveStreamUrl(s.url);
-  if (u.includes('.m3u8') || u.includes('.mp4') || u.includes('shegu.net') || u.includes('hakunaymatata.com')) {
-    playDirectStream(u, u.includes('.m3u8') ? 'hls' : 'mp4');
-    // Untuk stream langsung tidak perlu auto-switch timer
+  // FebBox (type:'hls') atau URL direct stream
+  const isDirectStream = s.type === 'hls' || s.type === 'm3u8' || s.type === 'mp4'
+    || u.includes('.m3u8') || u.includes('.mp4')
+    || u.includes('shegu.net') || u.includes('hakunaymatata.com');
+
+  if (isDirectStream) {
+    const streamType = s.type || (u.includes('.m3u8') ? 'hls' : 'mp4');
+    playDirectStream(u, streamType);
+    // Direct stream tidak perlu timer auto-switch
   } else {
     play(u);
-    // Mulai timer auto-switch hanya jika masih ada server berikutnya
+    // Timer auto-switch untuk embed iframe
     const currentIdx = allServers.findIndex(x => x.id === currentServerId);
     if (currentIdx !== -1 && currentIdx + 1 < allServers.length) {
       startAutoSwitchTimer(s.name);
