@@ -453,6 +453,14 @@ header{
 const STREAMED_BASE = 'https://streamed.su';
 const EMBED_BASE    = 'https://embedstreams.top/embed';
 
+// CORS proxies – tried in order until one works
+const PROXIES = [
+  url => url,                                                         // direct
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
 // sport emoji map
 const SPORT_EMOJI = {
   football:'⚽',soccer:'⚽',basketball:'🏀',tennis:'🎾',
@@ -471,22 +479,28 @@ let allLive     = [];
 let allUpcoming = [];
 let activeFilter = 'all';
 
-// ── FETCH LIVE MATCHES ──
-async function fetchMatches(){
-  const endpoints = [
-    `${STREAMED_BASE}/api/matches/live/popular`,
-    `${STREAMED_BASE}/api/matches/all`,
-  ];
-  // try both endpoints
-  for(const url of endpoints){
+// ── FETCH WITH PROXY FALLBACK ──
+async function fetchWithProxy(path){
+  const targetUrl = `${STREAMED_BASE}${path}`;
+  for(const proxyFn of PROXIES){
+    const url = proxyFn(targetUrl);
     try{
-      const r = await fetch(url,{signal:AbortSignal.timeout(8000)});
+      const r = await fetch(url,{signal:AbortSignal.timeout(9000)});
       if(!r.ok) continue;
-      const data = await r.json();
-      return Array.isArray(data) ? data : [];
-    }catch(_){}
+      const text = await r.text();
+      const data = JSON.parse(text);
+      return Array.isArray(data) ? data : (data.contents ? JSON.parse(data.contents) : null);
+    }catch(_){ continue; }
   }
   return null;
+}
+
+// ── FETCH LIVE MATCHES ──
+async function fetchMatches(){
+  // try popular first, then all
+  const data = await fetchWithProxy('/api/matches/live/popular')
+            || await fetchWithProxy('/api/matches/all');
+  return data;
 }
 
 // ── RENDER ──
