@@ -453,13 +453,9 @@ header{
 const STREAMED_BASE = 'https://streamed.su';
 const EMBED_BASE    = 'https://embedstreams.top/embed';
 
-// CORS proxies – tried in order until one works
-const PROXIES = [
-  url => url,                                                         // direct
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-];
+// Cloudflare Worker proxy (pakai Worker kamu yang sudah ada)
+const CF_WORKER = 'https://falling-credit-63e8.anvibot.workers.dev';
+const proxyUrl  = path => `${CF_WORKER}/?url=${encodeURIComponent(STREAMED_BASE + path)}`;
 
 // sport emoji map
 const SPORT_EMOJI = {
@@ -479,28 +475,18 @@ let allLive     = [];
 let allUpcoming = [];
 let activeFilter = 'all';
 
-// ── FETCH WITH PROXY FALLBACK ──
-async function fetchWithProxy(path){
-  const targetUrl = `${STREAMED_BASE}${path}`;
-  for(const proxyFn of PROXIES){
-    const url = proxyFn(targetUrl);
+// ── FETCH VIA CLOUDFLARE WORKER ──
+async function fetchMatches(){
+  const paths = ['/api/matches/live/popular', '/api/matches/all'];
+  for(const path of paths){
     try{
-      const r = await fetch(url,{signal:AbortSignal.timeout(9000)});
+      const r = await fetch(proxyUrl(path), {signal: AbortSignal.timeout(10000)});
       if(!r.ok) continue;
-      const text = await r.text();
-      const data = JSON.parse(text);
-      return Array.isArray(data) ? data : (data.contents ? JSON.parse(data.contents) : null);
+      const data = await r.json();
+      if(Array.isArray(data) && data.length) return data;
     }catch(_){ continue; }
   }
   return null;
-}
-
-// ── FETCH LIVE MATCHES ──
-async function fetchMatches(){
-  // try popular first, then all
-  const data = await fetchWithProxy('/api/matches/live/popular')
-            || await fetchWithProxy('/api/matches/all');
-  return data;
 }
 
 // ── RENDER ──
