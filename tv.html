@@ -1228,11 +1228,18 @@
       const dbPromise = sb.from('Channels').select('*').eq('is_active', true).order('name', { ascending: true })
         .then(r => r, e => ({ data: null, error: e }));
       const m3uChannels = await fetchM3UChannels();
+      const sportChannels = await fetchSportChannels();
 
       const m3uByUrlMap = new Map();
       const m3uByNameMap = new Map();
 
       m3uChannels.forEach(c => {
+        if (c.stream_url) m3uByUrlMap.set(c.stream_url.trim().toLowerCase(), c);
+        if (c.name) m3uByNameMap.set(c.name.trim().toLowerCase(), c);
+      });
+
+      // also index sport channels for potential merge with DB entries
+      sportChannels.forEach(c => {
         if (c.stream_url) m3uByUrlMap.set(c.stream_url.trim().toLowerCase(), c);
         if (c.name) m3uByNameMap.set(c.name.trim().toLowerCase(), c);
       });
@@ -1288,6 +1295,10 @@
 
       // Supabase is the single source of channels (controlled via is_active); the M3U playlist only supplies DRM keys/headers/tvg-id
       dbChannels.forEach(c => addCh(c, true));
+      // Add sport channels (not verified via Supabase)
+      if (sportChannels.length) {
+        sportChannels.forEach(c => addCh(c, false));
+      }
 
       allChannels = Array.from(channelMap.values());
 
@@ -1319,6 +1330,36 @@
         return parseM3UText(text);
       } catch (e) {
         console.warn('[M3U] Playlist fetch error:', e);
+        return [];
+      }
+    }
+
+    // ---------------------------------------------------------------
+    //  FETCH LIVE SPORT FROM AMAYSTREAM
+    // ---------------------------------------------------------------
+    async function fetchSportChannels() {
+      try {
+        const sportRes = await fetch('https://amaystream.vercel.app/api/v1/sport');
+        if (!sportRes.ok) {
+          console.warn('[SPORT] fetch failed with HTTP', sportRes.status);
+          return [];
+        }
+        const json = await sportRes.json();
+        const sources = json.sources || [];
+        // Normalize to channel objects expected by the rest of the code
+        return sources.map(s => ({
+          name: s.label || s.source || 'Sport Channel',
+          stream_url: s.url || '',
+          group_title: 'Sport',
+          license_type: s.license_type || '',
+          license_key: s.license_key || '',
+          license_server_url: s.license_server_url || '',
+          user_agent: s.user_agent || '',
+          referer: s.referer || '',
+          origin: s.origin || ''
+        }));
+      } catch (e) {
+        console.warn('[SPORT] error fetching sport channels:', e);
         return [];
       }
     }
