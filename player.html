@@ -473,9 +473,9 @@ async function init() {
 
   allServers = [];
 
-  // ── Server dari database (custom / upload admin) ──
-  if (s1Url) allServers.push({ id: 'srv-db-1', name: 'Server 1', url: s1Url });
-  if (s2Url && s2Url !== s1Url) allServers.push({ id: 'srv-db-2', name: 'Server 2', url: s2Url });
+  // ── Server dari database (nama otomatis dari URL provider) ──
+  if (s1Url) allServers.push({ id: 'srv-db-1', name: getProviderName(s1Url), url: s1Url });
+  if (s2Url && s2Url !== s1Url) allServers.push({ id: 'srv-db-2', name: getProviderName(s2Url), url: s2Url });
 
   // ── Server embed publik berdasarkan IMDB ID ──
   if (effectiveImdb) {
@@ -484,6 +484,7 @@ async function init() {
     const e   = episode;
 
     const embedServers = isMovie ? [
+      { id: 'febbox',        name: 'FebBox',         url: `https://www.febbox.com/embed/movie/${id}` },
       { id: 'vidsrc-to',     name: 'VidSrc',         url: `https://vidsrc.to/embed/movie/${id}` },
       { id: 'vidsrc-me',     name: 'VidSrc Pro',     url: `https://vidsrc.me/embed/movie?imdb=${id}` },
       { id: 'vidsrc-xyz',    name: 'VidSrc XYZ',     url: `https://vidsrc.xyz/embed/movie?imdb=${id}` },
@@ -497,6 +498,7 @@ async function init() {
       { id: 'nontongo',      name: 'NontonGo',       url: `https://nontongo.win/embed/movie/${id}` },
       { id: 'rive',          name: 'Rive',           url: `https://rivestream.live/embed?type=movie&id=${id}` },
     ] : [
+      { id: 'febbox',        name: 'FebBox',         url: `https://www.febbox.com/embed/tv/${id}/${s}/${e}` },
       { id: 'vidsrc-to',     name: 'VidSrc',         url: `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
       { id: 'vidsrc-me',     name: 'VidSrc Pro',     url: `https://vidsrc.me/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
       { id: 'vidsrc-xyz',    name: 'VidSrc XYZ',     url: `https://vidsrc.xyz/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
@@ -564,6 +566,37 @@ async function init() {
 
 let allServers = [];
 let currentServerId = '';
+
+// Deteksi nama provider dari URL secara otomatis
+function getProviderName(url) {
+  if (!url) return 'Server';
+  const u = url.toLowerCase();
+  if (u.includes('febbox.com'))         return 'FebBox';
+  if (u.includes('vidsrc.to'))          return 'VidSrc';
+  if (u.includes('vidsrc.me'))          return 'VidSrc Pro';
+  if (u.includes('vidsrc.xyz'))         return 'VidSrc XYZ';
+  if (u.includes('multiembed.mov'))     return 'MultiEmbed';
+  if (u.includes('autoembed.co'))       return 'AutoEmbed';
+  if (u.includes('2embed.cc'))          return '2Embed';
+  if (u.includes('smashystream.com'))   return 'SmashyStream';
+  if (u.includes('moviesapi.club'))     return 'MoviesAPI';
+  if (u.includes('embed.su'))           return 'Embed.su';
+  if (u.includes('nontongo.win'))       return 'NontonGo';
+  if (u.includes('rivestream.live'))    return 'Rive';
+  if (u.includes('streamtape.com'))     return 'Streamtape';
+  if (u.includes('streamwish.com') || u.includes('strwish.com')) return 'StreamWish';
+  if (u.includes('filemoon.sx') || u.includes('filemoon.in'))    return 'FileMoon';
+  if (u.includes('dood.'))             return 'Doodstream';
+  if (u.includes('drive.google.com') || u.includes('gdriveplayer')) return 'GDrive';
+  if (u.includes('pixeldrain.com'))    return 'PixelDrain';
+  if (u.includes('seekstreaming.com')) return 'SeekStreaming';
+  if (u.includes('workers.dev') || u.includes('/stream?url=')) return 'CF Worker';
+  // Fallback: ambil domain utama
+  try {
+    const host = new URL(url.startsWith('http') ? url : 'https://' + url).hostname;
+    return host.replace('www.', '').split('.')[0];
+  } catch { return 'Server'; }
+}
 
 function extractImdbId(url, directImdb) {
   if (directImdb && typeof directImdb === 'string' && directImdb.startsWith('tt')) {
