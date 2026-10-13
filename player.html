@@ -467,37 +467,58 @@ async function init() {
   const effectiveImdb = extractImdbId(data.video, rawImdb) || extractImdbId(data.video2, rawImdb);
   const s1Url = sanitizeServerUrl(data.video, effectiveImdb, !!movieId, data.season, data.episode);
   const s2Url = sanitizeServerUrl(data.video2, effectiveImdb, !!movieId, data.season, data.episode);
+  const isMovie = !!movieId;
+  const season  = data.season  || 1;
+  const episode = data.episode || 1;
 
   allServers = [];
-  if (s1Url) {
-    allServers.push({ id: 'srv-1', name: 'Server 1', url: s1Url });
-  }
-  if (s2Url && s2Url !== s1Url) {
-    allServers.push({ id: 'srv-2', name: 'Server 2', url: s2Url });
-  }
 
-  // Jika IMDB ID terdeteksi, pastikan selalu ada server cadangan aktif yang tidak kadaluarsa
+  // ── Server dari database (custom / upload admin) ──
+  if (s1Url) allServers.push({ id: 'srv-db-1', name: 'Server 1', url: s1Url });
+  if (s2Url && s2Url !== s1Url) allServers.push({ id: 'srv-db-2', name: 'Server 2', url: s2Url });
+
+  // ── Server embed publik berdasarkan IMDB ID ──
   if (effectiveImdb) {
-    const multiembedUrl = movieId
-      ? `https://multiembed.mov/?video_id=${effectiveImdb}`
-      : `https://multiembed.mov/?video_id=${effectiveImdb}&s=${data.season || 1}&e=${data.episode || 1}`;
-    const autoembedUrl = movieId
-      ? `https://autoembed.co/movie/imdb/${effectiveImdb}`
-      : `https://autoembed.co/tv/imdb/${effectiveImdb}-${data.season || 1}-${data.episode || 1}`;
+    const id  = effectiveImdb;
+    const s   = season;
+    const e   = episode;
 
-    if (!allServers.some(s => s.url === multiembedUrl)) {
-      if (allServers.length < 2) {
-        allServers.push({ id: 'srv-2', name: 'Server 2', url: multiembedUrl });
-      } else {
-        allServers.push({ id: 'srv-3', name: 'Server 3', url: multiembedUrl });
+    const embedServers = isMovie ? [
+      { id: 'vidsrc-to',     name: 'VidSrc',         url: `https://vidsrc.to/embed/movie/${id}` },
+      { id: 'vidsrc-me',     name: 'VidSrc Pro',     url: `https://vidsrc.me/embed/movie?imdb=${id}` },
+      { id: 'vidsrc-xyz',    name: 'VidSrc XYZ',     url: `https://vidsrc.xyz/embed/movie?imdb=${id}` },
+      { id: 'multiembed',    name: 'MultiEmbed',     url: `https://multiembed.mov/?video_id=${id}` },
+      { id: 'autoembed',     name: 'AutoEmbed',      url: `https://autoembed.co/movie/imdb/${id}` },
+      { id: '2embed',        name: '2Embed',         url: `https://www.2embed.cc/embed/${id}` },
+      { id: 'smashystream',  name: 'SmashyStream',   url: `https://embed.smashystream.com/playere.php?imdb=${id}` },
+      { id: 'moviesapi',     name: 'MoviesAPI',      url: `https://moviesapi.club/movie/${id}` },
+      { id: 'embedsu',       name: 'Embed.su',       url: `https://embed.su/embed/movie/${id}` },
+      { id: 'superembed',    name: 'SuperEmbed',     url: `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1` },
+      { id: 'nontongo',      name: 'NontonGo',       url: `https://nontongo.win/embed/movie/${id}` },
+      { id: 'rive',          name: 'Rive',           url: `https://rivestream.live/embed?type=movie&id=${id}` },
+    ] : [
+      { id: 'vidsrc-to',     name: 'VidSrc',         url: `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
+      { id: 'vidsrc-me',     name: 'VidSrc Pro',     url: `https://vidsrc.me/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
+      { id: 'vidsrc-xyz',    name: 'VidSrc XYZ',     url: `https://vidsrc.xyz/embed/tv?imdb=${id}&season=${s}&episode=${e}` },
+      { id: 'multiembed',    name: 'MultiEmbed',     url: `https://multiembed.mov/?video_id=${id}&s=${s}&e=${e}` },
+      { id: 'autoembed',     name: 'AutoEmbed',      url: `https://autoembed.co/tv/imdb/${id}-${s}-${e}` },
+      { id: '2embed',        name: '2Embed',         url: `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` },
+      { id: 'smashystream',  name: 'SmashyStream',   url: `https://embed.smashystream.com/playere.php?imdb=${id}&season=${s}&episode=${e}` },
+      { id: 'moviesapi',     name: 'MoviesAPI',      url: `https://moviesapi.club/tv/${id}-${s}-${e}` },
+      { id: 'embedsu',       name: 'Embed.su',       url: `https://embed.su/embed/tv/${id}/${s}/${e}` },
+      { id: 'superembed',    name: 'SuperEmbed',     url: `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1&s=${s}&e=${e}` },
+      { id: 'nontongo',      name: 'NontonGo',       url: `https://nontongo.win/embed/tv/${id}/${s}/${e}` },
+      { id: 'rive',          name: 'Rive',           url: `https://rivestream.live/embed?type=tv&id=${id}&season=${s}&episode=${e}` },
+    ];
+
+    embedServers.forEach(srv => {
+      if (!allServers.some(x => x.url === srv.url)) {
+        allServers.push(srv);
       }
-    }
-    if (!allServers.some(s => s.url === autoembedUrl)) {
-      allServers.push({ id: 'srv-cadangan', name: 'Server Cadangan', url: autoembedUrl });
-    }
+    });
   }
 
-  currentServerId = allServers[0]?.id || 'srv-1';
+  currentServerId = allServers[0]?.id || '';
   renderServerDropdown();
 
   if (allServers.length > 0) {
@@ -636,18 +657,42 @@ function showPlayerNotice(text, isPermanent = false) {
   }
 }
 
-function tryNextServer() {
+let autoSwitchTimer = null;
+let autoSwitchAttempts = 0;
+
+function tryNextServer(manual = false) {
   const currentIdx = allServers.findIndex(s => s.id === currentServerId);
   if (currentIdx !== -1 && currentIdx + 1 < allServers.length) {
     const nextServer = allServers[currentIdx + 1];
-    showPlayerNotice(`Server gagal memuat. Beralih otomatis ke ${nextServer.name}...`);
+    if (!manual) {
+      showPlayerNotice(`⚡ Server gagal — otomatis pindah ke ${nextServer.name}...`);
+    }
     setTimeout(() => {
       currentServerId = nextServer.id;
       renderServerDropdown();
       playServer(nextServer);
-    }, 1200);
+    }, manual ? 0 : 1500);
   } else {
-    showPlayerNotice('Film ini belum tersedia di server streaming atau belum rilis resmi. Silakan putar Trailer.', true);
+    clearAutoSwitchTimer();
+    showPlayerNotice('Semua server telah dicoba. Film ini mungkin belum tersedia. Coba putar Trailer.', true);
+  }
+}
+
+function startAutoSwitchTimer(serverName) {
+  clearAutoSwitchTimer();
+  // Tunggu 12 detik — jika iframe tidak memuat konten, otomatis pindah
+  autoSwitchTimer = setTimeout(() => {
+    const currentIdx = allServers.findIndex(s => s.id === currentServerId);
+    if (currentIdx !== -1 && currentIdx + 1 < allServers.length) {
+      tryNextServer();
+    }
+  }, 12000);
+}
+
+function clearAutoSwitchTimer() {
+  if (autoSwitchTimer) {
+    clearTimeout(autoSwitchTimer);
+    autoSwitchTimer = null;
   }
 }
 
@@ -676,16 +721,24 @@ function onServerSelectChange(serverId) {
   const s = allServers.find(x => x.id === serverId);
   if (!s) return;
   currentServerId = s.id;
+  clearAutoSwitchTimer(); // User memilih manual, batalkan auto-switch
   document.getElementById('trailerBtn')?.classList.remove('active');
   playServer(s);
 }
 
 function playServer(s) {
+  clearAutoSwitchTimer();
   const u = resolveStreamUrl(s.url);
   if (u.includes('.m3u8') || u.includes('.mp4') || u.includes('shegu.net') || u.includes('hakunaymatata.com')) {
     playDirectStream(u, u.includes('.m3u8') ? 'hls' : 'mp4');
+    // Untuk stream langsung tidak perlu auto-switch timer
   } else {
     play(u);
+    // Mulai timer auto-switch hanya jika masih ada server berikutnya
+    const currentIdx = allServers.findIndex(x => x.id === currentServerId);
+    if (currentIdx !== -1 && currentIdx + 1 < allServers.length) {
+      startAutoSwitchTimer(s.name);
+    }
   }
 }
 
@@ -747,6 +800,19 @@ function play(url) {
   }
 
   document.getElementById('playerFrame').innerHTML = iframeHtml;
+
+  // Pasang listener onload di iframe: jika berhasil load, batalkan timer auto-switch
+  const newIframe = document.querySelector('#playerFrame iframe');
+  if (newIframe) {
+    newIframe.addEventListener('load', () => {
+      clearAutoSwitchTimer();
+      loader.style.opacity = '0';
+      setTimeout(() => loader.style.display = 'none', 500);
+    });
+    newIframe.addEventListener('error', () => {
+      tryNextServer();
+    });
+  }
 
   setTimeout(() => {
     loader.style.opacity = '0';
