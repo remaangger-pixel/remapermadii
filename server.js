@@ -271,11 +271,9 @@ function handleProxyRequest(clientReq, clientRes) {
     if (upstreamRes.headers['content-range']) responseHeaders['Content-Range'] = upstreamRes.headers['content-range'];
     if (upstreamRes.headers['accept-ranges']) responseHeaders['Accept-Ranges'] = upstreamRes.headers['accept-ranges'];
 
-    const clientRange = clientReq.headers['range'] || 'NONE';
-    const resSize = responseHeaders['Content-Length'] || (bodyBuffer ? bodyBuffer.length : 'STREAMING');
-
-    console.log(`[PROXY] TYPE: SEGMENT | UPSTREAM: ${finalUrl} | STATUS: ${statusCode} | CONTENT-TYPE: ${responseHeaders['Content-Type'] || 'binary'} | RANGE: ${clientRange} | SIZE: ${resSize}`);
-
+    // No per-segment log here on purpose: a live stream fetches a new segment every few seconds
+    // per viewer, so this fires far more often than the manifest/error logs above and adds little
+    // diagnostic value at that volume.
     clientRes.writeHead(statusCode, responseHeaders);
 
     if (bodyBuffer) {

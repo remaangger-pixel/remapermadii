@@ -1771,7 +1771,9 @@
         iframe.className = 'iframe-element';
         iframe.allowFullscreen = true;
         iframe.allow = "autoplay; fullscreen";
-        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-presentation');
+        // No allow-same-origin: this is a cross-origin third-party embed, so it can't escape to our
+        // origin either way — dropping it just denies the embed its own persistent storage/cookies
+        iframe.setAttribute('sandbox', 'allow-scripts allow-presentation');
         iframe.referrerPolicy = 'no-referrer';
 
         if (rawUrl.startsWith('<iframe')) {
@@ -1977,6 +1979,7 @@
           });
 
           hlsPlayer.on(Hls.Events.ERROR, function (event, data) {
+            if (activeChannel !== ch) return; // stale event from a previous channel/hlsPlayer instance
             if (data.fatal) {
               handleHlsFatalError(data);
             }
