@@ -934,13 +934,19 @@ function onServerSelectChange(serverId) {
   playServer(s);
 }
 
+// Hosts whose watch-page URL happens to end in .mp4/.m3u8 but is an HTML page, not a raw
+// video file — <video src="..."> on one of these loads nothing. They need the /e/ (or similar)
+// embed conversion in play() below instead of the direct-stream fast path.
+const WATCH_PAGE_HOSTS = ['streamtape.com'];
+
 function playServer(s) {
   clearAutoSwitchTimer();
   const u = resolveStreamUrl(s.url);
+  const isWatchPage = WATCH_PAGE_HOSTS.some(h => u.includes(h));
   // FebBox (type:'hls') atau URL direct stream
-  const isDirectStream = s.type === 'hls' || s.type === 'm3u8' || s.type === 'mp4'
+  const isDirectStream = !isWatchPage && (s.type === 'hls' || s.type === 'm3u8' || s.type === 'mp4'
     || u.includes('.m3u8') || u.includes('.mp4')
-    || u.includes('shegu.net') || u.includes('hakunaymatata.com');
+    || u.includes('shegu.net') || u.includes('hakunaymatata.com'));
 
   if (isDirectStream) {
     const streamType = s.type || (u.includes('.m3u8') ? 'hls' : 'mp4');
@@ -969,7 +975,9 @@ function play(url) {
   let u = url.trim();
 
   // Jika input adalah direct stream video (.m3u8 atau .mp4), putar langsung via HTML5 Player
-  if (u.includes('.m3u8') || u.includes('.mp4') || u.includes('shegu.net') || u.includes('hakunaymatata.com')) {
+  // — kecuali WATCH_PAGE_HOSTS, yang .mp4/.m3u8-nya cuma bagian nama file di URL halaman HTML
+  if (!WATCH_PAGE_HOSTS.some(h => u.includes(h)) &&
+      (u.includes('.m3u8') || u.includes('.mp4') || u.includes('shegu.net') || u.includes('hakunaymatata.com'))) {
     playDirectStream(u, u.includes('.m3u8') ? 'hls' : 'mp4');
     return;
   }
