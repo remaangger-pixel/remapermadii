@@ -1110,7 +1110,17 @@ function vipApiBase() {
   return isLocal || location.hostname.endsWith('.vercel.app') ? location.origin : 'https://remapermadii.vercel.app';
 }
 
+function hasValidVipSession() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem('adultAccess') || 'null');
+    return !!(s && s.exp > Date.now() && s.token);
+  } catch (e) { return false; }
+}
+
 function openVIP() {
+  // Already unlocked this session (within the 2-hour window) — skip the PIN prompt entirely.
+  if (hasValidVipSession()) { goto('adult.html'); return; }
+
   const backdrop = document.getElementById('vipModalBackdrop');
   const input = document.getElementById('vipPinInput');
   document.getElementById('vipError').classList.remove('show');

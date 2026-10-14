@@ -415,7 +415,7 @@ header {
   <a href="index.html" class="logo">ANVI</a>
   <span class="sep">/</span>
   <span id="navTitle">Memuat…</span>
-  <a href="index.html" class="close-btn">
+  <a href="index.html" class="close-btn" id="closeBtn">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
     Tutup
   </a>
@@ -607,6 +607,8 @@ async function fetchVipItem(table, id) {
   }
 }
 
+let isVipContent = false; // true when this item only loaded via the VIP-gated fallback below
+
 async function init() {
   let data = null, title = '';
   const movieId = params.get('id');
@@ -614,12 +616,20 @@ async function init() {
 
   if (movieId) {
     const r = await sb.from('Movies').select('*').eq('id', movieId).single();
-    data = r.data || await fetchVipItem('Movies', movieId);
+    data = r.data;
+    if (!data) { data = await fetchVipItem('Movies', movieId); isVipContent = !!data; }
     if (data) { title = data.title; document.getElementById('vType').innerText = 'Film'; }
   } else if (episodeId) {
     const r = await sb.from('Episodes').select('*, Series(id, title, thumb, imdb_id)').eq('id', episodeId).single();
-    data = r.data || await fetchVipItem('Episodes', episodeId);
+    data = r.data;
+    if (!data) { data = await fetchVipItem('Episodes', episodeId); isVipContent = !!data; }
     if (data) { title = `${data.Series.title} — Eps ${data.episode}`; document.getElementById('vType').innerText = 'Series'; }
+  }
+
+  if (isVipContent) {
+    const closeBtn = document.getElementById('closeBtn');
+    closeBtn.href = 'adult.html';
+    closeBtn.title = 'Kembali ke VIP Area';
   }
 
   if (!data) {
