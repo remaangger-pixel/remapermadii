@@ -577,6 +577,36 @@ function goto(url) {
   setTimeout(() => location.href = url, 320);
 }
 
+/**
+ * VIP (18+) content is no longer readable with the anon key (see enable_rls.sql) — fetching it
+ * requires a token proving the visitor passed the PIN gate in index.html/adult.html. Try the
+ * normal anon query first (works for every non-VIP item, the overwhelming majority), and only
+ * fall back to the gated /api/vip endpoint when that comes back empty AND a VIP session exists.
+ */
+function vipApiBase() {
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  return isLocal || location.hostname.endsWith('.vercel.app') ? location.origin : 'https://remapermadii.vercel.app';
+}
+
+function getVipSession() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem('adultAccess') || 'null');
+    return (s && s.exp > Date.now() && s.token) ? s : null;
+  } catch (e) { return null; }
+}
+
+async function fetchVipItem(table, id) {
+  const session = getVipSession();
+  if (!session) return null;
+  try {
+    const res = await fetch(`${vipApiBase()}/api/vip?action=get&table=${table}&id=${encodeURIComponent(id)}&exp=${session.exp}&token=${encodeURIComponent(session.token)}`);
+    const body = await res.json();
+    return (res.ok && body.ok) ? body.item : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function init() {
   let data = null, title = '';
   const movieId = params.get('id');
@@ -584,10 +614,12 @@ async function init() {
 
   if (movieId) {
     const r = await sb.from('Movies').select('*').eq('id', movieId).single();
-    if (r.data) { data = r.data; title = r.data.title; document.getElementById('vType').innerText = 'Film'; }
+    data = r.data || await fetchVipItem('Movies', movieId);
+    if (data) { title = data.title; document.getElementById('vType').innerText = 'Film'; }
   } else if (episodeId) {
     const r = await sb.from('Episodes').select('*, Series(id, title, thumb, imdb_id)').eq('id', episodeId).single();
-    if (r.data) { data = r.data; title = `${r.data.Series.title} — Eps ${r.data.episode}`; document.getElementById('vType').innerText = 'Series'; }
+    data = r.data || await fetchVipItem('Episodes', episodeId);
+    if (data) { title = `${data.Series.title} — Eps ${data.episode}`; document.getElementById('vType').innerText = 'Series'; }
   }
 
   if (!data) {

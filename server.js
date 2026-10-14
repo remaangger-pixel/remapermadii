@@ -73,6 +73,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ROUTE 1B: VIP (18+) gate and data access (/api/vip?action=login|list|get)
+  if (pathname === '/api/vip') {
+    require('./api/vip')(req, res);
+    return;
+  }
+
   // ROUTE 2: Static File Serving
   let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
 

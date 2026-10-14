@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIP Area — Anvi Create</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -173,34 +172,43 @@ header {
 </div>
 
 <script>
-const SUPABASE_URL = "https://xvktodveoxnuelhtzaog.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2a3RvZHZlb3hudWVsaHR6YW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3NzEzMjAsImV4cCI6MjA4NTM0NzMyMH0.WUvB6oKtKxxgO-5z0SH8uBUQx9c3Gn6r170qxGeKWTI";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const VIP_PIN_HASH = '8ffe8459134b46975acd31df13a50c51dbeacf1c19a764bf1602ba7c73ffc8fb';
 let vipData = [];
+let vipSession = null; // { exp, token } — issued by the server after a correct PIN (see index.html openVIP())
 
 function goto(url) { document.body.classList.add('fade-out'); setTimeout(() => location.href = url, 320); }
 
-async function sha256Hex(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+function vipApiBase() {
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  return isLocal || location.hostname.endsWith('.vercel.app') ? location.origin : 'https://remapermadii.vercel.app';
 }
 
-async function checkGate() {
+function checkGate() {
   try {
     const session = JSON.parse(sessionStorage.getItem('adultAccess') || 'null');
-    if (session && session.exp > Date.now()) {
-      const expected = await sha256Hex(VIP_PIN_HASH + ':' + session.exp);
-      if (expected === session.tok) return loadAdult();
+    // Local expiry check only; the session token itself is verified server-side on every
+    // /api/vip call, since it's opaque (HMAC-signed server-side) and can't be checked client-side.
+    if (session && session.exp > Date.now() && session.token) {
+      vipSession = session;
+      return loadAdult();
     }
   } catch (e) {}
   goto('index.html');
 }
 
 async function loadAdult() {
-  const { data } = await sb.from('Movies').select('*').eq('is18', true).order('created_at', { ascending: false });
-  vipData = data || [];
-  render(vipData);
+  try {
+    const res = await fetch(`${vipApiBase()}/api/vip?action=list&exp=${vipSession.exp}&token=${encodeURIComponent(vipSession.token)}`);
+    const data = await res.json();
+    if (res.status === 401) { sessionStorage.removeItem('adultAccess'); return goto('index.html'); }
+    if (!res.ok || !data.ok) {
+      document.getElementById('grid').innerHTML = '<p style="color:rgba(255,255,255,0.35);grid-column:1/-1;padding:40px 0">Konten VIP sedang tidak bisa dimuat. Coba lagi beberapa saat lagi.</p>';
+      return;
+    }
+    vipData = data.items || [];
+    render(vipData);
+  } catch (e) {
+    document.getElementById('grid').innerHTML = '<p style="color:rgba(255,255,255,0.35);grid-column:1/-1;padding:40px 0">Gagal memuat konten VIP. Coba lagi.</p>';
+  }
 }
 
 function render(data) {
