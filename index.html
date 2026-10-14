@@ -453,6 +453,90 @@ header.scrolled {
   .top10-num { font-size: 90px; }
   .cw-card { flex: 0 0 200px; }
 }
+
+/* ── VIP PIN MODAL ── */
+.vip-modal-backdrop {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px; opacity: 0; transition: opacity 0.25s ease;
+}
+.vip-modal-backdrop.open { display: flex; }
+.vip-modal-backdrop.show { opacity: 1; }
+.vip-modal {
+  width: 100%; max-width: 360px;
+  background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
+  border: 1px solid rgba(245,197,24,0.25);
+  border-radius: 14px;
+  padding: 36px 30px 28px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  transform: translateY(14px) scale(0.97); opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease;
+}
+.vip-modal-backdrop.show .vip-modal { transform: translateY(0) scale(1); opacity: 1; }
+.vip-modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.06); color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
+}
+.vip-modal-close:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+.vip-modal-crown {
+  width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe27a, var(--gold) 65%, #9a7700 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; box-shadow: 0 8px 24px rgba(245,197,24,0.35);
+}
+.vip-modal h2 {
+  font-family: 'Bebas Neue', sans-serif; letter-spacing: 3px;
+  font-size: 26px; color: var(--gold); margin-bottom: 6px;
+}
+.vip-modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+.vip-pin-input {
+  width: 100%; background: rgba(0,0,0,0.35);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  color: var(--text); text-align: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 22px; font-weight: 700; letter-spacing: 10px;
+  padding: 14px 10px 14px 20px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.vip-pin-input::placeholder { letter-spacing: normal; font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.vip-pin-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,197,24,0.15); }
+.vip-modal.shake .vip-pin-input { border-color: var(--red); animation: vipShake 0.4s ease; }
+@keyframes vipShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+.vip-error {
+  color: var(--red); font-size: 12px; font-weight: 600;
+  min-height: 16px; margin-top: 10px; opacity: 0; transition: opacity 0.2s;
+}
+.vip-error.show { opacity: 1; }
+.vip-submit {
+  width: 100%; margin-top: 20px; padding: 13px;
+  background: linear-gradient(135deg, var(--gold), #d9a60e);
+  border: none; border-radius: 10px; color: #1a1300;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 800;
+  letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.vip-submit:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.vip-submit:disabled { opacity: 0.6; cursor: default; }
+.vip-spinner {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid rgba(26,19,0,0.3); border-top-color: #1a1300;
+  animation: vipSpin 0.7s linear infinite; display: none;
+}
+.vip-submit.loading .vip-spinner { display: inline-block; }
+.vip-submit.loading .vip-submit-label { display: none; }
+@keyframes vipSpin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -1021,23 +1105,94 @@ function handleSearch(q) {
 }
 
 // ── VIP ──
-async function openVIP() {
-  const pin = prompt("Masukkan PIN VIP:");
-  if (pin === null) return;
+function vipApiBase() {
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  return isLocal || location.hostname.endsWith('.vercel.app') ? location.origin : 'https://remapermadii.vercel.app';
+}
+
+function openVIP() {
+  const backdrop = document.getElementById('vipModalBackdrop');
+  const input = document.getElementById('vipPinInput');
+  document.getElementById('vipError').classList.remove('show');
+  input.value = '';
+  backdrop.classList.add('open');
+  requestAnimationFrame(() => backdrop.classList.add('show'));
+  setTimeout(() => input.focus(), 200);
+  document.addEventListener('keydown', onVipKeydown);
+}
+
+function closeVipModal() {
+  const backdrop = document.getElementById('vipModalBackdrop');
+  backdrop.classList.remove('show');
+  setTimeout(() => backdrop.classList.remove('open'), 250);
+  document.removeEventListener('keydown', onVipKeydown);
+}
+
+function onVipKeydown(e) {
+  if (e.key === 'Escape') closeVipModal();
+}
+
+function showVipError(msg) {
+  const errEl = document.getElementById('vipError');
+  errEl.innerText = msg;
+  errEl.classList.add('show');
+  const modal = document.getElementById('vipModal');
+  modal.classList.remove('shake');
+  void modal.offsetWidth;
+  modal.classList.add('shake');
+  const input = document.getElementById('vipPinInput');
+  input.value = '';
+  input.focus();
+}
+
+async function submitVipPin(event) {
+  event.preventDefault();
+  const pin = document.getElementById('vipPinInput').value.trim();
+  if (!pin) return false;
+
+  const btn = document.getElementById('vipSubmitBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  document.getElementById('vipError').classList.remove('show');
+
   try {
-    const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-    const base = isLocal || location.hostname.endsWith('.vercel.app') ? location.origin : 'https://remapermadii.vercel.app';
-    const res = await fetch(`${base}/api/vip?action=login&pin=${encodeURIComponent(pin)}`);
+    const res = await fetch(`${vipApiBase()}/api/vip?action=login&pin=${encodeURIComponent(pin)}`);
     const data = await res.json();
-    if (!res.ok || !data.ok) { alert(data.error || 'PIN salah!'); return; }
+    if (!res.ok || !data.ok) { showVipError(data.error || 'PIN salah, coba lagi.'); return false; }
     sessionStorage.setItem("adultAccess", JSON.stringify({ exp: data.exp, token: data.token }));
+    document.removeEventListener('keydown', onVipKeydown);
     goto("adult.html");
   } catch (e) {
-    alert('Gagal menghubungi server, coba lagi.');
+    showVipError('Gagal menghubungi server, coba lagi.');
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
   }
+  return false;
 }
 
 init();
 </script>
+
+<!-- VIP PIN MODAL -->
+<div class="vip-modal-backdrop" id="vipModalBackdrop" onclick="if(event.target===this) closeVipModal()">
+  <div class="vip-modal" id="vipModal">
+    <button class="vip-modal-close" onclick="closeVipModal()" aria-label="Tutup">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="vip-modal-crown">👑</div>
+    <h2>VIP AREA</h2>
+    <p>Masukkan PIN untuk mengakses konten eksklusif.</p>
+    <form onsubmit="return submitVipPin(event)">
+      <input type="password" inputmode="numeric" autocomplete="off" class="vip-pin-input" id="vipPinInput" placeholder="• • • •" maxlength="12">
+      <div class="vip-error" id="vipError">PIN salah, coba lagi.</div>
+      <button type="submit" class="vip-submit" id="vipSubmitBtn">
+        <span class="vip-spinner"></span>
+        <span class="vip-submit-label">Masuk</span>
+      </button>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>
